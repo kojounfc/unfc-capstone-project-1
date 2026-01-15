@@ -1,4 +1,4 @@
-# Capstone Project – E-commerce Returns Analytics
+# Capstone Project – Profit_Erosion_ecommerce
 
 ## Overview
 This project investigates the operational and financial impact of product returns in e-commerce and evaluates data-driven strategies such as keep-and-refund policies, fulfillment adjustments, and cost optimization.
