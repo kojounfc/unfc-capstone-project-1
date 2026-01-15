@@ -30,4 +30,4 @@ In progress – Winter 2026 Capstone Project (University of Niagara Falls Canada
 - Mario Zamudio (NF1002499) mario.zamudio2499@myunfc.ca 
 - Joseph Kojo Foli (NF1007842) joseph.foli7842@myunfc.ca 
 - Avinash Brandon Maharaj (NF1002706) avinash.maharaj2706@myunfc.ca
-- 
+- Roberto San Miguel (NF100XXXX) roberto.san1332@myunfc.ca
