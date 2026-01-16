@@ -1,33 +1,146 @@
-# Capstone Project – Profit_Erosion_ecommerce
+# Capstone Project – Profit Erosion in E-commerce
 
 ## Overview
-This project investigates the operational and financial impact of product returns in e-commerce and evaluates data-driven strategies such as keep-and-refund policies, fulfillment adjustments, and cost optimization.
 
-## Objectives
-- Identify key drivers of value destruction in product returns  
-- Quantify cost components (processing, logistics, administration)  
-- Evaluate alternative return policies  
-- Provide actionable recommendations using analytics  
+This project investigates **profit erosion driven by product returns** in e-commerce. While much of the existing analytics literature emphasizes return rates or customer satisfaction, our work reframes returns as an economic problem by quantifying:
 
-## Tools & Technologies
-- Python (Pandas, NumPy, Matplotlib, Scikit-learn)
-- Jupyter Notebook  
-- SQL  
-- GitHub  
-- Power BI / Tableau (where applicable)
+- **Margin reversal** on returned items using observed sale price and product cost
+- **Incremental profit erosion** after incorporating return process costs (customer care, inspection, restocking, logistics)
+
+## Problem Statement
+
+Our capstone focuses on profit erosion driven by product returns and post-transaction credits. We aim to:
+1. Quantify margin reversal on returned items
+2. Model incremental profit erosion from return processing costs
+3. Identify customer and product segments with high return exposure
+4. Provide actionable recommendations using analytics
+
+## Data Source
+
+**BigQuery Public Dataset**: `bigquery-public-data.thelook_ecommerce`
+
+### Why This Dataset
+- Publicly available via Google BigQuery (not Kaggle-hosted)
+- Explicit product cost and sale price fields enable direct margin computation
+- Clear item-level return indicators allow identification of economic reversals
+- Customer-level attributes enable behavioral analysis
+
+### Tables Used
+| Table | Description |
+|-------|-------------|
+| `order_items` | Individual items within orders (grain level) |
+| `orders` | Order-level information |
+| `products` | Product catalog with cost and pricing |
+| `users` | Customer demographics and acquisition |
 
 ## Repository Structure
-- `data/` – Raw and cleaned datasets  
-- `notebooks/` – Analysis and modeling  
-- `src/` – Modular Python scripts  
-- `reports/` – Proposal and final report  
-- `figures/` – Charts and visuals  
+
+```
+unfc-capstone-project/
+├── data/
+│   ├── raw/              # Source CSV files from BigQuery (not tracked)
+│   └── processed/        # Merged and engineered parquet files (tracked)
+├── figures/              # Generated charts and visualizations
+├── notebooks/            # Jupyter notebooks for EDA and analysis
+├── reports/              # Project proposal and final report
+├── src/                  # Python modules
+│   ├── __init__.py
+│   ├── config.py         # Configuration constants and paths
+│   ├── data_processing.py # Data loading, cleaning, merging
+│   ├── visualization.py  # Plotting functions
+│   └── modeling.py       # Profit erosion analysis functions
+├── tests/                # Unit tests (pytest)
+├── .gitignore
+├── Branching_Strategy_Capstone.md
+├── CONTRIBUTING.md
+├── README.md
+└── requirements.txt
+```
+
+## Tools & Technologies
+
+- **Python 3.11** (Pandas, NumPy, Matplotlib, Seaborn, Scikit-learn)
+- **Jupyter Notebook** for exploratory analysis
+- **BigQuery** for data extraction
+- **PyArrow** for parquet file handling
+- **pytest** for test-driven development
+- **GitHub** for version control
+- **Power BI / Tableau** for dashboards (where applicable)
+
+## Getting Started
+
+### Prerequisites
+- Python 3.11 or higher
+- Git
+
+### Setup
+
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/your-org/unfc-capstone-project.git
+   cd unfc-capstone-project
+   ```
+
+2. **Create virtual environment**:
+   ```bash
+   python -m venv venv
+   # Windows:
+   venv\Scripts\activate
+   # Linux/Mac:
+   source venv/bin/activate
+   ```
+
+3. **Install dependencies**:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. **Run the analysis**:
+   ```bash
+   jupyter notebook notebooks/the_look_ecom_EDA.ipynb
+   ```
+
+## Usage
+
+### Using the src modules in notebooks:
+
+```python
+# Data processing
+from src.data_processing import load_processed_data, build_analysis_dataset
+
+# Load existing processed data
+df = load_processed_data()
+
+# Or rebuild from raw files
+df = build_analysis_dataset()
+
+# Visualization
+from src.visualization import plot_margin_distribution, plot_return_rate_by_category
+
+plot_margin_distribution(df, returned_only=True)
+plot_return_rate_by_category(df, top_n=15)
+
+# Modeling
+from src.modeling import summarize_profit_erosion, segment_customers_by_return_behavior
+
+summary = summarize_profit_erosion(df)
+customer_segments = segment_customers_by_return_behavior(df)
+```
 
 ## Status
-In progress – Winter 2026 Capstone Project (University of Niagara Falls Canada)
 
-## Author
-- Mario Zamudio (NF1002499) mario.zamudio2499@myunfc.ca 
-- Joseph Kojo Foli (NF1007842) joseph.foli7842@myunfc.ca 
-- Avinash Brandon Maharaj (NF1002706) avinash.maharaj2706@myunfc.ca
-- Roberto San Miguel (NF1001332) roberto.san1332@myunfc.ca
+**In Progress** – Winter 2026 Capstone Project
+University of Niagara Falls Canada
+
+## Team
+
+| Name | Student ID | Email |
+|------|------------|-------|
+| Mario Zamudio | NF1002499 | mario.zamudio2499@myunfc.ca |
+| Joseph Kojo Foli | NF1007842 | joseph.foli7842@myunfc.ca |
+| Avinash Brandon Maharaj | NF1002706 | avinash.maharaj2706@myunfc.ca |
+| Roberto San Miguel | NF1001332 | roberto.san1332@myunfc.ca |
+
+## License
+
+This project is for academic purposes as part of the UNFC Data Analytics Capstone.
