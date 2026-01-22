@@ -161,3 +161,94 @@ The following checks are required before downstream analysis:
 - Validation that `order_items.user_id` aligns with `orders.user_id` for the same `order_id` (spot-check)
 
 These checks will be documented in the profiling notebook and preprocessing pipeline.
+
+---
+
+## Task 4 — Alignment Between Dataset, Research Questions, and Analytical Approach
+
+### Relationship Between Dataset and Research Objectives
+
+This project investigates the drivers and financial implications of product returns in e-commerce and evaluates how alternative policies (e.g., keep-and-refund, fulfillment adjustments) may mitigate profit erosion. The extracted subset of the `thelook_ecommerce` dataset (orders, order_items, products, users) provides the necessary structure to support this investigation.
+
+The dataset supports the project objectives in the following ways:
+
+- **Transaction-level analysis**
+  - `orders` and `order_items` enable reconstruction of purchase and return behavior at both order and item levels.
+  - This supports measurement of return incidence, return timing, and return rates.
+
+- **Financial proxy modeling**
+  - `order_items.sale_price` serves as a revenue proxy.
+  - `products.cost` enables estimation of approximate unit margin.
+  - Combined, these allow construction of proxy metrics such as:
+    - Estimated gross margin per item  
+    - Estimated value lost on returned items  
+    - Product-level profitability risk exposure
+
+- **Behavioral and customer segmentation**
+  - The `users` table provides customer attributes (age, gender, geography, traffic_source) that enable:
+    - Identification of high-return customer segments  
+    - Exploration of acquisition-channel risk (e.g., organic vs paid traffic)  
+    - Cohort-based behavioral analysis
+
+- **Operational lifecycle analysis**
+  - Timestamp fields (`created_at`, `shipped_at`, `delivered_at`, `returned_at`) allow:
+    - Measurement of return latency  
+    - Identification of fast-return vs delayed-return patterns  
+    - Support for operational insights (e.g., logistics or fulfillment risk indicators)
+
+---
+
+### Mapping Dataset Variables to Analytical Questions
+
+The dataset supports several analytical layers aligned with the project’s research questions:
+
+| Analytical Objective | Supporting Tables | Key Variables |
+|----------------------|-------------------|---------------|
+| Return rate analysis | orders, order_items | status, returned_at, created_at |
+| Revenue exposure | order_items | sale_price |
+| Margin proxy modeling | products, order_items | cost, retail_price, sale_price |
+| Product risk profiling | products, order_items | category, brand, department |
+| Customer segmentation | users, orders | age, gender, traffic_source, geography |
+| Behavioral timing analysis | orders, order_items | created_at, shipped_at, delivered_at, returned_at |
+
+This mapping ensures that each analytical component of the project is grounded in observable variables rather than hypothetical constructs.
+
+---
+
+### Feasibility of Planned Modeling Approach
+
+The dataset structure supports implementation of the planned analytical pipeline, including:
+
+- **Exploratory Data Analysis (EDA)**
+  - Distribution of returns by category, customer, channel, and product
+  - Identification of high-risk segments
+
+- **Feature engineering**
+  - Derived features such as:
+    - Time-to-return  
+    - Return frequency per user  
+    - Revenue at risk per product  
+    - Margin proxy per item  
+
+- **Predictive modeling (where applicable)**
+  - Binary classification of return likelihood using engineered features
+  - Risk scoring for products and customers
+
+- **Prescriptive exploration**
+  - Simulation of alternative policies using proxy metrics (e.g., identifying low-margin items where keep-and-refund is economically favorable)
+
+While the dataset does not allow precise real-world profit modeling, it is fully sufficient for demonstrating methodological approaches, pipeline construction, and decision-support logic.
+
+---
+
+### Framing of Results Given Dataset Constraints
+
+All analytical outputs will be framed as:
+
+- Demonstrations of analytical methodology  
+- Evidence of structural patterns within the simulated environment  
+- Proof-of-concept for how such frameworks would operate on real enterprise data  
+
+The project explicitly avoids claiming that numeric outputs represent real-world commercial outcomes. Instead, the value of the work lies in the **design and validation of the analytical framework itself**.
+
+This framing ensures the project remains academically valid while still providing strong practical relevance.
