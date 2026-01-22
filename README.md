@@ -50,10 +50,15 @@ unfc-capstone-project/
 │   ├── visualization.py  # Plotting functions
 │   └── modeling.py       # Profit erosion analysis functions
 ├── tests/                # Unit tests (pytest)
+├── docs/                 # Technical documentation
+├── .github/
+│   └── workflows/
+│       └── ci.yml        # GitHub Actions CI workflow
 ├── .gitignore
 ├── Branching_Strategy_Capstone.md
 ├── CONTRIBUTING.md
 ├── README.md
+├── pytest.ini            # Pytest configuration
 └── requirements.txt
 ```
 
@@ -64,6 +69,7 @@ unfc-capstone-project/
 - **BigQuery** for data extraction
 - **PyArrow** for parquet file handling
 - **pytest** for test-driven development
+- **GitHub Actions** for continuous integration (automated testing on PRs)
 - **GitHub** for version control
 - **Power BI / Tableau** for dashboards (where applicable)
 
@@ -100,6 +106,11 @@ unfc-capstone-project/
    jupyter notebook notebooks/the_look_ecom_EDA.ipynb
    ```
 
+5. **Run tests**:
+   ```bash
+   pytest tests/ -v
+   ```
+
 ## Usage
 
 ### Using the src modules in notebooks:
@@ -126,6 +137,16 @@ from src.modeling import summarize_profit_erosion, segment_customers_by_return_b
 summary = summarize_profit_erosion(df)
 customer_segments = segment_customers_by_return_behavior(df)
 ```
+
+## Continuous Integration
+
+This project uses **GitHub Actions** for automated testing. The CI workflow:
+
+- Runs automatically on all pull requests to `main` and `dev` branches
+- Executes the full test suite using pytest
+- Ensures code quality before merging
+
+Pull requests require passing status checks before the merge button is enabled.
 
 ## Status
 
