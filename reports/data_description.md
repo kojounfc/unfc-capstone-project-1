@@ -153,14 +153,15 @@ To ensure analytical validity given the limitations above, this project will:
 
 ### Data Quality Checks Applied
 
-The following checks are required before downstream analysis:
+The following checks were applied and/or will be enforced prior to downstream analysis to ensure data reliability and transparency:
 
 - Uniqueness of join keys (`order_id`, `id`, `product_id`, `user_id`)
 - Missingness assessment for `returned_at`, `sale_price`, `cost`, and join fields
 - Date parsing and consistency validation for lifecycle timestamps
 - Validation that `order_items.user_id` aligns with `orders.user_id` for the same `order_id` (spot-check)
+- Identification of **temporal inconsistencies**, including cases where `created_at` occurs after `shipped_at` or `delivered_at`, indicating potential artifacts of the synthetic data generation process
 
-These checks will be documented in the profiling notebook and preprocessing pipeline.
+These anomalies will be handled explicitly during preprocessing (e.g., exclusion rules, correction logic, or sensitivity analysis) and documented in the profiling notebook and preprocessing pipeline.
 
 ---
 
