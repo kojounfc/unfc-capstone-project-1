@@ -192,10 +192,13 @@ The dataset supports the project objectives in the following ways:
     - Cohort-based behavioral analysis
 
 - **Operational lifecycle analysis**
-  - Timestamp fields (`created_at`, `shipped_at`, `delivered_at`, `returned_at`) allow:
+  - Timestamp fields (`shipped_at`, `delivered_at`, `returned_at`) support:
     - Measurement of return latency  
     - Identification of fast-return vs delayed-return patterns  
-    - Support for operational insights (e.g., logistics or fulfillment risk indicators)
+    - Support for operational insights (e.g., fulfillment or post-delivery risk indicators)
+
+  - The `created_at` field was originally considered for lifecycle analysis; however, profiling identified approximately **38,000 records** where `created_at` occurs *after* `shipped_at` or `delivered_at`, indicating synthetic generation artifacts.  
+  - As a result, `created_at` is **excluded from downstream timing analysis**, and all lifecycle features will be derived from `shipped_at`, `delivered_at`, and `returned_at` only.
 
 ---
 
@@ -203,14 +206,15 @@ The dataset supports the project objectives in the following ways:
 
 The dataset supports several analytical layers aligned with the project’s research questions:
 
-| Analytical Objective | Supporting Tables | Key Variables |
-|----------------------|-------------------|---------------|
-| Return rate analysis | orders, order_items | status, returned_at, created_at |
-| Revenue exposure | order_items | sale_price |
-| Margin proxy modeling | products, order_items | cost, retail_price, sale_price |
-| Product risk profiling | products, order_items | category, brand, department |
-| Customer segmentation | users, orders | age, gender, traffic_source, geography |
-| Behavioral timing analysis | orders, order_items | created_at, shipped_at, delivered_at, returned_at |
+| Analytical Objective        | Supporting Tables      | Key Variables                                      |
+|-----------------------------|------------------------|----------------------------------------------------|
+| Return rate analysis        | orders, order_items     | status, returned_at                                |
+| Revenue exposure            | order_items             | sale_price                                         |
+| Margin proxy modeling       | products, order_items   | cost, retail_price, sale_price                      |
+| Product risk profiling      | products, order_items   | category, brand, department                        |
+| Customer segmentation       | users, orders           | age, gender, traffic_source, geography             |
+| Behavioral timing analysis  | orders, order_items     | shipped_at, delivered_at, returned_at              |
+
 
 This mapping ensures that each analytical component of the project is grounded in observable variables rather than hypothetical constructs.
 
