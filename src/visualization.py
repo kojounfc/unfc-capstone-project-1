@@ -3,6 +3,8 @@ Visualization module for the Profit Erosion E-commerce Capstone Project.
 
 This module provides plotting functions for EDA and analysis reporting.
 """
+import warnings
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -10,6 +12,13 @@ import seaborn as sns
 from typing import Optional, Tuple
 
 from src.config import FIGURES_DIR, MIN_ROWS_THRESHOLD
+
+
+def _safe_tight_layout():
+    """Apply tight_layout with warning suppression for small figures."""
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", message=".*Tight layout.*")
+        plt.tight_layout()
 
 
 def set_plot_style():
@@ -55,7 +64,7 @@ def plot_status_distribution(
             fontsize=10,
         )
 
-    plt.tight_layout()
+    _safe_tight_layout()
 
     if save_path:
         fig.savefig(save_path, dpi=150, bbox_inches="tight")
@@ -114,7 +123,7 @@ def plot_return_rate_by_category(
             fontsize=9,
         )
 
-    plt.tight_layout()
+    _safe_tight_layout()
 
     if save_path:
         fig.savefig(save_path, dpi=150, bbox_inches="tight")
@@ -162,7 +171,7 @@ def plot_margin_distribution(
     axes[1].set_ylabel("Item Margin ($)")
     axes[1].set_title("Margin Box Plot")
 
-    plt.tight_layout()
+    _safe_tight_layout()
 
     if save_path:
         fig.savefig(save_path, dpi=150, bbox_inches="tight")
@@ -218,7 +227,7 @@ def plot_margin_loss_by_category(
             fontsize=9,
         )
 
-    plt.tight_layout()
+    _safe_tight_layout()
 
     if save_path:
         fig.savefig(save_path, dpi=150, bbox_inches="tight")
@@ -266,7 +275,7 @@ def plot_customer_margin_exposure(
     ax.set_xticks(x)
     ax.set_xticklabels(customer_exposure.index, rotation=45, ha="right")
 
-    plt.tight_layout()
+    _safe_tight_layout()
 
     if save_path:
         fig.savefig(save_path, dpi=150, bbox_inches="tight")
@@ -323,7 +332,7 @@ def plot_return_rate_heatmap(
     )
 
     ax.set_title(f"Return Rate (%) by {row_col} and {col_col}")
-    plt.tight_layout()
+    _safe_tight_layout()
 
     if save_path:
         fig.savefig(save_path, dpi=150, bbox_inches="tight")

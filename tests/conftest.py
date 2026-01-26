@@ -85,6 +85,8 @@ def sample_merged_df(sample_order_items, sample_orders, sample_products, sample_
         "order_id": [101, 101, 102, 103, 103],
         "user_id": [1001, 1001, 1002, 1003, 1003],
         "product_id": [2001, 2002, 2001, 2003, 2002],
+        "product_dim_id": [2001, 2002, 2001, 2003, 2002],
+        "user_dim_id": [1001, 1001, 1002, 1003, 1003],
         "item_status": ["Complete", "Returned", "Complete", "Shipped", "Cancelled"],
         "order_status": ["Complete", "Complete", "Complete", "Shipped", "Shipped"],
         "sale_price": [50.0, 75.0, 50.0, 100.0, 75.0],

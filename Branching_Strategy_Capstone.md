@@ -74,7 +74,24 @@ refactor(config): centralize path constants
 - **No direct commits** to `main` or `dev`
 - All feature branches are merged into `dev` via **Pull Requests (PRs)**
 - At least **one peer review** is required before merging
+- **CI status checks must pass** before merging (automated tests via GitHub Actions)
 - The **Scrum Lead** merges `dev` → `main` after final review
+
+---
+
+## Continuous Integration
+
+Pull requests automatically trigger **GitHub Actions** CI workflow:
+
+1. **Test Execution**: Runs `pytest tests/ -v` on Python 3.11
+2. **Status Check**: PR merge button enabled only when tests pass
+3. **Re-runs**: CI re-runs on every new commit to the PR
+
+```
+PR Created → CI Runs Tests → Tests Pass? → Peer Review → Merge Enabled
+                              ↓ No
+                         Fix Issues → Push Commit → CI Re-runs
+```
 
 ---
 
@@ -106,7 +123,9 @@ git commit -m "feat(modeling): add margin calculation function"
 # Push to remote
 git push origin feat/margin-analysis
 
-# After review, create Pull Request into dev via GitHub
+# After push, create Pull Request into dev via GitHub
+# CI will automatically run tests
+# Wait for tests to pass and peer review before merging
 ```
 
 ### Keeping Branch Updated
