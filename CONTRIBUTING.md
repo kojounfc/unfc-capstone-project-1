@@ -333,13 +333,26 @@ pytest -x
 4. Commit messages follow conventions
 5. Branch is up to date with `dev`
 
+### Continuous Integration
+
+When you create a pull request, **GitHub Actions** automatically:
+
+1. Sets up Python 3.11 environment
+2. Installs all dependencies from `requirements.txt`
+3. Runs the full test suite using pytest
+
+**Important**: The merge button will only be enabled after:
+- All CI status checks pass (tests must pass)
+- At least one peer review approval
+
 ### Review Process
 
 1. **Create PR**: Push your branch and create a pull request to `dev`
-2. **Peer Review**: At least one team member must review your PR
-3. **Address Feedback**: Make requested changes
-4. **Approval**: Once approved, the PR can be merged
-5. **Merge**: Merge the PR into `dev` branch
+2. **CI Runs**: Automated tests run via GitHub Actions
+3. **Peer Review**: At least one team member must review your PR
+4. **Address Feedback**: Make requested changes (CI re-runs on new commits)
+5. **Status Check**: Ensure all tests pass before merging
+6. **Merge**: Once approved and CI passes, the PR can be merged
 
 ### Merge Policy
 
@@ -365,13 +378,18 @@ unfc-capstone-project/
 │   ├── visualization.py  # Plotting functions
 │   └── modeling.py       # Analysis functions
 ├── tests/
-│   ├── __init__.py
+│   ├── conftest.py           # Shared pytest fixtures
 │   ├── test_data_processing.py
 │   ├── test_visualization.py
 │   └── test_modeling.py
+├── docs/                     # Technical documentation
+├── .github/
+│   └── workflows/
+│       └── ci.yml            # GitHub Actions CI workflow
 ├── .gitignore
 ├── CONTRIBUTING.md
 ├── README.md
+├── pytest.ini                # Pytest configuration
 └── requirements.txt
 ```
 
