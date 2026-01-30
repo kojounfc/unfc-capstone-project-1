@@ -46,6 +46,7 @@ unfc-capstone-project/
 ├── src/                  # Python modules
 │   ├── __init__.py
 │   ├── config.py         # Configuration constants and paths
+│   ├── data_cleaning.py  # Data cleaning functions
 │   ├── data_processing.py # Data loading, cleaning, merging
 │   ├── visualization.py  # Plotting functions
 │   └── modeling.py       # Profit erosion analysis functions

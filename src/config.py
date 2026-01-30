@@ -1,6 +1,7 @@
 """
 Configuration constants for the Profit Erosion E-commerce Capstone Project.
 """
+
 from pathlib import Path
 
 # Project root directory
