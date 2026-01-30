@@ -4,9 +4,11 @@ Modeling module for the Profit Erosion E-commerce Capstone Project.
 This module provides analytical functions for profit erosion modeling,
 customer segmentation, and return behavior analysis.
 """
+
+from typing import Dict, Optional, Tuple
+
 import numpy as np
 import pandas as pd
-from typing import Dict, Optional, Tuple
 
 from src.config import MIN_ROWS_THRESHOLD
 
@@ -30,7 +32,7 @@ def calculate_return_rates_by_group(
     result = (
         df.groupby(group_cols)
         .agg(
-            item_rows=("order_item_id", "size"),
+            item_rows=("order_id", "size"),
             returned_items=("is_returned_item", "sum"),
         )
         .assign(return_rate=lambda x: x["returned_items"] / x["item_rows"])
@@ -58,7 +60,7 @@ def calculate_margin_loss_by_group(
         df.loc[df["is_returned_item"] == 1]
         .groupby(group_cols)
         .agg(
-            returned_items=("order_item_id", "count"),
+            returned_items=("order_id", "count"),
             total_lost_sales=("sale_price", "sum"),
             total_lost_margin=("item_margin", "sum"),
             median_margin_per_return=("item_margin", "median"),
@@ -114,7 +116,7 @@ def calculate_customer_margin_exposure(df: pd.DataFrame) -> pd.DataFrame:
         df.loc[df["is_returned_item"] == 1]
         .groupby("user_id")
         .agg(
-            return_events=("order_item_id", "count"),
+            return_events=("order_id", "count"),
             total_lost_margin=("item_margin", "sum"),
             total_lost_sales=("sale_price", "sum"),
             median_margin_per_return=("item_margin", "median"),
@@ -206,7 +208,8 @@ def summarize_profit_erosion(
         "max_single_margin_loss": returned["item_margin"].max(),
         "pct_margin_lost_to_returns": (
             returned["item_margin"].sum() / df["item_margin"].sum()
-        ) * 100,
+        )
+        * 100,
     }
 
     return summary
@@ -242,3 +245,46 @@ def segment_customers_by_return_behavior(
     profile["return_segment"] = np.select(conditions, labels, default="unknown")
 
     return profile
+
+
+def calculate_price_margin_returned_by_country(
+    df: pd.DataFrame,
+) -> pd.DataFrame:
+    """
+    Calculate price, margin, and cost metrics for RETURNED items aggregated by country.
+
+    Filters to show only items with item_status='Returned', then aggregates metrics
+    by country to analyze the economic impact of returns across geographical regions.
+
+    Args:
+        df: DataFrame with order item data including item_status, cost, sale_price,
+            item_margin, and country columns.
+
+    Returns:
+        DataFrame with aggregated metrics per country for returned items only.
+        Returns empty DataFrame if no returned items found.
+    """
+    # Filter for returned items only
+    returned_df = df.loc[df["item_status"] == "Returned"].copy()
+
+    if returned_df.empty:
+        return pd.DataFrame()
+
+    result = (
+        returned_df.groupby("country")
+        .agg(
+            item_count=("order_id", "size"),
+            avg_cost=("cost", "mean"),
+            total_cost=("cost", "sum"),
+            avg_sale_price=("sale_price", "mean"),
+            total_sale_price=("sale_price", "sum"),
+            avg_margin=("item_margin", "mean"),
+            total_margin=("item_margin", "sum"),
+            median_margin=("item_margin", "median"),
+            min_margin=("item_margin", "min"),
+            max_margin=("item_margin", "max"),
+        )
+        .round(2)
+        .sort_values("total_margin", ascending=False)
+    )
+    return result

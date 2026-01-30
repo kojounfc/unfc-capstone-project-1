@@ -1,18 +1,18 @@
 """
 Unit tests for the modeling module.
 """
+
 import numpy as np
 import pandas as pd
 import pytest
 
-from src.modeling import (
-    calculate_return_rates_by_group,
-    calculate_margin_loss_by_group,
-    build_customer_behavior_profile,
-    calculate_customer_margin_exposure,
-    summarize_profit_erosion,
-    segment_customers_by_return_behavior,
-)
+from src.modeling import (build_customer_behavior_profile,
+                          calculate_customer_margin_exposure,
+                          calculate_margin_loss_by_group,
+                          calculate_price_margin_returned_by_country,
+                          calculate_return_rates_by_group,
+                          segment_customers_by_return_behavior,
+                          summarize_profit_erosion)
 
 
 class TestCalculateReturnRatesByGroup:
@@ -128,7 +128,9 @@ class TestSummarizeProfitErosion:
     def test_includes_process_costs(self, sample_merged_df):
         """Test that process costs are included in total erosion."""
         cost_per_return = 15.0
-        result = summarize_profit_erosion(sample_merged_df, cost_per_return=cost_per_return)
+        result = summarize_profit_erosion(
+            sample_merged_df, cost_per_return=cost_per_return
+        )
         # 1 return * $15 = $15
         assert result["estimated_process_costs"] == 15.0
         # Total erosion = margin reversal + process costs
@@ -160,3 +162,155 @@ class TestSegmentCustomersByReturnBehavior:
         """Test that all customers are assigned a segment."""
         result = segment_customers_by_return_behavior(sample_merged_df)
         assert result["return_segment"].notna().all()
+
+
+class TestCalculatePriceMarginReturnedByCountry:
+    """Test cases for calculate_price_margin_returned_by_country function."""
+
+    def test_filters_to_returned_items_only(self, sample_merged_df):
+        """Test that function filters for returned items only."""
+        result = calculate_price_margin_returned_by_country(sample_merged_df)
+
+        # All rows in sample_merged_df should have at least one returned item
+        # Based on sample_merged_df fixture, returned items should be present
+        assert not result.empty
+
+    def test_groups_by_country(self, sample_merged_df):
+        """Test that results are grouped by country."""
+        result = calculate_price_margin_returned_by_country(sample_merged_df)
+
+        # Index should be country
+        assert result.index.name == "country"
+
+    def test_returns_required_columns(self, sample_merged_df):
+        """Test that all required metric columns are present."""
+        result = calculate_price_margin_returned_by_country(sample_merged_df)
+
+        expected_columns = [
+            "item_count",
+            "avg_cost",
+            "total_cost",
+            "avg_sale_price",
+            "total_sale_price",
+            "avg_margin",
+            "total_margin",
+            "median_margin",
+            "min_margin",
+            "max_margin",
+        ]
+
+        for col in expected_columns:
+            assert col in result.columns, f"Missing column: {col}"
+
+    def test_sorted_by_total_margin_descending(self, sample_merged_df):
+        """Test that results are sorted by total_margin in descending order."""
+        result = calculate_price_margin_returned_by_country(sample_merged_df)
+
+        if not result.empty:
+            # Check that total_margin values are in descending order
+            margins = result["total_margin"].values
+            assert all(margins[i] >= margins[i + 1] for i in range(len(margins) - 1))
+
+    def test_numeric_values_rounded_to_two_decimals(self, sample_merged_df):
+        """Test that numeric values are rounded to 2 decimal places."""
+        result = calculate_price_margin_returned_by_country(sample_merged_df)
+
+        # Skip item_count (integer column)
+        numeric_cols = [
+            "avg_cost",
+            "total_cost",
+            "avg_sale_price",
+            "total_sale_price",
+            "avg_margin",
+            "total_margin",
+            "median_margin",
+            "min_margin",
+            "max_margin",
+        ]
+
+        for col in numeric_cols:
+            if not result[col].empty:
+                # Check that values don't have more than 2 decimal places
+                for val in result[col]:
+                    if pd.notna(val):
+                        rounded = round(val, 2)
+                        assert (
+                            val == rounded
+                        ), f"Value {val} not rounded to 2 decimals in column {col}"
+
+    def test_returns_empty_dataframe_when_no_returned_items(self):
+        """Test that empty DataFrame is returned when no returned items exist."""
+        # Create a DataFrame with no returned items
+        df = pd.DataFrame(
+            {
+                "order_id": [1, 2],
+                "item_status": ["Delivered", "Delivered"],
+                "cost": [10.0, 15.0],
+                "sale_price": [20.0, 25.0],
+                "item_margin": [10.0, 10.0],
+                "country": ["US", "US"],
+            }
+        )
+
+        result = calculate_price_margin_returned_by_country(df)
+        assert result.empty
+
+    def test_single_country_aggregation(self):
+        """Test aggregation with single country."""
+        df = pd.DataFrame(
+            {
+                "order_id": [1, 2, 3],
+                "item_status": ["Returned", "Returned", "Returned"],
+                "cost": [10.0, 15.0, 20.0],
+                "sale_price": [20.0, 25.0, 30.0],
+                "item_margin": [10.0, 10.0, 10.0],
+                "country": ["US", "US", "US"],
+            }
+        )
+
+        result = calculate_price_margin_returned_by_country(df)
+
+        assert len(result) == 1
+        assert result.loc["US", "item_count"] == 3
+        assert result.loc["US", "total_cost"] == 45.0
+        assert result.loc["US", "avg_cost"] == 15.0
+
+    def test_multiple_countries_aggregation(self):
+        """Test aggregation with multiple countries."""
+        df = pd.DataFrame(
+            {
+                "order_id": [1, 2, 3, 4],
+                "item_status": ["Returned", "Returned", "Returned", "Returned"],
+                "cost": [10.0, 15.0, 20.0, 25.0],
+                "sale_price": [20.0, 25.0, 30.0, 35.0],
+                "item_margin": [10.0, 10.0, 10.0, 10.0],
+                "country": ["US", "US", "CA", "CA"],
+            }
+        )
+
+        result = calculate_price_margin_returned_by_country(df)
+
+        assert len(result) == 2
+        assert "US" in result.index
+        assert "CA" in result.index
+        assert result.loc["US", "item_count"] == 2
+        assert result.loc["CA", "item_count"] == 2
+
+    def test_excludes_non_returned_items_with_mixed_status(self):
+        """Test that non-returned items are excluded even in mixed-status DataFrame."""
+        df = pd.DataFrame(
+            {
+                "order_id": [1, 2, 3, 4],
+                "item_status": ["Returned", "Delivered", "Returned", "Delivered"],
+                "cost": [10.0, 15.0, 20.0, 25.0],
+                "sale_price": [20.0, 25.0, 30.0, 35.0],
+                "item_margin": [10.0, 10.0, 10.0, 10.0],
+                "country": ["US", "US", "US", "US"],
+            }
+        )
+
+        result = calculate_price_margin_returned_by_country(df)
+
+        # Should only count returned items (1 and 3)
+        assert result.loc["US", "item_count"] == 2
+        assert result.loc["US", "total_cost"] == 30.0  # 10 + 20
