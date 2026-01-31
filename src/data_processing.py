@@ -1,18 +1,25 @@
 """
 Data processing module for the Profit Erosion E-commerce Capstone Project.
 
-This module handles data loading, cleaning, merging, and feature engineering
+This module handles data loading, cleaning, merging, and type standardization
 for the TheLook e-commerce dataset from BigQuery.
+
+NOTE: This module outputs RAW merged data. For feature engineering
+(return flags, margins, profit erosion), use src.feature_engineering.
 """
 
 from pathlib import Path
 from typing import Dict, Optional, Tuple
 
-import numpy as np
 import pandas as pd
 
-from src.config import (DATETIME_COLS, NUMERIC_COLS, PROCESSED_DATA_DIR,
-                        RAW_DATA_DIR, STRING_COLS)
+from src.config import (
+    DATETIME_COLS,
+    NUMERIC_COLS,
+    PROCESSED_DATA_DIR,
+    RAW_DATA_DIR,
+    STRING_COLS,
+)
 
 
 def clean_columns(df: pd.DataFrame) -> pd.DataFrame:
@@ -185,7 +192,8 @@ def merge_datasets(
     )
 
     # Rename order_items columns
-    order_items_renamed = order_items.rename(
+    # Drop user_id from order_items since we'll get it from orders merge
+    order_items_renamed = order_items.drop(columns=["user_id"], errors="ignore").rename(
         columns={
             "id": "order_item_id",
             "shipped_at": "item_shipped_at",
@@ -235,61 +243,6 @@ def merge_datasets(
     return df
 
 
-def engineer_return_features(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Create return-related flags and indicators.
-
-    Args:
-        df: Merged DataFrame.
-
-    Returns:
-        DataFrame with additional return feature columns.
-    """
-    df = df.copy()
-
-    # Return flags
-    df["is_returned_item"] = (df["item_status"].str.lower() == "returned").astype(int)
-    df["is_returned_order"] = (df["order_status"].str.lower() == "returned").astype(int)
-
-    return df
-
-
-def calculate_margins(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Calculate margin and discount metrics for profit erosion analysis.
-
-    Args:
-        df: Merged DataFrame with price and cost columns.
-
-    Returns:
-        DataFrame with margin and discount columns added.
-    """
-    df = df.copy()
-
-    # Ensure numeric types
-    df["retail_price"] = pd.to_numeric(df["retail_price"], errors="coerce")
-    df["sale_price"] = pd.to_numeric(df["sale_price"], errors="coerce")
-    df["cost"] = pd.to_numeric(df["cost"], errors="coerce")
-
-    # Discount metrics
-    df["discount_amount"] = df["retail_price"] - df["sale_price"]
-    df["discount_pct"] = np.where(
-        df["retail_price"] > 0,
-        df["discount_amount"] / df["retail_price"],
-        np.nan,
-    )
-
-    # Margin metrics
-    df["item_margin"] = df["sale_price"] - df["cost"]
-    df["item_margin_pct"] = np.where(
-        df["sale_price"] > 0,
-        df["item_margin"] / df["sale_price"],
-        np.nan,
-    )
-
-    return df
-
-
 def standardize_dtypes(df: pd.DataFrame) -> pd.DataFrame:
     """
     Standardize data types for consistent processing and parquet serialization.
@@ -332,7 +285,11 @@ def build_analysis_dataset(
     save_output: bool = True,
 ) -> pd.DataFrame:
     """
-    Execute the full data pipeline: load, merge, engineer features, and save.
+    Execute the data pipeline: load, merge, standardize types, and save.
+
+    NOTE: This function outputs RAW merged data. Feature engineering
+    (return flags, margins, profit erosion) should be applied separately
+    using functions from src.feature_engineering.
 
     Args:
         raw_dir: Optional path to raw data directory.
@@ -340,7 +297,7 @@ def build_analysis_dataset(
         save_output: Whether to save the output files.
 
     Returns:
-        Fully processed DataFrame ready for analysis.
+        Merged DataFrame with standardized types, ready for feature engineering.
     """
     if output_dir is None:
         output_dir = PROCESSED_DATA_DIR
@@ -354,11 +311,7 @@ def build_analysis_dataset(
     # Standardize data types
     df = standardize_dtypes(df)
 
-    # Engineer features
-    df = engineer_return_features(df)
-    df = calculate_margins(df)
-
-    # Save output
+    # Save output (raw merged data only - no feature engineering)
     if save_output:
         output_dir.mkdir(parents=True, exist_ok=True)
         df.to_parquet(

@@ -372,16 +372,16 @@ unfc-capstone-project/
 ├── notebooks/            # Jupyter notebooks
 ├── reports/              # Project reports
 ├── src/
-│   ├── __init__.py       # Package initialization
-│   ├── config.py         # Configuration constants
-│   ├── data_cleaning.py  # Data cleaning functions
-│   ├── data_processing.py # Data pipeline functions
-│   ├── visualization.py  # Plotting functions
-│   └── modeling.py       # Analysis functions
+│   ├── __init__.py            # Package initialization
+│   ├── config.py              # Configuration constants
+│   ├── data_processing.py     # Data loading, cleaning, merging
+│   ├── feature_engineering.py # Feature creation functions
+│   ├── visualization.py       # Plotting functions
+│   └── modeling.py            # Analysis functions
 ├── tests/
-│   ├── conftest.py           # Shared pytest fixtures
-│   ├── test_data_cleaning.py
+│   ├── conftest.py              # Shared pytest fixtures
 │   ├── test_data_processing.py
+│   ├── test_feature_engineering.py
 │   ├── test_visualization.py
 │   └── test_modeling.py
 ├── docs/                     # Technical documentation
