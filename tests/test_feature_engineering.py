@@ -123,7 +123,7 @@ class TestCalculateMargins:
 
 
 # =============================================================================
-# Task 1: Profit Erosion Tests
+# US06 Task 1: Profit Erosion Tests
 # =============================================================================
 # Note: These functions receive PRE-FILTERED returned items only.
 # The caller is responsible for filtering: df[df["is_returned_item"] == 1]
