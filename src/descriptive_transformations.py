@@ -68,6 +68,7 @@ def _aggregate_profit_erosion(returned_df: pd.DataFrame, group_col: str) -> pd.D
     )
     return out
 
+
 def _validate_return_rate_table(
     df_rates: pd.DataFrame,
     group_col: str,
@@ -174,6 +175,7 @@ def build_product_profit_erosion_metrics(
         "by_department": _build("department"),
     }
 
+
 def build_product_return_behavior_metrics(
     df: pd.DataFrame,
     min_rows: int = 200,
@@ -218,5 +220,77 @@ def build_product_return_behavior_metrics(
     out = {"by_category": by_category, "by_brand": by_brand}
     if by_department is not None:
         out["by_department"] = by_department
+
+    return out
+
+
+def build_customer_profit_erosion_summaries(
+    df: pd.DataFrame,
+    min_returns: int = 1,
+    use_category_tiers: bool = True,
+) -> pd.DataFrame:
+    """
+    US07 #59: Transform customer-level profit erosion summaries.
+
+    Requirements:
+      - Aggregate profit erosion by customer
+      - Compute:
+          * total_profit_erosion
+          * avg_profit_erosion_per_return
+      - Validate aggregation logic
+      - Output customer-level analytical table
+
+    Notes:
+      - Profit erosion is defined on RETURNED ITEMS ONLY, so we filter is_returned_item==1
+        before calling calculate_profit_erosion(). This matches US06 function contract.
+    """
+    _require_columns(
+        df,
+        required=["user_id", "order_id", "is_returned_item", "item_margin"],
+        context="build_customer_profit_erosion_summaries",
+    )
+
+    # A) filter to returned items only (required for calculate_profit_erosion)
+    returned = df[df["is_returned_item"] == 1].copy()
+
+    # If no returns exist, return an empty but well-formed table
+    if returned.empty:
+        return pd.DataFrame(
+            columns=[
+                "user_id",
+                "return_rows",
+                "total_profit_erosion",
+                "avg_profit_erosion_per_return",
+            ]
+        )
+
+    # B) call existing function to compute profit erosion fields
+    returned = calculate_profit_erosion(returned, use_category_tiers=use_category_tiers)
+
+    _require_columns(
+        returned,
+        required=["user_id", "profit_erosion"],
+        context="build_customer_profit_erosion_summaries:post_profit_erosion",
+    )
+
+    # C) aggregate to customer level
+    out = (
+        returned.groupby("user_id")
+        .agg(
+            return_rows=("order_id", "size"),
+            total_profit_erosion=("profit_erosion", "sum"),
+            avg_profit_erosion_per_return=("profit_erosion", "mean"),
+        )
+        .reset_index()
+        .sort_values("total_profit_erosion", ascending=False)
+    )
+
+    # D) enforce minimum returns per customer (validation / sample size filter)
+    out = out[out["return_rows"] >= min_returns].copy()
+
+    # E) validation checks (aggregation sanity)
+    if (out["return_rows"] <= 0).any():
+        bad = out[out["return_rows"] <= 0].head(10)
+        raise ValueError(f"[US07#59] Non-positive return_rows found. Sample:\n{bad}")
 
     return out

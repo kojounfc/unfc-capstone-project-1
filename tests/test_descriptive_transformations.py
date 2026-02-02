@@ -2,7 +2,7 @@ import pandas as pd
 
 from src.data_processing import build_analysis_dataset
 from src.feature_engineering import engineer_return_features, calculate_margins
-from src.descriptive_transformations import build_product_profit_erosion_metrics, build_product_return_behavior_metrics
+from src.descriptive_transformations import build_product_profit_erosion_metrics, build_product_return_behavior_metrics, build_customer_profit_erosion_summaries
 
 
 def test_product_profit_erosion_metrics_runs():
@@ -24,6 +24,7 @@ def test_product_profit_erosion_metrics_runs():
         # erosion summary columns
         assert "total_profit_erosion" in table.columns
 
+
 def test_product_return_behavior_metrics_runs():
     df = build_analysis_dataset()
     df = engineer_return_features(df)
@@ -40,3 +41,17 @@ def test_product_return_behavior_metrics_runs():
         assert "item_rows" in table.columns
         assert "returned_items" in table.columns
         assert "return_rate" in table.columns
+
+
+def test_customer_profit_erosion_summaries_runs():
+    df = build_analysis_dataset()
+    df = engineer_return_features(df)
+    df = calculate_margins(df)
+
+    out = build_customer_profit_erosion_summaries(df, min_returns=1)
+
+    assert isinstance(out, pd.DataFrame)
+    assert "user_id" in out.columns
+    assert "return_rows" in out.columns
+    assert "total_profit_erosion" in out.columns
+    assert "avg_profit_erosion_per_return" in out.columns
