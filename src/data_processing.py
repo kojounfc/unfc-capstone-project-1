@@ -175,6 +175,7 @@ def merge_datasets(
 
     orders_renamed = orders.rename(
         columns={
+            "created_at": "order_created_at",
             "shipped_at": "order_shipped_at",
             "delivered_at": "order_delivered_at",
             "returned_at": "order_returned_at",
@@ -182,7 +183,7 @@ def merge_datasets(
         }
     )
 
-    # Rename users.id to avoid collision
+    # Rename users.id and created_at to avoid collisions
     users_renamed = users.rename(
         columns={
             "created_at": "user_created_at",
@@ -196,6 +197,7 @@ def merge_datasets(
     order_items_renamed = order_items.drop(columns=["user_id"], errors="ignore").rename(
         columns={
             "id": "order_item_id",
+            "created_at": "item_created_at",
             "shipped_at": "item_shipped_at",
             "delivered_at": "item_delivered_at",
             "returned_at": "item_returned_at",
@@ -212,6 +214,7 @@ def merge_datasets(
             [
                 "order_id",
                 "user_id",
+                "order_created_at",
                 "order_status",
                 "order_shipped_at",
                 "order_delivered_at",

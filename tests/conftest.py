@@ -127,6 +127,12 @@ def sample_merged_df(sample_order_items, sample_orders, sample_products, sample_
                 ["2024-01-04", "2024-01-04", "2024-01-05", None, None]
             ),
             "country": ["USA", "USA", "USA", "Canada", "Canada"],
+            "order_created_at": pd.to_datetime(
+                ["2024-01-01", "2024-01-01", "2024-01-02", "2024-01-03", "2024-01-03"]
+            ),
+            "user_created_at": pd.to_datetime(
+                ["2023-01-01", "2023-01-01", "2023-06-01", "2023-12-01", "2023-12-01"]
+            ),
         }
     )
     return df

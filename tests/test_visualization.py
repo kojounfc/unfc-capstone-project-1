@@ -127,7 +127,7 @@ class TestPlotPriceMarginReturnedByStatusCountry:
     def test_creates_figure_without_error(self, sample_merged_df):
         """Test that function creates figure without raising errors."""
         # Need to create aggregated data first
-        from src.modeling import calculate_price_margin_returned_by_country
+        from src.analytics import calculate_price_margin_returned_by_country
 
         aggregated_df = calculate_price_margin_returned_by_country(sample_merged_df)
 
@@ -147,7 +147,7 @@ class TestPlotPriceMarginReturnedByStatusCountry:
 
     def test_creates_4x2_grid(self, sample_merged_df):
         """Test that function creates correct 4x2 grid of subplots."""
-        from src.modeling import calculate_price_margin_returned_by_country
+        from src.analytics import calculate_price_margin_returned_by_country
 
         aggregated_df = calculate_price_margin_returned_by_country(sample_merged_df)
 
@@ -161,7 +161,7 @@ class TestPlotPriceMarginReturnedByStatusCountry:
 
     def test_figure_has_correct_title(self, sample_merged_df):
         """Test that figure has the correct title."""
-        from src.modeling import calculate_price_margin_returned_by_country
+        from src.analytics import calculate_price_margin_returned_by_country
 
         aggregated_df = calculate_price_margin_returned_by_country(sample_merged_df)
 
@@ -178,7 +178,7 @@ class TestPlotPriceMarginReturnedByStatusCountry:
 
     def test_bottom_right_subplot_hidden(self, sample_merged_df):
         """Test that the bottom-right subplot (axes[3, 1]) is hidden."""
-        from src.modeling import calculate_price_margin_returned_by_country
+        from src.analytics import calculate_price_margin_returned_by_country
 
         aggregated_df = calculate_price_margin_returned_by_country(sample_merged_df)
 
@@ -206,7 +206,7 @@ class TestPlotPriceMarginReturnedByStatusCountry:
         """Test that save_path parameter saves figure to file."""
         import os
 
-        from src.modeling import calculate_price_margin_returned_by_country
+        from src.analytics import calculate_price_margin_returned_by_country
 
         aggregated_df = calculate_price_margin_returned_by_country(sample_merged_df)
 

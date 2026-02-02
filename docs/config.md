@@ -230,7 +230,8 @@ def analyze_returns(df):
 |--------|-------|-----------|
 | data_processing.py | Directory and column definitions | RAW_DATA_DIR, DATETIME_COLS, NUMERIC_COLS |
 | data_cleaning.py | Data file locations | PROCESSED_DATA_DIR |
-| modeling.py | Statistical threshold | MIN_ROWS_THRESHOLD |
+| feature_engineering.py | Output directory, cost constants | PROCESSED_DATA_DIR |
+| analytics.py | Statistical threshold | MIN_ROWS_THRESHOLD |
 | visualization.py | Output directory | FIGURES_DIR |
 
 ---
