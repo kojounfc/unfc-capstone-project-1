@@ -294,3 +294,62 @@ def build_customer_profit_erosion_summaries(
         raise ValueError(f"[US07#59] Non-positive return_rows found. Sample:\n{bad}")
 
     return out
+
+
+def build_product_modeling_dataset(product_erosion: dict, product_return_behavior: dict, level: str = "by_category") -> pd.DataFrame:
+    if level not in product_erosion:
+        raise ValueError(f"[US07#60] '{level}' not found in product_erosion")
+
+    if level not in product_return_behavior:
+        raise ValueError(f"[US07#60] '{level}' not found in product_return_behavior")
+
+    erosion_df = product_erosion[level]
+    return_df = product_return_behavior[level]
+
+    join_key_map = {"by_category": "category", "by_brand": "brand", "by_department": "department"}
+    if level not in join_key_map:
+        raise ValueError(f"[US07#60] Unsupported level '{level}'. Use one of {list(join_key_map.keys())}")
+    join_key = join_key_map[level]
+
+    out = erosion_df.merge(return_df, on=join_key, how="inner", suffixes=("_erosion", "_returns"))
+
+    # Standardize return-rate column for modeling
+    if "return_rate_returns" in out.columns:
+        out = out.rename(columns={"return_rate_returns": "return_rate"})
+    if "return_rate_erosion" in out.columns:
+        out = out.drop(columns=["return_rate_erosion"])
+
+    out = out.dropna(subset=["total_profit_erosion"])
+
+    return out
+
+
+def build_customer_modeling_dataset(
+    customer_erosion: pd.DataFrame,
+) -> pd.DataFrame:
+    """
+    US07 #60B: Prepare customer-level analytical dataset for modeling.
+
+    Grain:
+      - 1 row per customer
+
+    Input:
+      - customer_erosion: output of build_customer_profit_erosion_summaries()
+    """
+    required_cols = {
+        "user_id",
+        "return_rows",
+        "total_profit_erosion",
+        "avg_profit_erosion_per_return",
+    }
+
+    missing = required_cols - set(customer_erosion.columns)
+    if missing:
+        raise ValueError(f"[US07#60] Missing required columns: {missing}")
+
+    out = customer_erosion.copy()
+
+    # Optional but useful modeling features
+    out["has_returns"] = (out["return_rows"] > 0).astype(int)
+
+    return out
