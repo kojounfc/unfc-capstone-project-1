@@ -1,5 +1,5 @@
 """
-src/descriptive_transformations.py
+Descriptive Transformations module for the Profit Erosion E-commerce Capstone Project.
 
 US07 Task #57: Product-level profit erosion metrics for RQ1.
 
@@ -21,7 +21,11 @@ from typing import Dict, List
 
 import pandas as pd
 
-from src.analytics import calculate_return_rates_by_group
+from src.analytics import (
+    calculate_brand_return_rates,
+    calculate_category_return_rates,
+    calculate_return_rates_by_group,
+)
 from src.feature_engineering import calculate_profit_erosion
 
 
@@ -63,6 +67,41 @@ def _aggregate_profit_erosion(returned_df: pd.DataFrame, group_col: str) -> pd.D
         .sort_values("total_profit_erosion", ascending=False)
     )
     return out
+
+def _validate_return_rate_table(
+    df_rates: pd.DataFrame,
+    group_col: str,
+    context: str,
+) -> None:
+    """
+    Validate denominator consistency for return-rate outputs.
+    Ensures:
+      - item_rows > 0
+      - 0 <= returned_items <= item_rows
+      - 0 <= return_rate <= 1
+    """
+    _require_columns(
+        df_rates,
+        required=[group_col, "item_rows", "returned_items", "return_rate"],
+        context=context,
+    )
+
+    # Basic checks
+    if (df_rates["item_rows"] <= 0).any():
+        bad = df_rates[df_rates["item_rows"] <= 0].head(10)
+        raise ValueError(f"[{context}] Found non-positive item_rows. Sample:\n{bad}")
+
+    if (df_rates["returned_items"] < 0).any():
+        bad = df_rates[df_rates["returned_items"] < 0].head(10)
+        raise ValueError(f"[{context}] Found negative returned_items. Sample:\n{bad}")
+
+    if (df_rates["returned_items"] > df_rates["item_rows"]).any():
+        bad = df_rates[df_rates["returned_items"] > df_rates["item_rows"]].head(10)
+        raise ValueError(f"[{context}] returned_items exceeds item_rows. Sample:\n{bad}")
+
+    if ((df_rates["return_rate"] < 0) | (df_rates["return_rate"] > 1)).any():
+        bad = df_rates[(df_rates["return_rate"] < 0) | (df_rates["return_rate"] > 1)].head(10)
+        raise ValueError(f"[{context}] return_rate out of [0,1]. Sample:\n{bad}")
 
 
 def build_product_profit_erosion_metrics(
@@ -134,3 +173,50 @@ def build_product_profit_erosion_metrics(
         "by_brand": _build("brand"),
         "by_department": _build("department"),
     }
+
+def build_product_return_behavior_metrics(
+    df: pd.DataFrame,
+    min_rows: int = 200,
+) -> Dict[str, pd.DataFrame]:
+    """
+    US07 #58: Transform product-level return behavior metrics.
+
+    Task requirements:
+      - Aggregate return counts by category, brand
+      - Compute return rates using aggregated counts (done via analytics module)
+      - Validate denominator consistency
+      - Output product-level return behavior summary tables
+
+    Returns:
+      dict with keys:
+        - by_category
+        - by_brand
+        - by_department (optional but useful for consistency with #57)
+    """
+    _require_columns(
+        df,
+        required=["order_id", "is_returned_item", "category", "brand"],
+        context="build_product_return_behavior_metrics",
+    )
+
+    # A) Category return behavior (CALL existing function)
+    by_category = calculate_category_return_rates(df, min_rows=min_rows).reset_index()
+    _validate_return_rate_table(by_category, "category", context="US07#58:category")
+
+    # B) Brand return behavior (CALL existing function)
+    by_brand = calculate_brand_return_rates(df, min_rows=min_rows).reset_index()
+    _validate_return_rate_table(by_brand, "brand", context="US07#58:brand")
+
+    # C) Department is not in analytics wrappers, but #58 only asks category+brand.
+    #    Still, it's often useful for RQ1 context and consistency with #57.
+    by_department = None
+    if "department" in df.columns:
+        dep = calculate_return_rates_by_group(df, ["department"], min_rows=min_rows).reset_index()
+        _validate_return_rate_table(dep, "department", context="US07#58:department")
+        by_department = dep
+
+    out = {"by_category": by_category, "by_brand": by_brand}
+    if by_department is not None:
+        out["by_department"] = by_department
+
+    return out
