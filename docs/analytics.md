@@ -285,6 +285,139 @@ high_risk_items = df[df["category_return_rate"] > 0.15]
 
 ---
 
+## 3A. Descriptive & Group-Level Transformations (US07)
+
+### Purpose
+
+User Story 07 transforms **item-level engineered features** into **analysis-ready aggregated datasets** used for descriptive analysis and downstream modeling.  
+These transformations intentionally separate **feature creation (US06)** from **analytical summarization (US07)** to ensure reproducibility, prevent data leakage, and maintain methodological clarity across research questions.
+
+---
+
+### Input Dependencies
+
+US07 consumes the output of the following pipeline steps:
+
+- `build_analysis_dataset()`
+- `engineer_return_features()`
+- `calculate_margins()`
+- `calculate_profit_erosion()`
+
+All transformations operate on a **fully denormalized, order-item–level dataset**.
+
+---
+
+### Task #57 – Product-Level Profit Erosion Metrics (RQ1)
+
+**Function:** `build_product_profit_erosion_metrics()`
+
+**Purpose:**  
+Aggregate item-level profit erosion into interpretable **product-group summaries**.
+
+**Aggregation Levels:**
+- Category  
+- Brand  
+- Department  
+
+**Core Metrics:**
+
+| Metric | Description |
+|------|-------------|
+| item_rows | Total item count per group |
+| returned_items | Number of returned items |
+| return_rate | returned_items / item_rows |
+| total_profit_erosion | Total margin loss due to returns |
+| avg_profit_erosion | Mean erosion per item |
+| median_profit_erosion | Median erosion per item |
+
+**Analytical Value:**  
+Supports **RQ1 (product-level profit erosion drivers)** by enabling hypothesis testing and descriptive comparisons across product dimensions without introducing customer-level bias.
+
+---
+
+### Task #58 – Product-Level Return Behavior Metrics
+
+**Function:** `build_product_return_behavior_metrics()`
+
+**Purpose:**  
+Summarize **return behavior propensity** independently from financial impact.
+
+**Outputs:**
+- Category-level return rates
+- Brand-level return rates
+- Optional department-level return rates
+
+**Design Notes:**
+- Validates minimum sample sizes per group
+- Ensures consistent denominators to avoid aggregation bias
+- Explicitly separated from profit erosion calculations
+
+**Analytical Value:**  
+Provides behavioral context used for modeling joins and explanatory analysis.
+
+---
+
+### Task #59 – Customer-Level Profit Erosion Summaries (RQ2–RQ4)
+
+**Function:** `build_customer_profit_erosion_summaries()`
+
+**Purpose:**  
+Aggregate profit erosion at the **customer level** to support segmentation and predictive modeling.
+
+**Key Outputs:**
+
+| Column | Description |
+|------|-------------|
+| return_rows | Number of returned items |
+| total_profit_erosion | Total margin loss due to returns |
+| avg_profit_erosion_per_return | Mean erosion per return event |
+
+**Analytical Value:**  
+Creates a stable customer-grain analytical table used for:
+- Customer segmentation (RQ2)
+- Binary classification (RQ3)
+- Regression modeling (RQ4)
+
+---
+
+### Task #60 – Modeling Dataset Assembly
+
+**Function:** `build_product_modeling_dataset()`
+
+**Purpose:**  
+Prepare **model-ready analytical datasets** by joining:
+- Product-level profit erosion summaries (Task #57)
+- Product-level return behavior metrics (Task #58)
+
+**Design Decisions:**
+- Explicit aggregation level control (`by_category`, `by_brand`, `by_department`)
+- Standardized `return_rate` column for modeling consistency
+- Defensive schema validation prior to joins
+- No file outputs or side effects
+
+**Output:**  
+A clean, single-table dataset suitable for regression analysis, feature importance evaluation, and predictive modeling workflows.
+
+---
+
+### Reproducibility & Validation
+
+All US07 transformations:
+- Are deterministic
+- Are validated using `pytest`
+- Enforce schema checks before aggregation and joins
+- Do not write files during execution
+
+---
+
+### Relationship to Other Tasks
+
+- **US06:** Feature engineering (input layer)
+- **US07:** Descriptive aggregation and modeling preparation
+- **US08+:** Visualization, modeling, and inference
+
+---
+
 ## 4. Temporal Features (Task 4)
 
 ### 4.1 engineer_temporal_features()
