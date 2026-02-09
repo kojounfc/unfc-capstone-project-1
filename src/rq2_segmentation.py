@@ -45,6 +45,14 @@ def build_customer_segmentation_table(
 
     - Left-join keeps all customers present in customer_behavior.
     - Numeric erosion columns that are missing become 0 (customers with no returns).
+
+    Args:
+        customer_behavior: Customer-level behavioral feature table.
+        customer_erosion: Customer-level profit erosion table.
+        id_col: Customer identifier column shared by both tables.
+
+    Returns:
+        Merged customer-level table with behavioral and erosion features.
     """
     _require_columns(
         customer_behavior,
@@ -78,6 +86,11 @@ def select_numeric_features(
     If feature_cols is None:
         use all numeric columns except id_col.
 
+    Args:
+        customer_df: Customer-level table containing candidate feature columns.
+        id_col: Customer identifier column to exclude from features.
+        feature_cols: Optional list of explicit feature columns to use.
+
     Returns:
         X (DataFrame of selected features), used_cols (list)
     """
@@ -105,6 +118,12 @@ def standardize_features(X: pd.DataFrame) -> np.ndarray:
     """
     Standardize features to zero mean / unit variance.
     Returns a numpy array suitable for clustering.
+
+    Args:
+        X: DataFrame of numeric feature columns.
+
+    Returns:
+        Standardized feature matrix as a NumPy array.
     """
     scaler = StandardScaler()
     return scaler.fit_transform(X.to_numpy())
@@ -117,6 +136,14 @@ def kmeans_fit_predict(
 ) -> np.ndarray:
     """
     Fit KMeans and return labels (deterministic with random_state).
+
+    Args:
+        X_scaled: Standardized feature matrix.
+        k: Number of clusters to fit.
+        random_state: Random seed for reproducible clustering.
+
+    Returns:
+        NumPy array of cluster labels.
     """
     if k < 2:
         raise ValueError("k must be >= 2")
@@ -220,6 +247,14 @@ def elbow_inertia_over_k(
 ) -> pd.DataFrame:
     """
     Compute inertia values for a list of k (elbow diagnostic).
+
+    Args:
+        X_scaled: Standardized feature matrix.
+        k_list: List of k values to evaluate.
+        random_state: Random seed for reproducibility.
+
+    Returns:
+        DataFrame with columns [k, inertia].
     """
     rows = []
     for k in k_list:
@@ -238,6 +273,14 @@ def silhouette_over_k(
 ) -> pd.DataFrame:
     """
     Compute silhouette scores for a list of k (k must be >= 2).
+
+    Args:
+        X_scaled: Standardized feature matrix.
+        k_list: List of k values to evaluate.
+        random_state: Random seed for reproducibility.
+
+    Returns:
+        DataFrame with columns [k, silhouette].
     """
     rows = []
     for k in k_list:
@@ -258,12 +301,15 @@ def clustering_metrics_over_k(
     """
     Compute k-means quality diagnostics for each k in k_list.
 
-    Returns a DataFrame with columns:
-    - k
-    - inertia
-    - silhouette (NaN for k=1)
-    - calinski_harabasz (NaN for k=1)
-    - davies_bouldin (NaN for k=1)
+    Args:
+        X_scaled: Standardized feature matrix.
+        k_list: List of k values to evaluate.
+        random_state: Random seed for reproducibility.
+        n_init: Number of KMeans initializations or "auto".
+
+    Returns:
+        DataFrame with columns: k, inertia, silhouette, calinski_harabasz,
+        and davies_bouldin.
     """
     rows = []
 
@@ -299,6 +345,13 @@ def compute_clustering_quality_metrics(
 
     Returns a dict with silhouette, calinski_harabasz, davies_bouldin.
     For <2 unique clusters, all metrics are NaN.
+
+    Args:
+        X_scaled: Standardized feature matrix.
+        labels: Cluster labels for each sample.
+
+    Returns:
+        Dictionary containing silhouette, calinski_harabasz, and davies_bouldin.
     """
     unique_labels = np.unique(labels)
     if len(unique_labels) < 2:

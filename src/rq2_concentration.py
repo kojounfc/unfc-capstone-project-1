@@ -18,6 +18,14 @@ def compute_pareto_table(
 ) -> pd.DataFrame:
     """
     Build an enhanced Pareto-style table with business categories.
+
+    Args:
+        df: Customer-level DataFrame containing identifier and value columns.
+        value_col: Column containing the concentration metric values.
+        id_col: Customer identifier column.
+
+    Returns:
+        DataFrame sorted by value with cumulative shares and categories.
     """
     if df.empty:
         return pd.DataFrame()
@@ -51,6 +59,13 @@ def gini_coefficient(
 ) -> float:
     """
     Compute the Gini coefficient with improved handling for negative values.
+
+    Args:
+        df: Customer-level DataFrame containing the concentration value column.
+        value_col: Column containing the concentration metric values.
+
+    Returns:
+        Gini coefficient as a float in [0, 1] for non-negative distributions.
     """
     if df.empty:
         return 0.0
@@ -78,6 +93,14 @@ def top_n_customer_impact(
     """
     IMPROVEMENT: Specific helper for stakeholder reporting.
     Calculates the absolute and relative impact of the 'N' worst offenders.
+
+    Args:
+        df: Customer-level DataFrame containing the value column.
+        n: Number of customers to include in the impact summary.
+        value_col: Column containing the concentration metric values.
+
+    Returns:
+        Dictionary with count, absolute loss, and percentage of total loss.
     """
     top_n = df.nlargest(n, value_col)
     total_impact = top_n[value_col].sum()
@@ -97,6 +120,13 @@ def get_business_summary(
 ) -> dict:
     """
     IMPROVEMENT: High-level summary for the Final Notebook.
+
+    Args:
+        df: Customer-level DataFrame containing the concentration value column.
+        value_col: Column containing the concentration metric values.
+
+    Returns:
+        Dictionary with summary metrics and recommended action level.
     """
     gini = gini_coefficient(df, value_col)
     top_20_pct = top_x_customer_share_of_value(df, 0.20, value_col)
