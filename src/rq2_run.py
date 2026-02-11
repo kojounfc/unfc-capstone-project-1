@@ -59,6 +59,8 @@ from src.feature_engineering import (
     save_feature_engineered_dataset,
 )
 from src.rq2_concentration import (
+    bootstrap_gini_p_value,
+    concentration_comparison,
     compute_pareto_table,
     gini_coefficient,
     lorenz_curve_points,
@@ -228,7 +230,10 @@ def run_rq2(
 
     # 6) Select + standardize features, cluster, diagnostics
     X_df, used_cols = select_numeric_features(
-        seg_table, id_col="user_id", feature_cols=None
+        seg_table,
+        id_col="user_id",
+        feature_cols=None,
+        exclude_leakage_features=True,
     )
     X_scaled = standardize_features(X_df)
 
@@ -285,10 +290,31 @@ def run_rq2(
     meta = {
         "k_used": int(k),
         "feature_columns_used": used_cols,
+        "feature_policy": "behavioral_non_leakage_only",
         "top_x": float(top_x),
         "gini": float(gini),
         "top_x_share_of_erosion": float(top_share),
     }
+
+    # Concentration inference + context
+    gini_bootstrap = bootstrap_gini_p_value(
+        customer_erosion,
+        value_col="total_profit_erosion",
+        n_bootstrap=1000,
+        random_state=42,
+    )
+
+    concentration_comparison_metrics = {}
+    if "total_sales" in seg_table.columns:
+        concentration_comparison_metrics = concentration_comparison(
+            seg_table,
+            erosion_col="total_profit_erosion",
+            baseline_col="total_sales",
+        )
+
+    meta["gini_bootstrap_test"] = gini_bootstrap
+    if concentration_comparison_metrics:
+        meta["concentration_comparison"] = concentration_comparison_metrics
     (out_dir / "rq2_metadata.json").write_text(
         json.dumps(meta, indent=2), encoding="utf-8"
     )

@@ -195,3 +195,72 @@ def top_x_customer_share_of_value(
     # Find the row closest to the x% threshold
     idx = (table["customer_share"] - x).abs().idxmin()
     return float(table.loc[idx, "value_share"])
+
+
+def bootstrap_gini_p_value(
+    df: pd.DataFrame,
+    value_col: str = "total_profit_erosion",
+    n_bootstrap: int = 1000,
+    random_state: int = 42,
+) -> dict:
+    """
+    Test whether observed concentration exceeds a uniform allocation null.
+
+    The null preserves the total value while distributing it uniformly across
+    customers (equal-share baseline), then adds random row permutations to
+    produce a bootstrap null distribution of Gini values.
+
+    Returns:
+        Dict with observed_gini, null_mean_gini, p_value, and n_bootstrap.
+    """
+    if df.empty:
+        return {
+            "observed_gini": 0.0,
+            "null_mean_gini": 0.0,
+            "p_value": 1.0,
+            "n_bootstrap": int(n_bootstrap),
+        }
+
+    vals = pd.to_numeric(df[value_col], errors="coerce").fillna(0.0).to_numpy()
+    n = len(vals)
+    total = float(np.sum(vals))
+
+    observed = gini_coefficient(df, value_col=value_col)
+    if n == 0 or total == 0:
+        return {
+            "observed_gini": float(observed),
+            "null_mean_gini": 0.0,
+            "p_value": 1.0,
+            "n_bootstrap": int(n_bootstrap),
+        }
+
+    equal_share = np.repeat(total / n, n)
+    rng = np.random.default_rng(random_state)
+    null_ginis = []
+    for _ in range(n_bootstrap):
+        shuffled = rng.permutation(equal_share)
+        null_df = pd.DataFrame({value_col: shuffled})
+        null_ginis.append(gini_coefficient(null_df, value_col=value_col))
+
+    null_arr = np.array(null_ginis, dtype=float)
+    p_value = float(np.mean(null_arr >= observed))
+
+    return {
+        "observed_gini": float(observed),
+        "null_mean_gini": float(np.mean(null_arr)),
+        "p_value": float(p_value),
+        "n_bootstrap": int(n_bootstrap),
+    }
+
+
+def concentration_comparison(
+    df: pd.DataFrame,
+    erosion_col: str = "total_profit_erosion",
+    baseline_col: str = "total_sales",
+) -> dict:
+    """Compare erosion concentration against a baseline business distribution."""
+    _require_columns(df, [erosion_col, baseline_col], "concentration_comparison")
+    return {
+        "gini_erosion": float(gini_coefficient(df, value_col=erosion_col)),
+        "gini_baseline": float(gini_coefficient(df, value_col=baseline_col)),
+    }

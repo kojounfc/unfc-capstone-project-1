@@ -34,6 +34,29 @@ from sklearn.preprocessing import StandardScaler
 
 from src.descriptive_transformations import _require_columns
 
+# Default RQ2 feature set intentionally excludes direct erosion outcomes to
+# prevent data leakage when testing downstream erosion differences by segment.
+DEFAULT_SEGMENTATION_FEATURES = [
+    "total_items_purchased",
+    "avg_order_value",
+    "avg_basket_size",
+    "order_frequency",
+    "customer_return_rate",
+    "customer_tenure_days",
+    "purchase_recency_days",
+    "total_sales",
+    "total_margin",
+]
+
+LEAKAGE_FEATURES = {
+    "total_profit_erosion",
+    "total_margin_reversal",
+    "total_processing_cost",
+    "erosion_percentile_rank",
+    "profit_erosion_quartile",
+    "high_erosion_customer",
+}
+
 
 def build_customer_segmentation_table(
     customer_behavior: pd.DataFrame,
@@ -79,34 +102,65 @@ def select_numeric_features(
     customer_df: pd.DataFrame,
     id_col: str = "user_id",
     feature_cols: Optional[List[str]] = None,
+    exclude_leakage_features: bool = True,
 ) -> Tuple[pd.DataFrame, List[str]]:
     """
     Select numeric feature columns for clustering.
 
     If feature_cols is None:
-        use all numeric columns except id_col.
+        prefer the default non-leakage behavioral feature set, falling back
+        to numeric columns (excluding id_col and leakage columns).
 
     Args:
         customer_df: Customer-level table containing candidate feature columns.
         id_col: Customer identifier column to exclude from features.
         feature_cols: Optional list of explicit feature columns to use.
+        exclude_leakage_features: If True, disallow direct erosion-derived
+            leakage features.
 
     Returns:
         X (DataFrame of selected features), used_cols (list)
     """
     df = customer_df.copy()
 
+    leakage_present = sorted(c for c in LEAKAGE_FEATURES if c in df.columns)
+
     if feature_cols is None:
-        used = [
+        default_available = [
             c
-            for c in df.columns
-            if c != id_col and pd.api.types.is_numeric_dtype(df[c])
+            for c in DEFAULT_SEGMENTATION_FEATURES
+            if c in df.columns and pd.api.types.is_numeric_dtype(df[c])
         ]
+
+        if default_available:
+            used = default_available
+        else:
+            used = [
+                c
+                for c in df.columns
+                if c != id_col and pd.api.types.is_numeric_dtype(df[c])
+            ]
+
+        if exclude_leakage_features:
+            used = [c for c in used if c not in LEAKAGE_FEATURES]
     else:
         missing = [c for c in feature_cols if c not in df.columns]
         if missing:
             raise ValueError(f"Missing feature columns: {missing}")
+
+        if exclude_leakage_features:
+            leakage_requested = [c for c in feature_cols if c in LEAKAGE_FEATURES]
+            if leakage_requested:
+                raise ValueError(
+                    "Feature list contains leakage columns: "
+                    f"{sorted(leakage_requested)}"
+                )
         used = feature_cols
+
+    if exclude_leakage_features and not used and leakage_present:
+        raise ValueError(
+            "No valid segmentation features available after leakage exclusion."
+        )
 
     X = df[used].copy()
     X = X.replace([np.inf, -np.inf], np.nan).fillna(0.0)

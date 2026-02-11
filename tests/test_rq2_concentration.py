@@ -2,7 +2,9 @@ import pandas as pd
 import pytest
 
 from src.rq2_concentration import (
+    bootstrap_gini_p_value,
     compute_pareto_table,
+    concentration_comparison,
     get_business_summary,
     gini_coefficient,
     lorenz_curve_points,
@@ -96,6 +98,31 @@ class TestRQ2Concentration:
         assert out["concentration_level"] in {"High", "Extreme"}
         assert out["pareto_ratio"].startswith("20% of customers = ")
         assert out["recommendation"] == "Targeted Policy"
+
+    def test_bootstrap_gini_p_value_detects_non_uniform_concentration(self):
+        df = pd.DataFrame(
+            {
+                "user_id": ["a", "b", "c", "d"],
+                "total_profit_erosion": [100.0, 0.0, 0.0, 0.0],
+            }
+        )
+        out = bootstrap_gini_p_value(df, n_bootstrap=100, random_state=7)
+
+        assert out["observed_gini"] > 0.5
+        assert out["null_mean_gini"] == 0.0
+        assert 0.0 <= out["p_value"] <= 1.0
+
+    def test_concentration_comparison_returns_both_ginis(self):
+        df = pd.DataFrame(
+            {
+                "total_profit_erosion": [80.0, 10.0, 5.0, 5.0],
+                "total_sales": [300.0, 250.0, 200.0, 150.0],
+            }
+        )
+
+        out = concentration_comparison(df)
+        assert set(out.keys()) == {"gini_erosion", "gini_baseline"}
+        assert out["gini_erosion"] > out["gini_baseline"]
 
     def test_get_business_summary_moderate_concentration(self):
         df = pd.DataFrame(

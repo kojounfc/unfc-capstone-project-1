@@ -3,6 +3,7 @@ import pandas as pd
 import pytest
 
 from src.rq2_segmentation import (
+    DEFAULT_SEGMENTATION_FEATURES,
     build_customer_segmentation_table,
     clustering_metrics_over_k,
     combined_diagnostics,
@@ -48,6 +49,7 @@ class TestRQ2Segmentation:
                 "user_id": ["1", "2"],
                 "order_frequency": [2, 1],
                 "customer_return_rate": [0.5, 0.0],
+                "total_profit_erosion": [20.0, 10.0],
                 "segment": ["A", "B"],  # non-numeric should be ignored
             }
         )
@@ -55,6 +57,39 @@ class TestRQ2Segmentation:
         assert "user_id" not in cols
         assert set(cols) == {"order_frequency", "customer_return_rate"}
         assert X.shape == (2, 2)
+
+    def test_select_numeric_features_prefers_behavioral_default_set(self):
+        df = pd.DataFrame(
+            {
+                "user_id": ["1", "2"],
+                "total_items_purchased": [3, 4],
+                "avg_order_value": [50.0, 75.0],
+                "customer_return_rate": [0.2, 0.1],
+                "total_sales": [150.0, 300.0],
+                "total_profit_erosion": [25.0, 10.0],
+            }
+        )
+        _, cols = select_numeric_features(df)
+        assert cols == [
+            c for c in DEFAULT_SEGMENTATION_FEATURES if c in df.columns
+        ]
+        assert "total_profit_erosion" not in cols
+
+    def test_select_numeric_features_rejects_explicit_leakage_columns(self):
+        df = pd.DataFrame(
+            {
+                "user_id": ["1", "2"],
+                "order_frequency": [1, 2],
+                "total_profit_erosion": [30.0, 40.0],
+            }
+        )
+
+        with pytest.raises(ValueError, match="leakage"):
+            select_numeric_features(
+                df,
+                feature_cols=["order_frequency", "total_profit_erosion"],
+                exclude_leakage_features=True,
+            )
 
     def test_standardize_features_shape_and_values_finite(self):
         X = pd.DataFrame({"a": [1.0, 2.0, 3.0], "b": [10.0, 20.0, 30.0]})

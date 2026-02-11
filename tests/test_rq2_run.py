@@ -69,12 +69,11 @@ class TestRQ2Run:
             {
                 "user_id": ["u1", "u2"],
                 "order_frequency": [2, 1],
+                "total_sales": [200.0, 150.0],
                 "total_profit_erosion": [70.0, 30.0],
             }
         )
-        X_df = pd.DataFrame(
-            {"order_frequency": [2.0, 1.0], "total_profit_erosion": [70.0, 30.0]}
-        )
+        X_df = pd.DataFrame({"order_frequency": [2.0, 1.0], "total_sales": [200.0, 150.0]})
         X_scaled = np.array([[1.0, 1.0], [-1.0, -1.0]])
         elbow_df = pd.DataFrame({"k": [1, 2], "inertia": [2.0, 0.0]})
         silhouette_df = pd.DataFrame({"k": [2], "silhouette": [0.5]})
@@ -113,17 +112,29 @@ class TestRQ2Run:
         )
         monkeypatch.setattr(
             rq2_run,
-            "build_customer_segmentation_table",
-            lambda *_args, **_kw: seg_table.copy(),
+            "bootstrap_gini_p_value",
+            lambda *_args, **_kw: {
+                "observed_gini": 0.42,
+                "null_mean_gini": 0.0,
+                "p_value": 0.0,
+                "n_bootstrap": 1000,
+            },
         )
         monkeypatch.setattr(
             rq2_run,
-            "select_numeric_features",
-            lambda *_args, **_kw: (
-                X_df.copy(),
-                ["order_frequency", "total_profit_erosion"],
-            ),
+            "concentration_comparison",
+            lambda *_args, **_kw: {"gini_erosion": 0.42, "gini_baseline": 0.2},
         )
+        monkeypatch.setattr(
+            rq2_run,
+            "build_customer_segmentation_table",
+            lambda *_args, **_kw: seg_table.copy(),
+        )
+        def _mock_select_numeric_features(*_args, **_kw):
+            assert _kw.get("exclude_leakage_features") is True
+            return X_df.copy(), ["order_frequency", "total_sales"]
+
+        monkeypatch.setattr(rq2_run, "select_numeric_features", _mock_select_numeric_features)
         monkeypatch.setattr(rq2_run, "standardize_features", lambda _x: X_scaled.copy())
         monkeypatch.setattr(
             rq2_run, "kmeans_fit_predict", lambda *_args, **_kw: np.array([0, 1])
@@ -188,10 +199,10 @@ class TestRQ2Run:
 
         metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
         summary_json = json.loads(summary_path.read_text(encoding="utf-8"))
-        assert metadata["feature_columns_used"] == [
-            "order_frequency",
-            "total_profit_erosion",
-        ]
+        assert metadata["feature_columns_used"] == ["order_frequency", "total_sales"]
+        assert metadata["feature_policy"] == "behavioral_non_leakage_only"
+        assert metadata["gini_bootstrap_test"]["observed_gini"] == 0.42
+        assert metadata["concentration_comparison"]["gini_baseline"] == 0.2
         assert metadata["k_used"] == 2
         assert summary_json["customers"] == 2
         assert summary_json["k_used"] == 2
