@@ -344,3 +344,111 @@ def load_processed_data(file_path: Optional[Path] = None) -> pd.DataFrame:
         file_path = PROCESSED_PARQUET
 
     return pd.read_parquet(file_path)
+
+
+def main():
+    """
+    Main execution function for data processing pipeline.
+    
+    This function:
+    1. Loads raw CSV files from data/raw/
+    2. Merges them into a single dataset
+    3. Standardizes data types
+    4. Engineers return features (is_returned_item, is_returned_order)
+    5. Calculates margins (item_margin, discount_pct)
+    6. Saves processed data to data/processed/
+    
+    Returns:
+        0 on success, 1 on error
+    """
+    print("=" * 70)
+    print("DATA PROCESSING PIPELINE")
+    print("=" * 70)
+    
+    try:
+        # Import feature engineering functions
+        from src.feature_engineering import engineer_return_features, calculate_margins
+        
+        print(f"\nLoading raw data from {RAW_DATA_DIR}...")
+        
+        # Load raw data
+        order_items, orders, products, users = load_raw_data()
+        print(f"  ✓ Loaded {len(order_items):,} order items")
+        print(f"  ✓ Loaded {len(orders):,} orders")
+        print(f"  ✓ Loaded {len(products):,} products")
+        print(f"  ✓ Loaded {len(users):,} users")
+        
+        # Merge datasets
+        print("\nMerging datasets...")
+        df = merge_datasets(order_items, orders, products, users)
+        print(f"  ✓ Merged successfully: {df.shape[0]:,} rows × {df.shape[1]} columns")
+        
+        # Standardize data types
+        print("\nStandardizing data types...")
+        df = standardize_dtypes(df)
+        print(f"  ✓ Data types standardized")
+        
+        # Engineer return features
+        print("\nEngineering return features...")
+        df = engineer_return_features(df)
+        print(f"  ✓ Added is_returned_item (returns: {df['is_returned_item'].sum():,})")
+        print(f"  ✓ Added is_returned_order")
+        
+        # Calculate margins
+        print("\nCalculating margins...")
+        df = calculate_margins(df)
+        print(f"  ✓ Added item_margin (avg: ${df['item_margin'].mean():.2f})")
+        print(f"  ✓ Added discount_pct")
+        
+        # Save output
+        print("\nSaving processed data...")
+        output_dir = PROCESSED_DATA_DIR
+        output_dir.mkdir(parents=True, exist_ok=True)
+        
+        parquet_path = output_dir / "returns_eda_v1.parquet"
+        csv_path = output_dir / "returns_eda_v1.csv"
+        
+        df.to_parquet(parquet_path, index=False, compression="snappy")
+        print(f"  ✓ Saved parquet: {parquet_path}")
+        
+        df.to_csv(csv_path, index=False)
+        print(f"  ✓ Saved CSV: {csv_path}")
+        
+        # Summary
+        print("\n" + "=" * 70)
+        print("PROCESSING COMPLETE!")
+        print("=" * 70)
+        print(f"Output file: {parquet_path}")
+        print(f"Rows: {len(df):,}")
+        print(f"Columns: {len(df.columns)}")
+        print(f"\nKey features created:")
+        print(f"  ✓ is_returned_item ({df['is_returned_item'].sum():,} returns)")
+        print(f"  ✓ is_returned_order")
+        print(f"  ✓ item_margin (range: ${df['item_margin'].min():.2f} to ${df['item_margin'].max():.2f})")
+        print(f"  ✓ discount_pct")
+        print("\nYou can now run:")
+        print("  - python diagnose_data.py (to verify)")
+        print("  - python -m src.rq2_run (for RQ2 analysis)")
+        print("  - Jupyter notebooks (for interactive analysis)")
+        
+        return 0
+        
+    except FileNotFoundError as e:
+        print(f"\n❌ ERROR: File not found")
+        print(f"  {e}")
+        print(f"\nMake sure you have these CSV files in {RAW_DATA_DIR}:")
+        print(f"  - order_items.csv")
+        print(f"  - orders.csv")
+        print(f"  - products.csv")
+        print(f"  - users.csv")
+        return 1
+        
+    except Exception as e:
+        print(f"\n❌ ERROR: {e}")
+        import traceback
+        traceback.print_exc()
+        return 1
+
+
+if __name__ == "__main__":
+    exit(main())
