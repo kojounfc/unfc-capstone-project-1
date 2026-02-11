@@ -14,6 +14,7 @@ from src.rq2_segmentation import (
     silhouette_over_k,
     standardize_features,
     summarize_clusters,
+    validate_clustering_matrix,
 )
 
 
@@ -42,6 +43,43 @@ class TestRQ2Segmentation:
         cust200 = out[out["user_id"] == "200"].iloc[0]
         assert cust200["total_profit_erosion"] == 0.0
         assert cust200["returned_items"] == 0.0
+
+    def test_build_customer_segmentation_table_rejects_overlapping_columns(self):
+        behavior = pd.DataFrame(
+            {
+                "user_id": ["100", "200"],
+                "order_frequency": [2, 1],
+                "total_sales": [100.0, 200.0],
+            }
+        )
+        erosion = pd.DataFrame(
+            {
+                "user_id": ["100", "200"],
+                "total_sales": [10.0, 20.0],
+                "total_profit_erosion": [4.0, 5.0],
+            }
+        )
+
+        with pytest.raises(ValueError, match="overlap"):
+            build_customer_segmentation_table(behavior, erosion)
+
+    def test_build_customer_segmentation_table_has_no_merge_suffix_columns(self):
+        behavior = pd.DataFrame(
+            {
+                "user_id": ["100", "200", "300"],
+                "order_frequency": [2, 1, 3],
+            }
+        )
+        erosion = pd.DataFrame(
+            {
+                "user_id": ["100", "300"],
+                "total_profit_erosion": [127.6, 50.0],
+                "returned_items": [2, 1],
+            }
+        )
+
+        out = build_customer_segmentation_table(behavior, erosion)
+        assert not any(col.endswith("_x") or col.endswith("_y") for col in out.columns)
 
     def test_select_numeric_features_default_excludes_id(self):
         df = pd.DataFrame(
@@ -91,11 +129,29 @@ class TestRQ2Segmentation:
                 exclude_leakage_features=True,
             )
 
+    def test_select_numeric_features_excludes_pattern_leakage_columns(self):
+        df = pd.DataFrame(
+            {
+                "user_id": ["1", "2"],
+                "order_frequency": [1, 2],
+                "erosion_score": [0.1, 0.2],
+                "is_high_erosion_customer": [0, 1],
+            }
+        )
+        X, cols = select_numeric_features(df)
+        assert cols == ["order_frequency"]
+        assert list(X.columns) == ["order_frequency"]
+
     def test_standardize_features_shape_and_values_finite(self):
         X = pd.DataFrame({"a": [1.0, 2.0, 3.0], "b": [10.0, 20.0, 30.0]})
         Xs = standardize_features(X)
         assert Xs.shape == (3, 2)
         assert np.isfinite(Xs).all()
+
+    def test_validate_clustering_matrix_raises_on_non_finite_values(self):
+        X = pd.DataFrame({"a": [1.0, np.inf], "b": [2.0, 3.0]})
+        with pytest.raises(ValueError, match="NaN or infinite"):
+            validate_clustering_matrix(X)
 
     def test_kmeans_fit_predict_is_deterministic_with_random_state(self):
         X = pd.DataFrame({"a": [0.0, 0.1, 10.0, 10.1], "b": [0.0, 0.2, 9.9, 10.2]})

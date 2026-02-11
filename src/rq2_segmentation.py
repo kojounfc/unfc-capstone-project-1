@@ -57,6 +57,20 @@ LEAKAGE_FEATURES = {
     "high_erosion_customer",
 }
 
+LEAKAGE_SUBSTRINGS = (
+    "erosion_",
+    "profit_erosion",
+    "is_high_erosion",
+)
+
+
+def _is_leakage_column(col_name: str) -> bool:
+    """Return True when a column name indicates erosion outcome leakage."""
+    normalized = col_name.lower()
+    return normalized in LEAKAGE_FEATURES or any(
+        token in normalized for token in LEAKAGE_SUBSTRINGS
+    )
+
 
 def build_customer_segmentation_table(
     customer_behavior: pd.DataFrame,
@@ -86,7 +100,23 @@ def build_customer_segmentation_table(
         customer_erosion, [id_col], "build_customer_segmentation_table:customer_erosion"
     )
 
+    overlap_cols = [
+        c for c in customer_behavior.columns if c != id_col and c in customer_erosion.columns
+    ]
+    if overlap_cols:
+        raise ValueError(
+            "build_customer_segmentation_table overlap detected; "
+            f"duplicate columns would be created: {sorted(overlap_cols)}"
+        )
+
     df = customer_behavior.merge(customer_erosion, on=id_col, how="left")
+
+    suffix_cols = [c for c in df.columns if c.endswith("_x") or c.endswith("_y")]
+    if suffix_cols:
+        raise ValueError(
+            "build_customer_segmentation_table produced suffixed duplicate columns: "
+            f"{sorted(suffix_cols)}"
+        )
 
     # Fill numeric NaNs with 0.0 (especially erosion columns)
     for col in df.columns:
@@ -123,7 +153,7 @@ def select_numeric_features(
     """
     df = customer_df.copy()
 
-    leakage_present = sorted(c for c in LEAKAGE_FEATURES if c in df.columns)
+    leakage_present = sorted(c for c in df.columns if _is_leakage_column(c))
 
     if feature_cols is None:
         default_available = [
@@ -142,14 +172,14 @@ def select_numeric_features(
             ]
 
         if exclude_leakage_features:
-            used = [c for c in used if c not in LEAKAGE_FEATURES]
+            used = [c for c in used if not _is_leakage_column(c)]
     else:
         missing = [c for c in feature_cols if c not in df.columns]
         if missing:
             raise ValueError(f"Missing feature columns: {missing}")
 
         if exclude_leakage_features:
-            leakage_requested = [c for c in feature_cols if c in LEAKAGE_FEATURES]
+            leakage_requested = [c for c in feature_cols if _is_leakage_column(c)]
             if leakage_requested:
                 raise ValueError(
                     "Feature list contains leakage columns: "
@@ -164,6 +194,7 @@ def select_numeric_features(
 
     X = df[used].copy()
     X = X.replace([np.inf, -np.inf], np.nan).fillna(0.0)
+    validate_clustering_matrix(X)
 
     return X, used
 
@@ -181,6 +212,19 @@ def standardize_features(X: pd.DataFrame) -> np.ndarray:
     """
     scaler = StandardScaler()
     return scaler.fit_transform(X.to_numpy())
+
+
+def validate_clustering_matrix(X: pd.DataFrame) -> None:
+    """Assert that matrix is numeric and finite before scaling/clustering."""
+    if X.empty:
+        raise ValueError("Clustering feature matrix is empty.")
+    if not all(pd.api.types.is_numeric_dtype(X[c]) for c in X.columns):
+        non_numeric = [c for c in X.columns if not pd.api.types.is_numeric_dtype(X[c])]
+        raise ValueError(f"Clustering feature matrix contains non-numeric columns: {non_numeric}")
+
+    arr = X.to_numpy(dtype=float)
+    if not np.isfinite(arr).all():
+        raise ValueError("Clustering feature matrix contains NaN or infinite values.")
 
 
 def kmeans_fit_predict(

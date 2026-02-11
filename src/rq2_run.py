@@ -166,7 +166,7 @@ def build_customer_erosion(item_df: pd.DataFrame) -> pd.DataFrame:
 def run_rq2(
     input_parquet: Optional[Path] = None,
     out_dir: Path = RQ2_OUT_DIR,
-    k: int = 4,
+    k: Optional[int] = None,
     k_min: int = 2,
     k_max: int = 10,
     top_x: float = 0.2,
@@ -237,7 +237,20 @@ def run_rq2(
     )
     X_scaled = standardize_features(X_df)
 
-    labels = kmeans_fit_predict(X_scaled, k=k, random_state=42)
+    selected_k = k
+    if selected_k is None:
+        k_list_sil = list(range(max(2, k_min), max(3, k_max) + 1))
+        silhouette_for_selection = silhouette_over_k(
+            X_scaled, k_list=k_list_sil, random_state=42
+        )
+        selected_k = int(
+            silhouette_for_selection.sort_values(
+                ["silhouette", "k"], ascending=[False, True]
+            )
+            .iloc[0]["k"]
+        )
+
+    labels = kmeans_fit_predict(X_scaled, k=selected_k, random_state=42)
     clustered = seg_table.copy()
     clustered["cluster_id"] = labels.astype(int)
 
@@ -288,7 +301,10 @@ def run_rq2(
 
     # Save metadata (features used)
     meta = {
-        "k_used": int(k),
+        "k_used": int(selected_k),
+        "k_selection_method": (
+            "silhouette_argmax_tiebreak_lowest_k" if k is None else "user_provided"
+        ),
         "feature_columns_used": used_cols,
         "feature_policy": "behavioral_non_leakage_only",
         "top_x": float(top_x),
@@ -373,7 +389,7 @@ def run_rq2(
         gini=float(gini),
         top_x=float(top_x),
         top_x_share_of_erosion=float(top_share),
-        k_used=int(k),
+        k_used=int(selected_k),
     )
 
     (out_dir / "rq2_summary.json").write_text(
@@ -403,7 +419,12 @@ def _parse_args() -> argparse.Namespace:
         default=str(RQ2_OUT_DIR),
         help="Output directory (default: data/processed/rq2).",
     )
-    p.add_argument("--k", type=int, default=4, help="KMeans clusters (default 4).")
+    p.add_argument(
+        "--k",
+        type=int,
+        default=None,
+        help="KMeans clusters (default: auto-select via silhouette).",
+    )
     p.add_argument(
         "--k-min",
         type=int,

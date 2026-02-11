@@ -167,7 +167,7 @@ class TestRQ2Run:
         out_dir = tmp_path / "rq2"
         summary = rq2_run.run_rq2(
             out_dir=out_dir,
-            k=2,
+            k=None,
             k_min=2,
             k_max=2,
             top_x=0.2,
@@ -204,6 +204,7 @@ class TestRQ2Run:
         assert metadata["gini_bootstrap_test"]["observed_gini"] == 0.42
         assert metadata["concentration_comparison"]["gini_baseline"] == 0.2
         assert metadata["k_used"] == 2
+        assert metadata["k_selection_method"] == "silhouette_argmax_tiebreak_lowest_k"
         assert summary_json["customers"] == 2
         assert summary_json["k_used"] == 2
 
@@ -234,6 +235,11 @@ class TestRQ2Run:
         assert args.out_dir == "custom-out"
         assert args.no_plots is True
 
+    def test_parse_args_defaults_to_auto_k(self, monkeypatch):
+        monkeypatch.setattr("sys.argv", ["prog"])
+        args = rq2_run._parse_args()
+        assert args.k is None
+
     def test_main_prints_summary(self, monkeypatch, capsys):
         monkeypatch.setattr(
             rq2_run,
@@ -241,7 +247,7 @@ class TestRQ2Run:
             lambda: argparse.Namespace(
                 input_parquet=None,
                 out_dir="unused",
-                k=4,
+                k=None,
                 k_min=2,
                 k_max=10,
                 top_x=0.2,
@@ -257,7 +263,7 @@ class TestRQ2Run:
                 gini=0.1,
                 top_x=0.2,
                 top_x_share_of_erosion=0.5,
-                k_used=4,
+                k_used=2,
             ),
         )
 

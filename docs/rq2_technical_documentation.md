@@ -7,7 +7,7 @@
 ## 1. Research Question
 
 **RQ2:**  
-*To what extent is profit erosion concentrated among a small subset of customers, and can customers be meaningfully segmented based on behavioral and erosion characteristics?*
+*To what extent is profit erosion concentrated among a small subset of customers, and can customers be meaningfully segmented based on behavioral/value characteristics?*
 
 This research question examines whether return-driven profit erosion is unevenly distributed across customers and whether unsupervised learning can identify behaviorally distinct customer segments associated with differential economic impact.
 
@@ -24,7 +24,7 @@ Although RQ2 is exploratory and descriptive in execution, conceptual hypotheses 
   Customer segments identified through unsupervised clustering exhibit materially different profit erosion profiles.
 
 **Methodological clarification:**  
-The notebook implements both descriptive analysis and statistical validation. While the primary approach is exploratory, significance testing (Kruskal-Wallis/ANOVA), effect size estimation (eta-squared), and stability diagnostics (bootstrap ARI) are included to validate segment differentiation. Results are interpreted in terms of both practical differentiation and statistical evidence of segment-level differences.
+The notebook implements both descriptive analysis and statistical validation. While the primary approach is exploratory, significance testing (Kruskal-Wallis/ANOVA), nonparametric effect size estimation (epsilon-squared when Kruskal-Wallis is used), and stability diagnostics (bootstrap ARI) are included to validate segment differentiation. Results are interpreted in terms of both practical differentiation and statistical evidence of segment-level differences.
 
 ---
 
@@ -44,7 +44,7 @@ RQ2 combines **exploratory analysis with statistical validation**. The analysis 
 - Cluster quality diagnostics (silhouette score, Calinski-Harabasz, Davies-Bouldin)
 - Bootstrap stability testing (Adjusted Rand Index)
 - Statistical significance testing (Kruskal-Wallis H / ANOVA)
-- Effect size quantification (eta-squared)
+- Effect size quantification (epsilon-squared for Kruskal-Wallis; eta-squared for ANOVA)
 - Post-hoc pairwise comparisons (when applicable)
 
 The objective is to generate actionable insights through rigorous exploratory analysis complemented by statistical validation of segment differentiation.
@@ -220,7 +220,7 @@ top_10_share = top_x_customer_share_of_value(
 - **Top 50%:** 82.35% of total profit erosion
 
 **Interpretation:**
-These values confirm Pareto-like behavior: a minority of customers account for the majority of profit erosion. The top 20% of customers drive nearly half of all erosion, supporting the hypothesis of structural concentration.
+These values confirm Pareto-like behavior: a minority of customers account for the majority of profit erosion. The "top 20%" statement refers to Pareto concentration share (not cluster share): the top 20% of customers by erosion drive nearly half of all erosion.
 
 **Output:**
 - Stored in `rq2_comprehensive_summary.json` under `concentration` object
@@ -255,7 +255,7 @@ Behavioral features are engineered via `engineer_customer_behavioral_features()`
 - `customer_return_rate`: Returns ÷ total items purchased
 - `pct_orders_with_returns`: Percentage of orders containing at least one return
 
-**Economic impact features:**
+**Economic impact features (outcomes, excluded from clustering features to prevent leakage):**
 - `total_profit_erosion`: Sum of all profit erosion from returns
 - `avg_profit_erosion_per_return`: Mean erosion per returned item
 - `total_margin_reversal`: Total lost margin from reversed sales
@@ -436,7 +436,7 @@ seg_table['cluster'] = cluster_labels
 **Calinski-Harabasz Index: 14,026.52**
 - Interpretation: High ratio of between-cluster to within-cluster variance
 - Higher values indicate better-defined clusters
-- Confirms strong separation between segments
+- Indicates moderate separation between segments
 
 **Davies-Bouldin Index: 0.5925**
 - Interpretation: Low average cluster similarity
@@ -754,7 +754,7 @@ Features such as `total_items_purchased`, `total_sales`, `avg_order_value`, and 
 **Return behavior features:**
 Features including `return_frequency`, `customer_return_rate`, and `pct_orders_with_returns` are strongly **positive for Cluster 0** and **negative for Cluster 1**, demonstrating that return propensity is a core differentiator.
 
-**Economic impact features:**
+**Economic impact features (outcomes, excluded from clustering features to prevent leakage):**
 Erosion-related features such as `total_profit_erosion`, `total_margin_reversal`, and `total_processing_cost` align almost perfectly with Cluster 0, while Cluster 1 represents low-risk customers across all economic dimensions.
 
 **Risk indicators:**
@@ -861,7 +861,7 @@ Profit erosion exhibits **Pareto-like concentration**, with a minority of custom
 
 1. **Concentration is structural, not random:** Gini coefficient (0.41) and top-20% share (47.6%) confirm that profit erosion is concentrated among a minority of customers.
 
-2. **Segments are statistically distinct:** Kruskal-Wallis test (p < 0.001) and large effect size (η² = 0.535) validate that clusters differ significantly in profit erosion.
+2. **Segments are statistically distinct:** Kruskal-Wallis test (p < 0.001) and material effect size (reported with a test-appropriate metric) validate that clusters differ significantly in profit erosion.
 
 3. **Segmentation is stable and reproducible:** Bootstrap ARI (0.99) demonstrates near-perfect stability across resampled datasets.
 
