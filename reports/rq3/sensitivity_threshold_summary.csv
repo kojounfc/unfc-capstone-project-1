@@ -1,0 +1,7 @@
+threshold,best_auc,f1,precision,recall,positive_rate,n_positive,n_total,n_surviving_features,surviving_features
+0.5,0.9664291413264181,0.8899237933954276,0.9036973344797936,0.8765638031693077,0.5,5994,11988,7,"return_frequency, customer_return_rate, avg_basket_size, avg_order_value, total_items, total_margin, avg_item_price"
+0.6,0.9732829903746446,0.8810975609756098,0.8592666005946482,0.9040667361835245,0.3999833166499833,4795,11988,8,"order_frequency, return_frequency, customer_return_rate, avg_basket_size, avg_order_value, total_items, total_margin, avg_item_price"
+0.7,0.9773341279300756,0.8650427913100724,0.8222778473091364,0.9125,0.30005005005005003,3597,11988,7,"return_frequency, customer_return_rate, avg_basket_size, avg_order_value, total_items, total_margin, avg_item_margin"
+0.75,0.9797921494133728,0.8419429452582884,0.7822349570200573,0.9115191986644408,0.25,2997,11988,7,"return_frequency, customer_return_rate, avg_basket_size, avg_order_value, total_items, total_margin, avg_item_margin"
+0.8,0.9848154544664582,0.8513902205177373,0.7886323268206039,0.925,0.20003336670003335,2398,11988,7,"return_frequency, customer_return_rate, avg_basket_size, avg_order_value, total_items, total_margin, avg_item_margin"
+0.9,0.9878533364226135,0.7862068965517242,0.6705882352941176,0.95,0.10001668335001668,1199,11988,8,"order_frequency, return_frequency, customer_return_rate, avg_basket_size, avg_order_value, total_items, total_margin, avg_item_margin"
