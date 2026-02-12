@@ -380,23 +380,75 @@ Creates a stable customer-grain analytical table used for:
 
 ---
 
-### Task #60 – Modeling Dataset Assembly
+### Task #60 – Modeling Base Dataset Assembly (RQ2–RQ4)
 
-**Function:** `build_product_modeling_dataset()`
+**Module:** `src/model_ready_views.py`
 
 **Purpose:**  
-Prepare **model-ready analytical datasets** by joining:
-- Product-level profit erosion summaries (Task #57)
-- Product-level return behavior metrics (Task #58)
+Freeze **analysis-ready “base datasets”** (no feature selection) that downstream notebooks use for:
+- **RQ2** customer segmentation
+- **RQ3** return classification
+- **RQ4** profit erosion regression
 
-**Design Decisions:**
-- Explicit aggregation level control (`by_category`, `by_brand`, `by_department`)
-- Standardized `return_rate` column for modeling consistency
-- Defensive schema validation prior to joins
-- No file outputs or side effects
+These datasets are intentionally created **after US06 feature engineering** and **after US07 descriptive aggregations** to ensure:
+- consistent grain (customer vs item),
+- consistent targets,
+- leakage controls,
+- deterministic outputs written to `data/processed/`.
 
-**Output:**  
-A clean, single-table dataset suitable for regression analysis, feature importance evaluation, and predictive modeling workflows.
+**Design Rule (Important):**  
+US07 #60 does **not** prune features. Each RQ module performs its own **feature importance / selection** on top of these base datasets.
+
+---
+
+#### Output A — RQ2 Customer Segmentation Base (Customer Grain)
+
+**Function:** `build_rq2_customer_segmentation_base(df)`
+
+**Grain:** 1 row per `user_id`  
+**Core Columns:**
+- `total_items`, `returned_items`, `return_rate`
+- `total_profit_erosion`, `avg_profit_erosion_per_return`
+- customer attributes when present (e.g., `age`, `user_gender`, `country`, `state`, `traffic_source`)
+
+**Saved to:**
+- `data/processed/rq2/rq2_customer_segmentation_base.parquet`
+
+---
+
+#### Output B — RQ3 Return Classification Base (Item Grain)
+
+**Function:** `build_rq3_item_return_classification_base(df)`
+
+**Grain:** 1 row per `order_item_id`  
+**Target:**
+- `is_returned_item` (0/1)
+
+**Leakage Controls:**
+Drops post-outcome columns when present (e.g., return timestamps / status columns).
+
+**Saved to:**
+- `data/processed/rq3/rq3_item_return_classification_base.parquet`
+
+---
+
+#### Output C — RQ4 Profit Erosion Regression Base (Returned Items Only)
+
+**Function:** `build_rq4_returned_item_profit_erosion_base(df)`
+
+**Grain:** 1 row per returned `order_item_id`  
+**Target:**
+- `profit_erosion` (numeric)
+
+**Saved to:**
+- `data/processed/rq4/rq4_returned_item_profit_erosion_base.parquet`
+
+---
+
+### Reproducibility & Output Discipline
+
+- Outputs are deterministic and written **only** to `data/processed/`.
+- No feature pruning occurs in US07 #60; feature selection occurs inside each RQ workflow.
 
 ---
 
