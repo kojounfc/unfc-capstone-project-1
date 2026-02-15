@@ -38,6 +38,93 @@ def _require_columns(df: pd.DataFrame, required: List[str], context: str) -> Non
         )
 
 
+def _ensure_is_returned_item(df: pd.DataFrame, context: str) -> pd.DataFrame:
+    """Ensure `is_returned_item` exists (0/1 int), deriving it if needed.
+
+    Rationale
+    ---------
+    Some processed/joined parquet datasets may not include `is_returned_item`
+    even though they include a return timestamp such as `item_returned_at` or
+    `order_returned_at`. US07 remains CI-safe by deriving a minimal, consistent
+    indicator rather than forcing upstream re-materialization.
+
+    Derivation order:
+      1) item_returned_at not-null
+      2) order_returned_at not-null
+
+    Parameters
+    ----------
+    df:
+        Input dataframe.
+    context:
+        Used in error messages to make failures actionable.
+
+    Returns
+    -------
+    pd.DataFrame
+        A (possibly copied) dataframe containing `is_returned_item` as int 0/1.
+    """
+    if "is_returned_item" in df.columns:
+        # Normalize to 0/1 int where possible
+        out = df.copy()
+        out["is_returned_item"] = out["is_returned_item"].astype(int)
+        return out
+
+    if "item_returned_at" in df.columns:
+        out = df.copy()
+        out["is_returned_item"] = out["item_returned_at"].notna().astype(int)
+        return out
+
+    if "order_returned_at" in df.columns:
+        out = df.copy()
+        out["is_returned_item"] = out["order_returned_at"].notna().astype(int)
+        return out
+
+    raise ValueError(
+        f"[{context}] Cannot derive is_returned_item. "
+        "Expected 'item_returned_at' or 'order_returned_at' to exist."
+    )
+
+
+def _ensure_item_margin(df: pd.DataFrame, context: str) -> pd.DataFrame:
+    """Ensure `item_margin` exists, deriving it if needed.
+
+    Rationale
+    ---------
+    US07 uses `calculate_profit_erosion()`, which expects an `item_margin`
+    input. If the processed dataset doesn't contain it but contains `sale_price`
+    and `cost`, we derive a minimal margin for descriptive use:
+        item_margin = sale_price - cost
+
+    If US06 already generated a more robust margin, US07 will reuse it.
+
+    Parameters
+    ----------
+    df:
+        Input dataframe.
+    context:
+        Used in error messages to make failures actionable.
+
+    Returns
+    -------
+    pd.DataFrame
+        A (possibly copied) dataframe containing `item_margin`.
+    """
+    if "item_margin" in df.columns:
+        return df
+
+    if "sale_price" in df.columns and "cost" in df.columns:
+        out = df.copy()
+        out["item_margin"] = out["sale_price"] - out["cost"]
+        return out
+
+    raise ValueError(
+        f"[{context}] Cannot derive item_margin. "
+        "Expected both 'sale_price' and 'cost' to exist."
+    )
+
+
+
 def _aggregate_profit_erosion(returned_df: pd.DataFrame, group_col: str) -> pd.DataFrame:
     """
     Aggregate profit erosion metrics on returned items only.
@@ -122,12 +209,17 @@ def build_product_profit_erosion_metrics(
       - return-rate context: item_rows, returned_items, return_rate
       - erosion metrics (returned items only): total_profit_erosion, etc.
     """
+    # Ensure US07 can run on processed/joined datasets that may not yet contain
+    # engineered indicators (e.g., is_returned_item, item_margin).
+    df = _ensure_is_returned_item(df, context="build_product_profit_erosion_metrics")
+    df = _ensure_item_margin(df, context="build_product_profit_erosion_metrics")
+
     _require_columns(
         df,
         required=[
             "order_id",
-            "is_returned_item",
-            "item_margin",
+            "sale_price",
+            "cost",
             "category",
             "brand",
             "department",
@@ -195,9 +287,12 @@ def build_product_return_behavior_metrics(
         - by_brand
         - by_department (optional but useful for consistency with #57)
     """
+    # Ensure is_returned_item exists for return-rate calculations.
+    df = _ensure_is_returned_item(df, context="build_product_return_behavior_metrics")
+
     _require_columns(
         df,
-        required=["order_id", "is_returned_item", "category", "brand"],
+        required=["order_id", "category", "brand"],
         context="build_product_return_behavior_metrics",
     )
 
@@ -244,9 +339,14 @@ def build_customer_profit_erosion_summaries(
       - Profit erosion is defined on RETURNED ITEMS ONLY, so we filter is_returned_item==1
         before calling calculate_profit_erosion(). This matches US06 function contract.
     """
+    # Ensure US07 can run on processed/joined datasets that may not yet contain
+    # engineered indicators (e.g., is_returned_item, item_margin).
+    df = _ensure_is_returned_item(df, context="build_customer_profit_erosion_summaries")
+    df = _ensure_item_margin(df, context="build_customer_profit_erosion_summaries")
+
     _require_columns(
         df,
-        required=["user_id", "order_id", "is_returned_item", "item_margin"],
+        required=["user_id", "order_id"],
         context="build_customer_profit_erosion_summaries",
     )
 

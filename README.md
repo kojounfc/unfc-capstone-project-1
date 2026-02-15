@@ -125,6 +125,28 @@ df = load_processed_data()
 
 # Or rebuild from raw files
 df = build_analysis_dataset()
+```
+
+## RQ1 — Return Drivers & Profit Erosion
+
+Run RQ1 artifact generation (writes to `data/processed/rq1/`):
+
+```bash
+python -m src.rq1_run
+```
+
+Run RQ1 statistical tests (reads `rq1_returned_items.parquet` and writes summaries):
+
+```bash
+python -m src.rq1_stats
+```
+
+Generate RQ1 figures (writes to `figures/rq1/`):
+
+```bash
+python -m src.rq1_visuals
+```
+
 
 # Visualization
 from src.visualization import plot_margin_distribution, plot_return_rate_by_category

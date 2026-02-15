@@ -12,6 +12,8 @@ RAW_DATA_DIR = PROJECT_ROOT / "data" / "raw"
 PROCESSED_DATA_DIR = PROJECT_ROOT / "data" / "processed"
 FIGURES_DIR = PROJECT_ROOT / "figures"
 REPORTS_DIR = PROJECT_ROOT / "reports"
+RQ1_PROCESSED_DIR = PROCESSED_DATA_DIR / "rq1"
+RQ1_FIGURES_DIR = FIGURES_DIR / "rq1"
 
 # Raw data files
 RAW_FILES = {
@@ -24,6 +26,8 @@ RAW_FILES = {
 # Processed data files
 PROCESSED_PARQUET = PROCESSED_DATA_DIR / "returns_eda_v1.parquet"
 PROCESSED_CSV = PROCESSED_DATA_DIR / "returns_eda_v1.csv"
+RQ1_PROCESSED_PARQUET = RQ1_PROCESSED_DIR / "returns_eda_v1.parquet"
+RQ1_PROCESSED_CSV = RQ1_PROCESSED_DIR / "returns_eda_v1.csv"
 
 # Date columns for parsing
 DATETIME_COLS = [
