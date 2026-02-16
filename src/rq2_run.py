@@ -68,8 +68,8 @@ from src.feature_engineering import (
 )
 from src.rq2_concentration import (
     bootstrap_gini_p_value,
-    concentration_comparison,
     compute_pareto_table,
+    concentration_comparison,
     gini_coefficient,
     lorenz_curve_points,
     top_x_customer_share_of_value,
@@ -112,7 +112,20 @@ def _plot_line(
     marker: Optional[str] = None,
     add_equality_line: bool = False,
 ) -> None:
-    """Render and save a standard line plot with consistent style."""
+    """
+    Render and save a standard line plot with consistent style.
+
+    Args:
+        df: Source DataFrame for plotting.
+        x_col: Column name used for x-axis values.
+        y_col: Column name used for y-axis values.
+        xlabel: X-axis label text.
+        ylabel: Y-axis label text.
+        title: Plot title.
+        out_path: Destination image path.
+        marker: Optional Matplotlib marker style.
+        add_equality_line: Whether to overlay y=x reference line.
+    """
     out_path.parent.mkdir(parents=True, exist_ok=True)
     set_plot_style()
     fig, ax = plt.subplots()
@@ -135,23 +148,23 @@ def _plot_line(
 def build_customer_erosion(item_df: pd.DataFrame) -> pd.DataFrame:
     """
     Build customer_erosion table using feature_engineering functions.
-    
+
     This function handles both raw and processed data:
     - If data already has 'is_returned_item', uses it directly (processed data)
     - If data has 'item_status', engineers return features first (raw data)
-    
+
     Returned-items only are passed into calculate_profit_erosion (by design).
-    
+
     Args:
         item_df: Item-level DataFrame (raw or processed)
-    
+
     Returns:
         Customer-level erosion table sorted by total_profit_erosion descending
     """
     df = item_df.copy()
 
     # Check if we need to engineer return features
-    if 'is_returned_item' not in df.columns:
+    if "is_returned_item" not in df.columns:
         # Raw data path - requires item_status and order_status
         _require_columns(
             df,
@@ -185,7 +198,7 @@ def build_customer_erosion(item_df: pd.DataFrame) -> pd.DataFrame:
             context="build_customer_erosion (processed data)",
         )
         # Ensure margins exist
-        if 'item_margin' not in df.columns:
+        if "item_margin" not in df.columns:
             df = calculate_margins(df)
 
     returned = df[df["is_returned_item"] == 1].copy()
@@ -219,11 +232,23 @@ def run_rq2(
 ) -> RQ2Summary:
     """
     Run the full RQ2 concentration and segmentation pipeline.
-    
+
     PERFORMANCE OPTIMIZATIONS:
     - Reduced k_max default from 10 to 8 (faster, rarely need k>8 for interpretability)
     - Sampling for silhouette computation on large datasets (>10k samples)
     - Progress indicators for long-running operations
+
+    Args:
+        input_parquet: Optional path to processed input parquet dataset.
+        out_dir: Output directory for generated RQ2 artifacts.
+        k: Optional fixed number of clusters; when None, auto-selected by silhouette.
+        k_min: Minimum k considered during automatic selection.
+        k_max: Maximum k considered during diagnostics.
+        top_x: Top customer fraction used for concentration share metric.
+        make_plots: Whether to generate and save diagnostic plots.
+
+    Returns:
+        Structured summary containing core concentration and clustering outputs.
     """
     out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -249,12 +274,17 @@ def run_rq2(
 
     print("Building customer behavioral features...", file=sys.stderr)
     customer_behavior = engineer_customer_behavioral_features(item_df)
-    print(f"✓ Created features for {len(customer_behavior):,} customers", file=sys.stderr)
+    print(
+        f"✓ Created features for {len(customer_behavior):,} customers", file=sys.stderr
+    )
 
     # 3) Customer erosion table
     print("Building customer erosion metrics...", file=sys.stderr)
     customer_erosion = build_customer_erosion(item_df)
-    print(f"✓ Computed erosion for {len(customer_erosion):,} customers with returns", file=sys.stderr)
+    print(
+        f"✓ Computed erosion for {len(customer_erosion):,} customers with returns",
+        file=sys.stderr,
+    )
 
     save_feature_engineered_dataset(
         customer_erosion,
@@ -272,7 +302,10 @@ def run_rq2(
     top_share = top_x_customer_share_of_value(
         customer_erosion, x=top_x, value_col="total_profit_erosion"
     )
-    print(f"✓ Gini coefficient: {gini:.4f}, Top {top_x:.0%} share: {top_share:.1%}", file=sys.stderr)
+    print(
+        f"✓ Gini coefficient: {gini:.4f}, Top {top_x:.0%} share: {top_share:.1%}",
+        file=sys.stderr,
+    )
 
     save_feature_engineered_dataset(
         pareto,
@@ -302,23 +335,31 @@ def run_rq2(
         exclude_leakage_features=True,
     )
     print(f"✓ Selected {len(used_cols)} behavioral features", file=sys.stderr)
-    
+
     X_scaled = standardize_features(X_df)
 
     # OPTIMIZATION: Use sampling for large datasets
     use_sampling = len(X_scaled) > 10000
     if use_sampling:
         print(f"Large dataset detected ({len(X_scaled):,} samples)", file=sys.stderr)
-        print("Using sampling (5,000 samples) for silhouette computation...", file=sys.stderr)
+        print(
+            "Using sampling (5,000 samples) for silhouette computation...",
+            file=sys.stderr,
+        )
         np.random.seed(42)
-        sample_idx = np.random.choice(len(X_scaled), size=min(5000, len(X_scaled)), replace=False)
+        sample_idx = np.random.choice(
+            len(X_scaled), size=min(5000, len(X_scaled)), replace=False
+        )
         X_sample = X_scaled[sample_idx]
     else:
         X_sample = X_scaled
 
     selected_k = k
     if selected_k is None:
-        print(f"Auto-selecting k using silhouette score (k range: {k_min}-{k_max})...", file=sys.stderr)
+        print(
+            f"Auto-selecting k using silhouette score (k range: {k_min}-{k_max})...",
+            file=sys.stderr,
+        )
         k_list_sil = list(range(max(2, k_min), k_max + 1))
         silhouette_for_selection = silhouette_over_k(
             X_sample, k_list=k_list_sil, random_state=42
@@ -326,8 +367,7 @@ def run_rq2(
         selected_k = int(
             silhouette_for_selection.sort_values(
                 ["silhouette", "k"], ascending=[False, True]
-            )
-            .iloc[0]["k"]
+            ).iloc[0]["k"]
         )
         print(f"✓ Selected k={selected_k}", file=sys.stderr)
 
@@ -425,7 +465,7 @@ def run_rq2(
     meta["gini_bootstrap_test"] = gini_bootstrap
     if concentration_comparison_metrics:
         meta["concentration_comparison"] = concentration_comparison_metrics
-        
+
     (out_dir / "rq2_metadata.json").write_text(
         json.dumps(meta, indent=2), encoding="utf-8"
     )
@@ -498,7 +538,12 @@ def run_rq2(
 
 
 def _parse_args() -> argparse.Namespace:
-    """Parse CLI arguments for the RQ2 runner."""
+    """
+    Parse CLI arguments for the RQ2 runner.
+
+    Returns:
+        Parsed CLI argument namespace.
+    """
     p = argparse.ArgumentParser(
         description="Run RQ2 concentration + segmentation pipeline (optimized)."
     )
@@ -530,10 +575,10 @@ def _parse_args() -> argparse.Namespace:
         help="Min k for silhouette diagnostic (default 2).",
     )
     p.add_argument(
-        "--k-max", 
-        type=int, 
+        "--k-max",
+        type=int,
         default=8,  # OPTIMIZED: Changed from 10 to 8
-        help="Max k for diagnostics (default 8, optimized for performance)."
+        help="Max k for diagnostics (default 8, optimized for performance).",
     )
     p.add_argument(
         "--top-x",
@@ -546,7 +591,12 @@ def _parse_args() -> argparse.Namespace:
 
 
 def main() -> None:
-    """CLI entrypoint for running RQ2 end-to-end."""
+    """
+    Run the RQ2 pipeline from CLI arguments and print summary output.
+
+    Returns:
+        None.
+    """
     args = _parse_args()
     summary = run_rq2(
         input_parquet=Path(args.input_parquet) if args.input_parquet else None,

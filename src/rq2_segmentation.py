@@ -25,6 +25,7 @@ from typing import List, Optional, Tuple
 import numpy as np
 import pandas as pd
 from sklearn.cluster import KMeans
+from sklearn.feature_selection import VarianceThreshold
 from sklearn.metrics import (
     calinski_harabasz_score,
     davies_bouldin_score,
@@ -65,7 +66,15 @@ LEAKAGE_SUBSTRINGS = (
 
 
 def _is_leakage_column(col_name: str) -> bool:
-    """Return True when a column name indicates erosion outcome leakage."""
+    """
+    Determine whether a column name indicates outcome leakage.
+
+    Args:
+        col_name: Candidate feature column name.
+
+    Returns:
+        True if the column appears to encode erosion outcomes; otherwise False.
+    """
     normalized = col_name.lower()
     return normalized in LEAKAGE_FEATURES or any(
         token in normalized for token in LEAKAGE_SUBSTRINGS
@@ -101,7 +110,9 @@ def build_customer_segmentation_table(
     )
 
     overlap_cols = [
-        c for c in customer_behavior.columns if c != id_col and c in customer_erosion.columns
+        c
+        for c in customer_behavior.columns
+        if c != id_col and c in customer_erosion.columns
     ]
     if overlap_cols:
         raise ValueError(
@@ -215,12 +226,22 @@ def standardize_features(X: pd.DataFrame) -> np.ndarray:
 
 
 def validate_clustering_matrix(X: pd.DataFrame) -> None:
-    """Assert that matrix is numeric and finite before scaling/clustering."""
+    """
+    Validate that a clustering feature matrix is numeric and finite.
+
+    Args:
+        X: Feature matrix to validate before scaling and clustering.
+
+    Raises:
+        ValueError: If matrix is empty, non-numeric, NaN, or infinite.
+    """
     if X.empty:
         raise ValueError("Clustering feature matrix is empty.")
     if not all(pd.api.types.is_numeric_dtype(X[c]) for c in X.columns):
         non_numeric = [c for c in X.columns if not pd.api.types.is_numeric_dtype(X[c])]
-        raise ValueError(f"Clustering feature matrix contains non-numeric columns: {non_numeric}")
+        raise ValueError(
+            f"Clustering feature matrix contains non-numeric columns: {non_numeric}"
+        )
 
     arr = X.to_numpy(dtype=float)
     if not np.isfinite(arr).all():
@@ -513,3 +534,252 @@ def combined_diagnostics(
     silhouette_df = pd.DataFrame(sil_rows)
 
     return elbow_df, silhouette_df
+
+
+def screen_clustering_features(
+    X: pd.DataFrame,
+    variance_threshold: float = 0.01,
+    correlation_threshold: float = 0.85,
+    variance_ratio_limit: float = 10.0,
+    verbose: bool = True,
+) -> Tuple[List[str], pd.DataFrame]:
+    """
+    Feature screening specifically for clustering (unsupervised).
+
+    Unlike supervised screening, this does NOT use target variable.
+    Instead, it focuses on:
+    1. Removing low-variance features (uninformative)
+    2. Removing highly correlated features (redundant)
+
+    Args:
+        X: Feature matrix (all candidate features)
+        variance_threshold: Minimum variance threshold (default 0.01)
+        correlation_threshold: Max correlation before dropping (default 0.85)
+        verbose: Print screening progress
+
+    Returns:
+        Tuple of (surviving_features, screening_report_df)
+    """
+    all_features = list(X.columns)
+    n_features = len(all_features)
+    report_rows = []
+
+    if verbose:
+        print(f"Starting feature screening: {n_features} candidates")
+        print(f"{'='*80}")
+
+    # =========================================================================
+    # GATE 1: Variance Threshold
+    # =========================================================================
+    if verbose:
+        print("\nGATE 1: Variance Threshold")
+        print(f"{'-'*80}")
+
+    selector = VarianceThreshold(threshold=variance_threshold)
+    selector.fit(X)
+    variances = selector.variances_
+    variance_pass = selector.get_support()
+
+    for i, feat in enumerate(all_features):
+        passed = bool(variance_pass[i])
+        report_rows.append(
+            {
+                "feature": feat,
+                "variance": float(variances[i]),
+                "variance_pass": passed,
+            }
+        )
+        if verbose and not passed:
+            print(
+                f"  ✗ Dropped '{feat}' (variance={variances[i]:.6f} < {variance_threshold})"
+            )
+
+    features_after_variance = [f for f, p in zip(all_features, variance_pass) if p]
+    n_dropped_variance = n_features - len(features_after_variance)
+
+    if verbose:
+        print(
+            f"\n  Result: {len(features_after_variance)}/{n_features} features passed"
+        )
+        if n_dropped_variance > 0:
+            print(f"  Dropped: {n_dropped_variance} low-variance features")
+
+    # =========================================================================
+    # GATE 2: Correlation Analysis (Pairwise)
+    # =========================================================================
+    if verbose:
+        print(f"\nGATE 2: Correlation Threshold")
+        print(f"{'-'*80}")
+
+    # Initialize variables before the conditional block to avoid UnboundLocalError
+    to_drop_corr = set()
+    correlation_pairs = []
+
+    if len(features_after_variance) > 1:
+        # Calculate correlation matrix
+        corr_matrix = X[features_after_variance].corr(method="spearman").abs()
+
+        # Find correlated pairs
+        for i in range(len(features_after_variance)):
+            for j in range(i + 1, len(features_after_variance)):
+                feat_i = features_after_variance[i]
+                feat_j = features_after_variance[j]
+                corr_val = corr_matrix.loc[feat_i, feat_j]
+
+                if corr_val > correlation_threshold:
+                    # For unsupervised learning, drop the one with LOWER variance
+                    # (keep the more variable/informative one)
+                    var_i = X[feat_i].var()
+                    var_j = X[feat_j].var()
+
+                    vmin = min(var_i, var_j)
+                    vmax = max(var_i, var_j)
+                    ratio = (vmax / vmin) if vmin > 0 else float("inf")
+
+                    # Guard: if variances are wildly different, keep both
+                    if ratio > variance_ratio_limit:
+                        continue
+
+                    # Otherwise treat as redundant: drop the lower-variance feature
+                    if var_i >= var_j:
+                        drop_feat = feat_j
+                        keep_feat = feat_i
+                    else:
+                        drop_feat = feat_i
+                        keep_feat = feat_j
+
+                    to_drop_corr.add(drop_feat)
+                    correlation_pairs.append(
+                        {
+                            "feature_1": feat_i,
+                            "feature_2": feat_j,
+                            "correlation": corr_val,
+                            "dropped": drop_feat,
+                            "kept": keep_feat,
+                        }
+                    )
+
+                    if verbose:
+                        print(
+                            f"  ✗ High correlation: {feat_i} ↔ {feat_j} (r={corr_val:.3f})"
+                        )
+                        print(f"    → Dropped '{drop_feat}' (lower variance)")
+
+        features_after_corr = [
+            f for f in features_after_variance if f not in to_drop_corr
+        ]
+        n_dropped_corr = len(to_drop_corr)
+
+        if verbose:
+            print(
+                f"\n  Result: {len(features_after_corr)}/{len(features_after_variance)} features passed"
+            )
+            if n_dropped_corr > 0:
+                print(f"  Dropped: {n_dropped_corr} correlated features")
+            else:
+                print(f"  No features dropped (no high correlations found)")
+    else:
+        features_after_corr = features_after_variance
+        n_dropped_corr = 0
+        if verbose:
+            print("  Skipped: Only 1 feature remaining")
+
+    # Update report with correlation status
+    for row in report_rows:
+        feat = row["feature"]
+        if feat not in features_after_variance:
+            row["correlation_pass"] = None
+            row["highly_correlated_with"] = None
+        elif feat in to_drop_corr:
+            row["correlation_pass"] = False
+            # Find what it was correlated with
+            corr_with = [
+                p["feature_1"] if p["dropped"] == feat else p["feature_2"]
+                for p in correlation_pairs
+                if p["dropped"] == feat
+            ]
+            row["highly_correlated_with"] = corr_with[0] if corr_with else None
+        else:
+            row["correlation_pass"] = True
+            row["highly_correlated_with"] = None
+
+    # =========================================================================
+    # Final Status
+    # =========================================================================
+    surviving_features = features_after_corr
+
+    for row in report_rows:
+        row["final_status"] = "pass" if row["feature"] in surviving_features else "fail"
+
+    screening_report = pd.DataFrame(report_rows)
+
+    if verbose:
+        print(f"\n{'='*80}")
+        print(f"SCREENING COMPLETE")
+        print(f"{'='*80}")
+        print(f"Input features: {n_features}")
+        print(f"Surviving features: {len(surviving_features)}")
+        print(f"Dropped total: {n_features - len(surviving_features)}")
+        print(f"  - Low variance: {n_dropped_variance}")
+        print(f"  - High correlation: {n_dropped_corr}")
+        print(f"\nSurviving features: {surviving_features}")
+
+    return surviving_features, screening_report
+
+
+def analyze_feature_importance_for_clustering(
+    X: pd.DataFrame,
+    cluster_labels: np.ndarray,
+) -> pd.DataFrame:
+    """
+    POST-HOC feature importance for clustering using statistical tests.
+
+    This analyzes which features best SEPARATE the clusters (after clustering).
+    Uses ANOVA F-statistic to measure separation power.
+
+    Args:
+        X: Feature matrix used for clustering
+        cluster_labels: Cluster assignments from clustering
+
+    Returns:
+        DataFrame with feature importance scores (sorted by importance)
+    """
+    from scipy.stats import f_oneway
+
+    importance_rows = []
+
+    for feature in X.columns:
+        # Separate feature values by cluster
+        cluster_groups = [
+            X[cluster_labels == cluster_id][feature].values
+            for cluster_id in np.unique(cluster_labels)
+        ]
+
+        # ANOVA F-test: how well does this feature separate clusters?
+        f_stat, p_val = f_oneway(*cluster_groups)
+
+        # Effect size (eta-squared)
+        grand_mean = X[feature].mean()
+        ss_between = sum(
+            len(cluster_groups[i]) * (np.mean(cluster_groups[i]) - grand_mean) ** 2
+            for i in range(len(cluster_groups))
+        )
+        ss_total = sum((X[feature] - grand_mean) ** 2)
+        eta_squared = ss_between / ss_total if ss_total > 0 else 0
+
+        importance_rows.append(
+            {
+                "feature": feature,
+                "f_statistic": f_stat,
+                "p_value": p_val,
+                "eta_squared": eta_squared,
+                "importance_score": f_stat,  # Higher = better cluster separation
+                "significant": p_val < 0.05,
+            }
+        )
+
+    importance_df = pd.DataFrame(importance_rows)
+    importance_df = importance_df.sort_values("importance_score", ascending=False)
+    importance_df = importance_df.reset_index(drop=True)
+
+    return importance_df

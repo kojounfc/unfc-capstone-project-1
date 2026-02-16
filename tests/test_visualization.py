@@ -244,3 +244,263 @@ class TestPlotReturnRateHeatmap:
         # Should have at least one axis (heatmap)
         assert len(fig.axes) > 0
         plt.close(fig)
+# ============================================================================
+# RQ2-SPECIFIC VISUALIZATION TESTS (Concentration & Segmentation)
+# ============================================================================
+
+
+class TestPlotLorenzCurve:
+    """Test cases for plot_lorenz_curve (RQ2)."""
+
+    def test_returns_figure_object(self):
+        from src.visualization import plot_lorenz_curve
+
+        lorenz_df = pd.DataFrame(
+            {
+                "population_share": [0.0, 0.5, 1.0],
+                "value_share": [0.0, 0.2, 1.0],
+            }
+        )
+        fig = plot_lorenz_curve(lorenz_df, gini=0.6)
+        assert isinstance(fig, plt.Figure)
+        assert len(fig.axes) == 1
+        ax = fig.axes[0]
+        # Should have at least 2 lines: Lorenz + equality
+        assert len(ax.lines) >= 2
+        plt.close(fig)
+
+    def test_save_path_creates_file(self, tmp_path):
+        from src.visualization import plot_lorenz_curve
+
+        lorenz_df = pd.DataFrame(
+            {
+                "population_share": [0.0, 0.5, 1.0],
+                "value_share": [0.0, 0.3, 1.0],
+            }
+        )
+        out_path = tmp_path / "lorenz.png"
+        fig = plot_lorenz_curve(lorenz_df, gini=0.5, save_path=str(out_path))
+        assert out_path.exists()
+        assert out_path.stat().st_size > 0
+        plt.close(fig)
+
+
+class TestPlotParetoCurve:
+    """Test cases for plot_pareto_curve (RQ2)."""
+
+    def test_returns_figure_object_and_has_reference_lines(self):
+        from src.visualization import plot_pareto_curve
+
+        pareto_df = pd.DataFrame(
+            {
+                "customer_share": [0.0, 0.2, 1.0],
+                "value_share": [0.0, 0.75, 1.0],
+            }
+        )
+        fig = plot_pareto_curve(pareto_df, gini=0.7)
+        assert isinstance(fig, plt.Figure)
+        ax = fig.axes[0]
+        # Should have curve line + at least 2 reference lines (80%/20%)
+        assert len(ax.lines) >= 3
+        plt.close(fig)
+
+    def test_save_path_creates_file(self, tmp_path):
+        from src.visualization import plot_pareto_curve
+
+        pareto_df = pd.DataFrame(
+            {
+                "customer_share": [0.0, 0.2, 1.0],
+                "value_share": [0.0, 0.8, 1.0],
+            }
+        )
+        out_path = tmp_path / "pareto.png"
+        fig = plot_pareto_curve(pareto_df, gini=0.8, save_path=str(out_path))
+        assert out_path.exists()
+        assert out_path.stat().st_size > 0
+        plt.close(fig)
+
+
+class TestPlotGiniVsParetoScatter:
+    """Test cases for plot_gini_vs_pareto_scatter (RQ2)."""
+
+    def test_returns_figure_object_and_has_two_scatter_groups(self):
+        from src.visualization import plot_gini_vs_pareto_scatter
+
+        concentration_df = pd.DataFrame(
+            {
+                "feature": ["f1", "f2", "f3"],
+                "gini_coefficient": [0.8, 0.4, 0.2],
+                "top_20_pct_share": [90.0, 70.0, 40.0],
+                "p_value": [0.01, 0.2, 0.03],  # two significant, one not
+            }
+        )
+        fig = plot_gini_vs_pareto_scatter(concentration_df)
+        assert isinstance(fig, plt.Figure)
+        ax = fig.axes[0]
+        # Matplotlib scatter creates PathCollection objects in ax.collections
+        assert len(ax.collections) >= 2  # significant + non-significant groups
+        # Should annotate each point
+        assert len(ax.texts) >= len(concentration_df)
+        plt.close(fig)
+
+    def test_save_path_creates_file(self, tmp_path):
+        from src.visualization import plot_gini_vs_pareto_scatter
+
+        concentration_df = pd.DataFrame(
+            {
+                "feature": ["f1", "f2"],
+                "gini_coefficient": [0.6, 0.3],
+                "top_20_pct_share": [85.0, 55.0],
+                "p_value": [0.01, 0.2],
+            }
+        )
+        out_path = tmp_path / "gini_scatter.png"
+        fig = plot_gini_vs_pareto_scatter(concentration_df, save_path=str(out_path))
+        assert out_path.exists()
+        assert out_path.stat().st_size > 0
+        plt.close(fig)
+
+
+class TestPlotClusteringDiagnostics:
+    """Test cases for plot_clustering_diagnostics (RQ2)."""
+
+    def test_returns_figure_object_with_two_axes(self):
+        from src.visualization import plot_clustering_diagnostics
+
+        elbow_df = pd.DataFrame({"k": [1, 2, 3], "inertia": [10.0, 5.0, 3.0]})
+        silhouette_df = pd.DataFrame({"k": [2, 3], "silhouette": [0.4, 0.35]})
+        fig = plot_clustering_diagnostics(elbow_df, silhouette_df, optimal_k=2)
+        assert isinstance(fig, plt.Figure)
+        assert len(fig.axes) == 2
+        # Optimal-k highlight adds a point marker on silhouette axis
+        ax2 = fig.axes[1]
+        assert len(ax2.lines) >= 2
+        plt.close(fig)
+
+    def test_save_path_creates_file(self, tmp_path):
+        from src.visualization import plot_clustering_diagnostics
+
+        elbow_df = pd.DataFrame({"k": [1, 2], "inertia": [10.0, 4.0]})
+        silhouette_df = pd.DataFrame({"k": [2], "silhouette": [0.5]})
+        out_path = tmp_path / "diag.png"
+        fig = plot_clustering_diagnostics(
+            elbow_df, silhouette_df, optimal_k=2, save_path=str(out_path)
+        )
+        assert out_path.exists()
+        assert out_path.stat().st_size > 0
+        plt.close(fig)
+
+
+class TestPlotClusterErosionComparison:
+    """Test cases for plot_cluster_erosion_comparison (RQ2)."""
+
+    def test_returns_figure_object_and_has_bars(self):
+        from src.visualization import plot_cluster_erosion_comparison
+
+        cluster_summary_df = pd.DataFrame(
+            {
+                "cluster_id": [0, 1, 2],
+                "Count": [10, 5, 3],
+                "Mean_Erosion": [100.0, 60.0, 30.0],
+            }
+        )
+        fig = plot_cluster_erosion_comparison(cluster_summary_df, optimal_k=3)
+        assert isinstance(fig, plt.Figure)
+        ax = fig.axes[0]
+        # Bars should match number of clusters
+        assert len(ax.patches) == len(cluster_summary_df)
+        plt.close(fig)
+
+    def test_save_path_creates_file(self, tmp_path):
+        from src.visualization import plot_cluster_erosion_comparison
+
+        cluster_summary_df = pd.DataFrame(
+            {"cluster_id": [0, 1], "Count": [2, 2], "Mean_Erosion": [10.0, 20.0]}
+        )
+        out_path = tmp_path / "cluster_comp.png"
+        fig = plot_cluster_erosion_comparison(
+            cluster_summary_df, optimal_k=2, save_path=str(out_path)
+        )
+        assert out_path.exists()
+        assert out_path.stat().st_size > 0
+        plt.close(fig)
+
+
+class TestPlotClusteringFeatureImportance:
+    """Test cases for plot_clustering_feature_importance (RQ2)."""
+
+    def test_returns_figure_object_and_has_bars(self):
+        from src.visualization import plot_clustering_feature_importance
+
+        feature_importance_df = pd.DataFrame(
+            {
+                "feature": ["a", "b", "c"],
+                "f_statistic": [12.0, 5.0, 1.0],
+                "p_value": [0.001, 0.02, 0.2],
+                "significant": [True, True, False],
+            }
+        )
+        fig = plot_clustering_feature_importance(feature_importance_df)
+        assert isinstance(fig, plt.Figure)
+        ax = fig.axes[0]
+        # Should have one bar per feature
+        assert len(ax.patches) == len(feature_importance_df)
+        plt.close(fig)
+
+    def test_save_path_creates_file(self, tmp_path):
+        from src.visualization import plot_clustering_feature_importance
+
+        feature_importance_df = pd.DataFrame(
+            {
+                "feature": ["x", "y"],
+                "f_statistic": [3.0, 1.0],
+                "p_value": [0.01, 0.2],
+                "significant": [True, False],
+            }
+        )
+        out_path = tmp_path / "fi.png"
+        fig = plot_clustering_feature_importance(
+            feature_importance_df, save_path=str(out_path)
+        )
+        assert out_path.exists()
+        assert out_path.stat().st_size > 0
+        plt.close(fig)
+
+
+class TestPlotFeatureConcentrationRanking:
+    """Test cases for plot_feature_concentration_ranking (RQ2)."""
+
+    def test_returns_figure_object_and_has_bars(self):
+        from src.visualization import plot_feature_concentration_ranking
+
+        concentration_df = pd.DataFrame(
+            {
+                "feature": ["f1", "f2", "f3"],
+                "gini_coefficient": [0.7, 0.4, 0.2],
+                "p_value": [0.01, 0.2, 0.03],
+            }
+        )
+        fig = plot_feature_concentration_ranking(concentration_df)
+        assert isinstance(fig, plt.Figure)
+        ax = fig.axes[0]
+        # Horizontal bars: one Rectangle patch per feature
+        assert len(ax.patches) == len(concentration_df)
+        plt.close(fig)
+
+    def test_save_path_creates_file(self, tmp_path):
+        from src.visualization import plot_feature_concentration_ranking
+
+        concentration_df = pd.DataFrame(
+            {
+                "feature": ["f1", "f2"],
+                "gini_coefficient": [0.6, 0.3],
+                "p_value": [0.01, 0.2],
+            }
+        )
+        out_path = tmp_path / "ranking.png"
+        fig = plot_feature_concentration_ranking(
+            concentration_df, save_path=str(out_path)
+        )
+        assert out_path.exists()
+        assert out_path.stat().st_size > 0
+        plt.close(fig)
