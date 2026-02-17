@@ -216,3 +216,8 @@ CLAUDE.MD
 
 # Local project documents (not tracked)
 Concept.md
+
+# Local/generated artifacts (do not commit)
+/data/processed/*.csv
+/data/processed/**/*.csv
+*.zip

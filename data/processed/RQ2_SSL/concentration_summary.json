@@ -1,0 +1,36 @@
+{
+  "n_features_analyzed": 13,
+  "top_features": [
+    {
+      "feature": "total_sales",
+      "gini_coefficient": 0.8107,
+      "p_value": 0.0
+    },
+    {
+      "feature": "total_margin",
+      "gini_coefficient": 0.7985,
+      "p_value": 0.0
+    },
+    {
+      "feature": "total_items",
+      "gini_coefficient": 0.7568,
+      "p_value": 0.0
+    },
+    {
+      "feature": "total_profit_erosion",
+      "gini_coefficient": 0.7489,
+      "p_value": 0.0
+    },
+    {
+      "feature": "return_frequency",
+      "gini_coefficient": 0.7352,
+      "p_value": 0.0
+    }
+  ],
+  "avg_gini": 0.645,
+  "n_significant": 13,
+  "n_extreme": 8,
+  "n_high": 2,
+  "n_moderate": 3,
+  "n_low": 0
+}

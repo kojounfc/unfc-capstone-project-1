@@ -1,0 +1,41 @@
+{
+  "validation_date": "2026-02-15T21:48:05.312837",
+  "external_dataset": "School Specialty LLC (SSL)",
+  "validation_type": "Pattern-based (Level 1 only)",
+  "reason": "RQ2 uses unsupervised clustering, no trained model for directional validation",
+  "pattern_validation": {
+    "n_features_tested": 10,
+    "n_agreement": 5,
+    "n_both_pass": 4,
+    "n_both_fail": 1,
+    "agreement_rate": 0.5,
+    "success_threshold": 0.5,
+    "validation_passed": true,
+    "generalizing_features": [
+      "avg_order_value",
+      "customer_return_rate",
+      "avg_basket_size",
+      "total_margin"
+    ],
+    "domain_specific_features": [
+      "return_frequency",
+      "order_frequency",
+      "customer_tenure_days",
+      "purchase_recency_days",
+      "total_items"
+    ]
+  },
+  "rq2_features_tested": [
+    "return_frequency",
+    "avg_order_value",
+    "customer_return_rate",
+    "order_frequency",
+    "avg_basket_size",
+    "customer_tenure_days",
+    "purchase_recency_days",
+    "total_items",
+    "total_sales",
+    "total_margin"
+  ],
+  "overall_conclusion": "RQ2 behavioral features generalize to external data"
+}
