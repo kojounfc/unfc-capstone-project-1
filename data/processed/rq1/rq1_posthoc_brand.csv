@@ -1,0 +1,50 @@
+,group_a,group_b,p_adj
+0,Allegra K,Allegra K,1.0
+1,Calvin Klein,Allegra K,0.28786098094384444
+2,Carhartt,Allegra K,0.03234097666252148
+3,Dockers,Allegra K,0.11408970318569575
+4,Levi's,Allegra K,0.4279667336027105
+5,Tommy Hilfiger,Allegra K,0.00669176444416697
+6,Volcom,Allegra K,0.0005277891933585837
+7,Allegra K,Calvin Klein,0.28786098094384444
+8,Calvin Klein,Calvin Klein,1.0
+9,Carhartt,Calvin Klein,1.0
+10,Dockers,Calvin Klein,1.0
+11,Levi's,Calvin Klein,1.0
+12,Tommy Hilfiger,Calvin Klein,1.0
+13,Volcom,Calvin Klein,1.0
+14,Allegra K,Carhartt,0.03234097666252148
+15,Calvin Klein,Carhartt,1.0
+16,Carhartt,Carhartt,1.0
+17,Dockers,Carhartt,1.0
+18,Levi's,Carhartt,1.0
+19,Tommy Hilfiger,Carhartt,1.0
+20,Volcom,Carhartt,1.0
+21,Allegra K,Dockers,0.11408970318569575
+22,Calvin Klein,Dockers,1.0
+23,Carhartt,Dockers,1.0
+24,Dockers,Dockers,1.0
+25,Levi's,Dockers,1.0
+26,Tommy Hilfiger,Dockers,1.0
+27,Volcom,Dockers,1.0
+28,Allegra K,Levi's,0.4279667336027105
+29,Calvin Klein,Levi's,1.0
+30,Carhartt,Levi's,1.0
+31,Dockers,Levi's,1.0
+32,Levi's,Levi's,1.0
+33,Tommy Hilfiger,Levi's,1.0
+34,Volcom,Levi's,1.0
+35,Allegra K,Tommy Hilfiger,0.00669176444416697
+36,Calvin Klein,Tommy Hilfiger,1.0
+37,Carhartt,Tommy Hilfiger,1.0
+38,Dockers,Tommy Hilfiger,1.0
+39,Levi's,Tommy Hilfiger,1.0
+40,Tommy Hilfiger,Tommy Hilfiger,1.0
+41,Volcom,Tommy Hilfiger,1.0
+42,Allegra K,Volcom,0.0005277891933585837
+43,Calvin Klein,Volcom,1.0
+44,Carhartt,Volcom,1.0
+45,Dockers,Volcom,1.0
+46,Levi's,Volcom,1.0
+47,Tommy Hilfiger,Volcom,1.0
+48,Volcom,Volcom,1.0

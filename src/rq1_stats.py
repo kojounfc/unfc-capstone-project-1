@@ -326,15 +326,17 @@ def run_factor(
             df_posthoc = df2[df2[group_col].isin(selected_groups)].copy()
 
             if max_rows_per_group_posthoc is not None:
-                df_posthoc = (
-                    df_posthoc.groupby(group_col, group_keys=False)
+                sampled_idx = (
+                    df_posthoc.groupby(group_col, group_keys=False)[value_col]
                     .apply(
                         lambda g: g.sample(
                             n=min(len(g), max_rows_per_group_posthoc),
                             random_state=42,
                         )
                     )
+                    .index
                 )
+                df_posthoc = df_posthoc.loc[sampled_idx]
 
             posthoc_df = _posthoc_dunn(df_posthoc, group_col, value_col)
             posthoc_ran = True

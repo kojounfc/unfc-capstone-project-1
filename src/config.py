@@ -50,3 +50,39 @@ STRING_COLS = ["postal_code", "sku", "user_geom", "street_address", "email"]
 
 # Minimum rows threshold for aggregation analysis
 MIN_ROWS_THRESHOLD = 200
+
+# --- RQ3: Predictive Modeling ---
+RANDOM_STATE = 42
+TEST_SIZE = 0.20
+CV_FOLDS = 5
+AUC_THRESHOLD = 0.70
+CUSTOMER_TARGETS_CSV = PROCESSED_DATA_DIR / "customer_profit_erosion_targets.csv"
+SSL_RETURNS_CSV = RAW_DATA_DIR / "SSL_Returns_df_yoy.csv"
+RQ3_TARGET = "is_high_erosion_customer"
+RQ3_CANDIDATE_FEATURES = [
+    "order_frequency",
+    "return_frequency",
+    "customer_return_rate",
+    "avg_basket_size",
+    "avg_order_value",
+    "customer_tenure_days",
+    "purchase_recency_days",
+    "total_items",
+    "total_sales",
+    "total_margin",
+    "avg_item_price",
+    "avg_item_margin",
+]
+RQ3_LEAKAGE_COLUMNS = [
+    "total_profit_erosion",
+    "total_margin_reversal",
+    "total_process_cost",
+    "is_high_erosion_customer",
+    "profit_erosion_quartile",
+    "erosion_percentile_rank",
+    "user_id",
+]
+
+# --- RQ3: Sensitivity Analysis ---
+SENSITIVITY_BASE_COSTS = [8.0, 10.0, 12.0, 14.0, 18.0]
+SENSITIVITY_THRESHOLDS = [0.50, 0.60, 0.70, 0.75, 0.80, 0.90]
