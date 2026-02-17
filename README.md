@@ -147,17 +147,38 @@ Generate RQ1 figures (writes to `figures/rq1/`):
 python -m src.rq1_visuals
 ```
 
+## RQ3 — Predictive Modeling (High Profit Erosion Customers)
 
+Run the full RQ3 modeling pipeline (feature screening, train/evaluate 3 models, export results to `reports/rq3/`):
+
+```bash
+jupyter notebook notebooks/rq3_predictive_modeling.ipynb
+```
+
+Run external validation against School Specialty LLC data (requires `data/raw/SSL_Returns_df_yoy.csv`):
+
+```bash
+jupyter notebook notebooks/rq3_ssl_validation.ipynb
+```
+
+
+```python
 # Visualization
 from src.visualization import plot_margin_distribution, plot_return_rate_by_category
 
 plot_margin_distribution(df, returned_only=True)
 plot_return_rate_by_category(df, top_n=15)
 
-# Modeling
-from src.modeling import summarize_profit_erosion, segment_customers_by_return_behavior
+# Profit erosion metrics (returned items only)
+from src.feature_engineering import summarize_profit_erosion, engineer_customer_behavioral_features
 
-summary = summarize_profit_erosion(df)
+returned_df = df[df["is_returned_item"] == 1].copy()
+summary = summarize_profit_erosion(returned_df)
+customer_features = engineer_customer_behavioral_features(df)
+
+# Customer segmentation
+from src.analytics import segment_customers_by_return_behavior
+
 customer_segments = segment_customers_by_return_behavior(df)
 ```
 

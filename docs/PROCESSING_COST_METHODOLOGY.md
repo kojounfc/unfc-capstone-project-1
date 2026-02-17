@@ -8,6 +8,14 @@ This document defines the methodology, assumptions, and rationale for calculatin
 
 ## 1. Executive Summary
 
+**Profit erosion** is defined as the margin lost on a returned item plus the associated return processing cost:
+
+```
+Profit Erosion = Margin Reversal + Processing Cost
+```
+
+This cost model applies **to returned items only**. Applying it to non-returned items would overstate erosion by attributing reverse-logistics costs to transactions that never generated a return event.
+
 **Decision:** Implement a **category-tiered processing cost model** with three tiers based on product category margin characteristics.
 
 | Tier | Multiplier | Base Cost | Effective Cost | Categories |
@@ -120,7 +128,17 @@ Our $12 base represents a mid-range estimate appropriate for a synthetic dataset
 
 ### 4.3 Category Tier Multipliers
 
-Based on returned item analysis, categories are assigned multipliers reflecting:
+Based on returned item analysis, categories are assigned to tiers using the following margin-based decision rule applied to **average margin per returned item**:
+
+| Tier | Multiplier | Average Margin Threshold | Rationale |
+|------|------------|--------------------------|-----------|
+| Premium | 1.3x | ≥ $32 avg margin | Higher-priced items require careful handling and detailed inspection |
+| Moderate | 1.15x | $20 – $31 avg margin | Mid-margin items need standard handling with some care |
+| Standard | 1.0x | < $20 avg margin (or < 100 returns) | Basic handling; low-volume categories default to this tier |
+
+The threshold of $32 separates the top third of category margins from the rest, and $20 aligns with the dataset-wide median margin ($20.52 for returned items). Categories with fewer than 100 returns are assigned Standard tier by default to avoid tiering on insufficient data.
+
+These criteria reflect:
 - **Price complexity:** Higher-priced items require more careful handling
 - **Margin at stake:** Higher margins represent greater economic risk
 - **Inspection intensity:** Premium items often require detailed quality checks
@@ -367,6 +385,7 @@ To validate the robustness of findings, the following sensitivity analyses are r
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
 | 1.0 | 2026-01-30 | Analysis Team | Initial methodology document |
+| 1.1 | 2026-02-15 | Analysis Team | Added profit erosion formula to executive summary; added "returned items only" caution; added margin-based tier assignment thresholds to Section 4.3 |
 
 ---
 

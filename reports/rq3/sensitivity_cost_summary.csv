@@ -1,0 +1,6 @@
+base_cost,best_auc,f1,precision,recall,threshold_value,n_positive,n_total,positive_rate,n_surviving_features,surviving_features
+8.0,0.9759428582564419,0.8393135725429017,0.787701317715959,0.8981636060100167,77.00447485336319,2997,11988,0.25,7,"return_frequency, customer_return_rate, avg_basket_size, avg_order_value, total_items, total_margin, avg_item_price"
+10.0,0.9806319778842076,0.8564668769716088,0.8116591928251121,0.9065108514190318,81.44612900121983,2997,11988,0.25,8,"order_frequency, return_frequency, customer_return_rate, avg_basket_size, avg_order_value, total_items, total_margin, avg_item_margin"
+12.0,0.9797921494133728,0.8419429452582884,0.7822349570200573,0.9115191986644408,85.91926224923884,2997,11988,0.25,7,"return_frequency, customer_return_rate, avg_basket_size, avg_order_value, total_items, total_margin, avg_item_margin"
+14.0,0.9809711572279536,0.8508371385083714,0.7818181818181819,0.9332220367278798,90.09196784008014,2997,11988,0.25,7,"return_frequency, customer_return_rate, avg_basket_size, avg_order_value, total_items, total_margin, avg_item_margin"
+18.0,0.980687657119843,0.8549262994569433,0.7985507246376812,0.9198664440734557,98.34951296303925,2997,11988,0.25,7,"return_frequency, customer_return_rate, avg_basket_size, avg_order_value, total_items, total_margin, avg_item_margin"

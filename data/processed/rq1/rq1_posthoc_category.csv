@@ -1,0 +1,145 @@
+,group_a,group_b,p_adj
+0,Accessories,Accessories,1.0
+1,Active,Accessories,1.0
+2,Fashion Hoodies & Sweatshirts,Accessories,0.46873035742595487
+3,Intimates,Accessories,1.0
+4,Jeans,Accessories,0.009977113775997797
+5,Outerwear & Coats,Accessories,2.65416578877993e-07
+6,Pants,Accessories,0.12871580318005935
+7,Shorts,Accessories,1.0
+8,Socks,Accessories,0.041179927747114965
+9,Sweaters,Accessories,0.04289403043015264
+10,Swim,Accessories,1.0
+11,Tops & Tees,Accessories,1.0
+12,Accessories,Active,1.0
+13,Active,Active,1.0
+14,Fashion Hoodies & Sweatshirts,Active,1.0
+15,Intimates,Active,0.006807333647266452
+16,Jeans,Active,1.0
+17,Outerwear & Coats,Active,0.004288063559039739
+18,Pants,Active,1.0
+19,Shorts,Active,1.0
+20,Socks,Active,2.034068724456134e-05
+21,Sweaters,Active,1.0
+22,Swim,Active,1.0
+23,Tops & Tees,Active,0.6834935537994021
+24,Accessories,Fashion Hoodies & Sweatshirts,0.46873035742595487
+25,Active,Fashion Hoodies & Sweatshirts,1.0
+26,Fashion Hoodies & Sweatshirts,Fashion Hoodies & Sweatshirts,1.0
+27,Intimates,Fashion Hoodies & Sweatshirts,0.00011350762376371833
+28,Jeans,Fashion Hoodies & Sweatshirts,1.0
+29,Outerwear & Coats,Fashion Hoodies & Sweatshirts,0.03272635773926782
+30,Pants,Fashion Hoodies & Sweatshirts,1.0
+31,Shorts,Fashion Hoodies & Sweatshirts,1.0
+32,Socks,Fashion Hoodies & Sweatshirts,1.1095617334775604e-07
+33,Sweaters,Fashion Hoodies & Sweatshirts,1.0
+34,Swim,Fashion Hoodies & Sweatshirts,1.0
+35,Tops & Tees,Fashion Hoodies & Sweatshirts,0.03763789697919331
+36,Accessories,Intimates,1.0
+37,Active,Intimates,0.006807333647266452
+38,Fashion Hoodies & Sweatshirts,Intimates,0.00011350762376371833
+39,Intimates,Intimates,1.0
+40,Jeans,Intimates,4.3803311005230795e-07
+41,Outerwear & Coats,Intimates,5.283064325302926e-13
+42,Pants,Intimates,2.5767220415367e-05
+43,Shorts,Intimates,0.03502024221887096
+44,Socks,Intimates,1.0
+45,Sweaters,Intimates,3.4592886321236604e-06
+46,Swim,Intimates,0.0010616866415133854
+47,Tops & Tees,Intimates,1.0
+48,Accessories,Jeans,0.009977113775997797
+49,Active,Jeans,1.0
+50,Fashion Hoodies & Sweatshirts,Jeans,1.0
+51,Intimates,Jeans,4.3803311005230795e-07
+52,Jeans,Jeans,1.0
+53,Outerwear & Coats,Jeans,1.0
+54,Pants,Jeans,1.0
+55,Shorts,Jeans,1.0
+56,Socks,Jeans,2.1170563462899727e-10
+57,Sweaters,Jeans,1.0
+58,Swim,Jeans,1.0
+59,Tops & Tees,Jeans,0.00036147488378030635
+60,Accessories,Outerwear & Coats,2.65416578877993e-07
+61,Active,Outerwear & Coats,0.004288063559039739
+62,Fashion Hoodies & Sweatshirts,Outerwear & Coats,0.03272635773926782
+63,Intimates,Outerwear & Coats,5.283064325302926e-13
+64,Jeans,Outerwear & Coats,1.0
+65,Outerwear & Coats,Outerwear & Coats,1.0
+66,Pants,Outerwear & Coats,0.3372698392872683
+67,Shorts,Outerwear & Coats,0.0002903696709057918
+68,Socks,Outerwear & Coats,7.783567017617932e-17
+69,Sweaters,Outerwear & Coats,0.49157012758908997
+70,Swim,Outerwear & Coats,0.009596364929405939
+71,Tops & Tees,Outerwear & Coats,1.9816000666754937e-09
+72,Accessories,Pants,0.12871580318005935
+73,Active,Pants,1.0
+74,Fashion Hoodies & Sweatshirts,Pants,1.0
+75,Intimates,Pants,2.5767220415367e-05
+76,Jeans,Pants,1.0
+77,Outerwear & Coats,Pants,0.3372698392872683
+78,Pants,Pants,1.0
+79,Shorts,Pants,1.0
+80,Socks,Pants,2.6686401628733168e-08
+81,Sweaters,Pants,1.0
+82,Swim,Pants,1.0
+83,Tops & Tees,Pants,0.009023814720575776
+84,Accessories,Shorts,1.0
+85,Active,Shorts,1.0
+86,Fashion Hoodies & Sweatshirts,Shorts,1.0
+87,Intimates,Shorts,0.03502024221887096
+88,Jeans,Shorts,1.0
+89,Outerwear & Coats,Shorts,0.0002903696709057918
+90,Pants,Shorts,1.0
+91,Shorts,Shorts,1.0
+92,Socks,Shorts,0.0001368801646956652
+93,Sweaters,Shorts,1.0
+94,Swim,Shorts,1.0
+95,Tops & Tees,Shorts,1.0
+96,Accessories,Socks,0.041179927747114965
+97,Active,Socks,2.034068724456134e-05
+98,Fashion Hoodies & Sweatshirts,Socks,1.1095617334775604e-07
+99,Intimates,Socks,1.0
+100,Jeans,Socks,2.1170563462899727e-10
+101,Outerwear & Coats,Socks,7.783567017617932e-17
+102,Pants,Socks,2.6686401628733168e-08
+103,Shorts,Socks,0.0001368801646956652
+104,Socks,Socks,1.0
+105,Sweaters,Socks,2.1550851618683167e-09
+106,Swim,Socks,1.7876500748030978e-06
+107,Tops & Tees,Socks,0.24130860864643178
+108,Accessories,Sweaters,0.04289403043015264
+109,Active,Sweaters,1.0
+110,Fashion Hoodies & Sweatshirts,Sweaters,1.0
+111,Intimates,Sweaters,3.4592886321236604e-06
+112,Jeans,Sweaters,1.0
+113,Outerwear & Coats,Sweaters,0.49157012758908997
+114,Pants,Sweaters,1.0
+115,Shorts,Sweaters,1.0
+116,Socks,Sweaters,2.1550851618683167e-09
+117,Sweaters,Sweaters,1.0
+118,Swim,Sweaters,1.0
+119,Tops & Tees,Sweaters,0.0020708289443537404
+120,Accessories,Swim,1.0
+121,Active,Swim,1.0
+122,Fashion Hoodies & Sweatshirts,Swim,1.0
+123,Intimates,Swim,0.0010616866415133854
+124,Jeans,Swim,1.0
+125,Outerwear & Coats,Swim,0.009596364929405939
+126,Pants,Swim,1.0
+127,Shorts,Swim,1.0
+128,Socks,Swim,1.7876500748030978e-06
+129,Sweaters,Swim,1.0
+130,Swim,Swim,1.0
+131,Tops & Tees,Swim,0.19314780942339488
+132,Accessories,Tops & Tees,1.0
+133,Active,Tops & Tees,0.6834935537994021
+134,Fashion Hoodies & Sweatshirts,Tops & Tees,0.03763789697919331
+135,Intimates,Tops & Tees,1.0
+136,Jeans,Tops & Tees,0.00036147488378030635
+137,Outerwear & Coats,Tops & Tees,1.9816000666754937e-09
+138,Pants,Tops & Tees,0.009023814720575776
+139,Shorts,Tops & Tees,1.0
+140,Socks,Tops & Tees,0.24130860864643178
+141,Sweaters,Tops & Tees,0.0020708289443537404
+142,Swim,Tops & Tees,0.19314780942339488
+143,Tops & Tees,Tops & Tees,1.0
