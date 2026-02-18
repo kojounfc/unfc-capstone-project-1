@@ -535,13 +535,11 @@ class TestRQ4ValidationIntegration:
 
         project_root = Path(__file__).parent.parent
         data_dir = project_root / "data" / "processed"
-        raw_data_dir = project_root / "data" / "raw"
 
         ssl_file = data_dir / "returns_eda_v1.csv"
         customer_file = data_dir / "customer_profit_erosion_targets.csv"
-        ssl_raw_file = raw_data_dir / "SSL_Returns_df_yoy.csv"
 
-        return ssl_file.exists() and customer_file.exists() and ssl_raw_file.exists()
+        return ssl_file.exists() and customer_file.exists()
 
     def test_full_validation_pipeline(self, real_data_available):
         """Test complete validation pipeline if data available."""
