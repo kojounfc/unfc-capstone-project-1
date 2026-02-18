@@ -161,6 +161,19 @@ Run external validation against School Specialty LLC data (requires `data/raw/SS
 jupyter notebook notebooks/rq3_ssl_validation.ipynb
 ```
 
+## RQ4 — Behavioral Associations with Profit Erosion
+
+Interactive econometric analysis with data exploration and model diagnostics:
+
+```bash
+jupyter notebook notebooks/rq4_behavioral_associations.ipynb
+```
+
+Run external validation against School Specialty LLC data (requires `data/raw/SSL_Returns_df_yoy.csv`):
+
+```bash
+jupyter notebook notebooks/rq4_ssl_validation.ipynb
+``
 
 ```python
 # Visualization
