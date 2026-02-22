@@ -541,10 +541,24 @@ class TestRQ4ValidationIntegration:
 
         return ssl_file.exists() and customer_file.exists()
 
-    def test_full_validation_pipeline(self, real_data_available):
+    def test_full_validation_pipeline(self):
         """Test complete validation pipeline if data available."""
-        if not real_data_available:
-            pytest.skip("Real data files not available")
+        from pathlib import Path
+
+        project_root = Path(__file__).parent.parent
+        data_dir = project_root / "data" / "processed"
+        raw_data_dir = project_root / "data" / "raw"
+
+        # Check data availability before loading
+        ssl_file = raw_data_dir / "SSL_Returns_df_yoy.csv"
+        customer_file = data_dir / "customer_profit_erosion_targets.csv"
+
+        if not ssl_file.exists() or not customer_file.exists():
+            pytest.skip(
+                f"Real data files not available. Missing: "
+                f"{'SSL_Returns_df_yoy.csv' if not ssl_file.exists() else ''} "
+                f"{'customer_profit_erosion_targets.csv' if not customer_file.exists() else ''}"
+            )
 
         from pathlib import Path
 
