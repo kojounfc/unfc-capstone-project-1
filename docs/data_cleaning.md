@@ -4,6 +4,8 @@
 
 This document provides a comprehensive technical overview of the data cleaning procedures implemented in the Profit Erosion E-commerce Capstone Project. The cleaning process applies a multi-layered validation approach using both removal and flagging strategies to maintain data integrity while preserving complete datasets for analysis.
 
+**Note on Column Selection:** For comprehensive documentation of which columns are loaded from the source BigQuery tables, which columns are included in the merged dataset, and the rationale for these selections, see Section 2 ("Column Selection Strategy") in [data_processing.md](data_processing.md#2-column-selection-strategy).
+
 ---
 
 ## 1. Data Cleaning Steps

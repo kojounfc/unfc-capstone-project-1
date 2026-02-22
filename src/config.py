@@ -14,6 +14,9 @@ FIGURES_DIR = PROJECT_ROOT / "figures"
 REPORTS_DIR = PROJECT_ROOT / "reports"
 RQ1_PROCESSED_DIR = PROCESSED_DATA_DIR / "rq1"
 RQ1_FIGURES_DIR = FIGURES_DIR / "rq1"
+RQ4_FIGURES_DIR = FIGURES_DIR / "rq4"
+
+
 
 # Raw data files
 RAW_FILES = {
@@ -86,3 +89,11 @@ RQ3_LEAKAGE_COLUMNS = [
 # --- RQ3: Sensitivity Analysis ---
 SENSITIVITY_BASE_COSTS = [8.0, 10.0, 12.0, 14.0, 18.0]
 SENSITIVITY_THRESHOLDS = [0.50, 0.60, 0.70, 0.75, 0.80, 0.90]
+
+# --- RQ4: Behavioral Econometrics ---
+RQ4_TARGET_COL = "total_profit_erosion"
+RQ4_BEHAVIORAL_CONTROLS = ['order_frequency', 'avg_order_value', 'customer_tenure_days', 'customer_return_rate']
+RQ4_HYPOTHESIS_PREDICTORS = ['return_frequency', 'avg_basket_size', 'purchase_recency_days']
+RQ4_ALPHA = 0.05
+RQ4_COLLINEARITY_THRESHOLD = 0.85
+
