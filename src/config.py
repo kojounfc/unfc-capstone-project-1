@@ -86,3 +86,13 @@ RQ3_LEAKAGE_COLUMNS = [
 # --- RQ3: Sensitivity Analysis ---
 SENSITIVITY_BASE_COSTS = [8.0, 10.0, 12.0, 14.0, 18.0]
 SENSITIVITY_THRESHOLDS = [0.50, 0.60, 0.70, 0.75, 0.80, 0.90]
+
+# --- RQ4: Econometric Regression ---
+RQ4_FIGURES_DIR = FIGURES_DIR / "rq4"
+RQ4_TARGET_COL = "total_profit_erosion"
+RQ4_HYPOTHESIS_PREDICTORS = ["return_frequency", "avg_basket_size", "purchase_recency_days"]
+RQ4_BEHAVIORAL_CONTROLS = [
+    "order_frequency", "avg_order_value", "customer_tenure_days", "customer_return_rate", "age"
+]
+RQ4_ALPHA = 0.05
+RQ4_COLLINEARITY_THRESHOLD = 0.85

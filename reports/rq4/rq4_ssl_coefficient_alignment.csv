@@ -1,0 +1,4 @@
+feature,thelook_coefficient,ssl_coefficient,thelook_p_value,ssl_p_value,thelook_significant,ssl_significant,direction_aligned,significance_agreement,coefficient_ratio,thelook_pct,ssl_pct
+return_frequency,0.4454,0.1037,0.0,0.5774,True,False,True,False,0.23,56.11,10.93
+avg_basket_size,-0.1559,0.3196,0.0,0.0,True,True,False,True,-2.05,-14.44,37.66
+purchase_recency_days,-0.0009,0.0285,0.8242,0.0014,False,True,False,False,-32.29,-0.09,2.89
