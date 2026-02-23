@@ -56,28 +56,100 @@ def load_rq4_data(data_dir: Optional[Path] = None) -> pd.DataFrame:
     """
     Load returns customer data with behavioral features and demographics.
 
-    Loads from: data/processed/customer_profit_erosion_targets.csv
-    Returns: 11,988 customers with 12 key features (all have erosion > 0)
+    Loads customer targets from customer_profit_erosion_targets.csv and merges
+    demographic controls (age, user_gender, traffic_source) from
+    returns_eda_v1.parquet, plus computes dominant_return_category
+    (mode of product category on returned items) per customer.
+
+    Source choice: returns_eda_v1.parquet covers all 11,988 returner customer
+    IDs with zero NaN age or user_gender. feature_engineered_dataset.parquet
+    only covers 9,584 of the 11,988 customers, causing 2,404 rows to be lost
+    via listwise deletion if used instead.
 
     Args:
         data_dir: Path to processed data directory (default: from config)
 
     Returns:
-        DataFrame with customer targets, behavioral features, demographics
+        DataFrame with customer targets, behavioral features, and demographics
+        (~11,988 returners; all rows have total_profit_erosion > 0)
     """
     data_dir = data_dir or PROCESSED_DATA_DIR
     customers_csv = data_dir / "customer_profit_erosion_targets.csv"
+    features_parquet = data_dir / "returns_eda_v1.parquet"
 
     if not customers_csv.exists():
         raise FileNotFoundError(f"Customer targets file not found: {customers_csv}")
 
     df = pd.read_csv(customers_csv)
 
+    # Merge demographics and dominant_return_category from returns dataset.
+    # Columns needed: user_id, age, user_gender, traffic_source, category,
+    # item_status — to derive dominant_return_category per customer.
+    if features_parquet.exists():
+        feat_df = pd.read_parquet(features_parquet)
+
+        # Extract one demographic row per customer (age/gender are customer-level
+        # attributes denormalized onto each item row in the parquet).
+        demo_cols = [
+            c for c in ["user_id", "age", "user_gender", "traffic_source"]
+            if c in feat_df.columns
+        ]
+        if len(demo_cols) > 1:  # at least user_id + one demographic
+            demographics = (
+                feat_df[demo_cols]
+                .drop_duplicates(subset=["user_id"])
+                .reset_index(drop=True)
+            )
+            # CSV user_id is int64, parquet user_id is string — coerce both.
+            df["user_id"] = pd.to_numeric(df["user_id"], errors="coerce")
+            demographics["user_id"] = pd.to_numeric(
+                demographics["user_id"], errors="coerce"
+            )
+            df = df.merge(demographics, on="user_id", how="left")
+            logger.info(
+                "Merged demographics: %s", [c for c in demo_cols if c != "user_id"]
+            )
+
+        # Compute dominant_return_category: mode of category on returned items.
+        status_col = next(
+            (c for c in feat_df.columns if "status" in c.lower()), None
+        )
+        category_col = next(
+            (c for c in feat_df.columns if c == "category"), None
+        )
+        if status_col and category_col and "user_id" in feat_df.columns:
+            returned = feat_df[
+                feat_df[status_col].str.lower() == "returned"
+            ][["user_id", category_col]]
+            dominant_cat = (
+                returned.groupby("user_id")[category_col]
+                .agg(lambda x: x.mode().iloc[0] if len(x) > 0 else "Unknown")
+                .reset_index()
+                .rename(columns={category_col: "dominant_return_category"})
+            )
+            dominant_cat["user_id"] = pd.to_numeric(
+                dominant_cat["user_id"], errors="coerce"
+            )
+            df = df.merge(dominant_cat, on="user_id", how="left")
+            df["dominant_return_category"] = df[
+                "dominant_return_category"
+            ].fillna("Unknown")
+            logger.info("Computed dominant_return_category from returned items")
+    else:
+        logger.warning(
+            "returns_eda_v1.parquet not found — "
+            "demographics and dominant_return_category will be absent. "
+            "Categorical controls will be skipped during screening."
+        )
+
     # Validation
     assert len(df) > 0, "Empty customer dataset"
     assert "total_profit_erosion" in df.columns, "Missing target column"
     assert (df["total_profit_erosion"] > 0).all(), "Non-positive erosion values found"
 
+    logger.info(
+        "load_rq4_data: %d customers, columns: %s", len(df), list(df.columns)
+    )
     return df
 
 
@@ -126,13 +198,15 @@ def screen_features(
     numeric_corr_matrix = numeric_data.corr()
 
     dropped = []
-    surviving_numeric = set(numeric_features) & set(data.columns)
+    # Use a sorted list for deterministic Gate 2 drop decisions across runs.
+    # Sets have no guaranteed iteration order, making surviving feature lists vary.
+    surviving_numeric = sorted(set(numeric_features) & set(data.columns))
 
     for i in range(len(numeric_corr_matrix.columns)):
         for j in range(i + 1, len(numeric_corr_matrix.columns)):
             corr_val = abs(numeric_corr_matrix.iloc[i, j])
             if corr_val > collinearity_threshold:
-                # Drop the one with lower average correlation with target
+                # Drop the one with lower absolute correlation with target
                 feat1, feat2 = (
                     numeric_corr_matrix.columns[i],
                     numeric_corr_matrix.columns[j],
@@ -150,37 +224,46 @@ def screen_features(
 
                 to_drop = feat2 if corr1 > corr2 else feat1
                 if to_drop in surviving_numeric:
-                    surviving_numeric.discard(to_drop)
+                    surviving_numeric.remove(to_drop)
                     dropped.append(to_drop)
 
     # Gate 3: ANOVA for categoricals
+    # The research question explicitly requires "controlling for product
+    # attributes and customer demographics". user_gender and
+    # dominant_return_category are pre-specified theory-driven controls that
+    # must be included regardless of their ANOVA p-value. Dropping them on
+    # data-driven grounds would violate the research design. traffic_source
+    # is exploratory and remains subject to the significance gate.
+    MANDATORY_CATEGORICALS = {"user_gender", "dominant_return_category"}
+    available_categoricals = [f for f in categorical_features if f in data.columns]
+
     anova_results = []
     surviving_categorical = []
 
-    for cat_feat in categorical_features:
-        if cat_feat in data.columns:
-            # One-way ANOVA
-            categories = data[cat_feat].unique()
-            groups = [
-                data[data[cat_feat] == cat][target_col].dropna().values
-                for cat in categories
-            ]
+    for cat_feat in available_categoricals:
+        categories = data[cat_feat].unique()
+        groups = [
+            data[data[cat_feat] == cat][target_col].dropna().values
+            for cat in categories
+        ]
+        groups = [g for g in groups if len(g) > 0]
 
-            # Remove empty groups
-            groups = [g for g in groups if len(g) > 0]
-
-            if len(groups) > 1:
-                f_stat, p_val = stats.f_oneway(*groups)
-                anova_results.append(
-                    {
-                        "categorical_feature": cat_feat,
-                        "f_statistic": f_stat,
-                        "p_value": p_val,
-                    }
-                )
-
-                if p_val < alpha:
-                    surviving_categorical.append(cat_feat)
+        if len(groups) > 1:
+            f_stat, p_val = stats.f_oneway(*groups)
+            is_mandatory = cat_feat in MANDATORY_CATEGORICALS
+            anova_results.append(
+                {
+                    "categorical_feature": cat_feat,
+                    "f_statistic": f_stat,
+                    "p_value": p_val,
+                    "alpha": alpha,
+                    "mandatory_control": is_mandatory,
+                }
+            )
+            # Mandatory controls are retained unconditionally; exploratory
+            # features must pass the significance gate.
+            if is_mandatory or p_val < alpha:
+                surviving_categorical.append(cat_feat)
 
     anova_df = pd.DataFrame(anova_results)
 
@@ -188,7 +271,7 @@ def screen_features(
         "correlation_table": correlation_df,
         "collinearity_dropped": dropped,
         "anova_table": anova_df,
-        "surviving_numeric": list(surviving_numeric),
+        "surviving_numeric": surviving_numeric,  # already a sorted list
         "surviving_categorical": surviving_categorical,
     }
 
