@@ -16,7 +16,7 @@ from src.visualization import (plot_customer_margin_exposure,
                                plot_price_margin_returned_by_status_country,
                                plot_return_rate_by_category,
                                plot_return_rate_heatmap,
-                               plot_status_distribution, set_plot_style)
+                               plot_status_distribution, set_plot_style,)
 
 
 class TestSetPlotStyle:
@@ -503,4 +503,100 @@ class TestPlotFeatureConcentrationRanking:
         )
         assert out_path.exists()
         assert out_path.stat().st_size > 0
+        plt.close(fig)
+
+# ============================================================================
+# RQ1-SPECIFIC VISUALIZATION TESTS (Profit Erosion Analysis)
+# ============================================================================
+
+
+class TestPlotTopGroupsTotalErosion:
+    def test_returns_figure_object(self):
+        from src.visualization import plot_top_groups_total_erosion
+
+        df = pd.DataFrame({
+            "category": ["A", "B", "C"],
+            "total_profit_erosion": [1000, 500, 200]
+        })
+
+        fig = plot_top_groups_total_erosion(
+            df,
+            group_col="category",
+            value_col="total_profit_erosion"
+        )
+        assert isinstance(fig, plt.Figure)
+        plt.close(fig)
+
+
+class TestPlotReturnRateVsMeanErosion:
+    def test_returns_figure_object(self):
+        from src.visualization import plot_return_rate_vs_mean_erosion
+
+        df = pd.DataFrame({
+            "category": ["A", "B", "C"],
+            "return_rate": [0.1, 0.2, 0.05],
+            "mean_profit_erosion": [50, 100, 20]
+        })
+
+        fig = plot_return_rate_vs_mean_erosion(
+            df,
+            group_col="category",
+            return_rate_col="return_rate",
+            erosion_col="mean_profit_erosion"
+        )
+        assert isinstance(fig, plt.Figure)
+        plt.close(fig)
+
+
+class TestPlotSeverityVsVolumeDecomposition:
+    def test_returns_figure_object(self):
+        from src.visualization import plot_severity_vs_volume_decomposition
+
+        df = pd.DataFrame({
+            "category": ["A", "B", "C"],
+            "returned_items": [10, 5, 2],
+            "mean_profit_erosion": [100, 50, 20]
+        })
+
+        fig = plot_severity_vs_volume_decomposition(
+            df,
+            group_col="category",
+            volume_col="returned_items",
+            severity_col="mean_profit_erosion"
+        )
+        assert isinstance(fig, plt.Figure)
+        plt.close(fig)
+
+
+class TestPlotProfitErosionDistributionLog:
+    def test_returns_figure_object(self):
+        from src.visualization import plot_profit_erosion_distribution_log
+
+        df = pd.DataFrame({
+            "profit_erosion": [10, 100, 1000, 50, 75]
+        })
+
+        fig = plot_profit_erosion_distribution_log(
+            df,
+            erosion_col="profit_erosion"
+        )
+        assert isinstance(fig, plt.Figure)
+        plt.close(fig)
+
+
+class TestPlotBootstrapCIMeanByGroup:
+    def test_returns_figure_object(self):
+        from src.visualization import plot_bootstrap_ci_mean_by_group
+
+        df = pd.DataFrame({
+            "category": ["A", "A", "B", "B", "C", "C"],
+            "profit_erosion": [100, 120, 50, 60, 20, 25]
+        })
+
+        fig = plot_bootstrap_ci_mean_by_group(
+            df,
+            group_col="category",
+            value_col="profit_erosion"
+        )
+        assert isinstance(fig, plt.Figure)
         plt.close(fig)
