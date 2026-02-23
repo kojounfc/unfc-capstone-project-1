@@ -1,213 +1,303 @@
-# RQ1 Technical Documentation  
-**Capstone Project – Master of Data Analytics**  
+
+# RQ1 Technical Documentation
+
+**Capstone Project – Master of Data Analytics**
 **Research Question 1 (RQ1)**
 
 ---
 
 ## 1. Research Question
 
-**RQ1:**  
+**RQ1:**
 *Do returned items exhibit statistically significant differences in profit erosion across product categories and brands?*
 
-This research question evaluates whether the **economic impact of product returns**, measured through profit erosion, varies systematically across product categories and brands in an e-commerce enviro[...]  
+This research question evaluates whether the economic impact of product returns — operationalized as **profit erosion per returned item** — varies systematically across product categories and brands within the e-commerce dataset.
+
+While return rate is frequently used in retail analytics, prior research demonstrates that frequency alone does not capture financial exposure (Petersen & Kumar, 2009). Therefore, RQ1 focuses on a profit-based metric that integrates both margin reversal and reverse logistics cost.
+
+Establishing statistically significant structural variation is a prerequisite for predictive modeling in later research questions.
 
 ---
 
 ## 2. Hypotheses
 
-All hypothesis testing was conducted at a significance level of **α = 0.05**, in accordance with the standardized RQ methodology template.
+All hypothesis testing was conducted at significance level α = 0.05.
 
-- **H₀ (Null Hypothesis):**  
-  Mean profit erosion is equal across product categories and brands.
+### 2.1 Category-Level Hypothesis
 
-- **H₁ (Alternative Hypothesis):**  
-  Mean profit erosion differs significantly across product categories and brands.
+* **H₀:** Mean profit erosion is equal across product categories.
+* **H₁:** Mean profit erosion differs across product categories.
+
+### 2.2 Brand-Level Hypothesis
+
+* **H₀:** Mean profit erosion is equal across brands.
+* **H₁:** Mean profit erosion differs across brands.
 
 ---
 
 ## 3. Data Scope and Unit of Analysis
 
-- **Unit of analysis:** Order-item level  
-- **Dataset:** Consolidated e-commerce dataset derived from TheLook (synthetic)  
-- **Filtering rule:** Only returned items (`is_returned_item = 1`) were included in profit erosion calculations  
+* **Unit of analysis:** Returned order-item
+* **Dataset:** TheLook synthetic e-commerce dataset
+* **Returned observations (category analysis):** 436
+* **Returned observations (brand analysis subset):** 56
+* **Groups tested (categories):** 21
+* **Groups tested (brands):** 7
 
-Each observation represents a single returned product item, ensuring that profit erosion is measured at the most granular transactional level.
+Only returned items were included in profit erosion calculations, ensuring that the metric reflects realized return-related financial loss.
 
-Note: US07 processed outputs used by RQ1 are return-focused and are written to `data/processed/rq1/`. If return rate denominators that include non-returned exposure are needed, downstream RQ pipelines recompute exposure from raw transactions.
-
----
-
-## 4. Feature Engineering and Profit Erosion Definition (US06)
-
-Profit erosion was operationalized using the standardized **US06 feature engineering pipeline**.
-
-For each returned item, profit erosion was defined as follows:
-
-- **Margin Reversal:**  
-  The item-level contribution margin lost due to the return (`item_margin`).
-
-- **Return Processing Cost:**  
-  A modeled reverse-logistics cost composed of:
-  - customer service handling  
-  - inspection  
-  - restocking  
-  - logistics  
-
-  A **category-tiered multiplier** was applied to the base processing cost to reflect differences in handling complexity across product categories.
-
-- **Profit Erosion Formula:**  
-
-  \[
-  \text{Profit Erosion} = \text{Margin Reversal} + \text{Processing Cost}
-  \]
-
-Processing costs are modeled based on documented industry benchmarks and assumptions defined in the project proposal. These assumptions are explicitly acknowledged as a limitation.
+Upstream feature engineering was implemented via **US06 (Return Feature Engineering Pipeline)**, and descriptive aggregation via **US07 (Profit Erosion Descriptive Module)**.
 
 ---
 
-## 5. Descriptive Aggregation (US07)
+## 4. Profit Erosion Definition (US06)
 
-Using **US07 descriptive transformation functions**, profit erosion metrics were aggregated across the following dimensions:
+Profit erosion was operationalized using the standardized US06 pipeline as:
 
-- Product category  
-- Brand  
-- Department  
+[
+\text{Profit Erosion} = \text{Margin Reversal} + \text{Processing Cost}
+]
 
-For each aggregation level, the following metrics were computed:
+Where:
 
-- Total profit erosion  
-- Mean profit erosion per return  
-- Number of returned items  
-- Return rate (computed using all items as the denominator for contextual comparison)
+* **Margin Reversal:** Lost item-level contribution margin
+* **Processing Cost:** Modeled reverse logistics cost
+* Category-tier multipliers applied
 
-These descriptive outputs were used for ranking, visualization, and subsequent statistical analysis.
-
----
-
-## 6. Statistical Methodology
-
-### 6.1 Normality Assessment
-Distributional normality of profit erosion within each category and brand group was assessed using the **Shapiro–Wilk test**. The distributions exhibited significant skewness and heavy tails, consis[...]  
-
-Given the violation of normality assumptions, parametric tests were deemed inappropriate.
+This formulation aligns with reverse logistics cost frameworks in operations research (Guide & Van Wassenhove, 2009).
 
 ---
 
-### 6.2 Primary Statistical Test
-The **Kruskal–Wallis H test** was applied to evaluate differences in mean profit erosion across:
+## 5. Descriptive Analysis (US07 Outputs)
 
-- Product categories  
-- Brands  
+### 5.1 Distribution of Profit Erosion
 
-This non-parametric test is suitable for comparing group medians when distributional assumptions are not met.
+**Figure 1: Distribution of Profit Erosion (Log Scale)**
 
----
+The distribution of profit erosion is strongly right-skewed with a heavy tail.
 
-### 6.3 Effect Size
-Effect size was quantified using **epsilon-squared (ε²)** to assess the practical significance of observed differences beyond statistical significance.
+Observations:
 
-A threshold of **ε² ≥ 0.06** was used to determine meaningful effect magnitude, as specified in the RQ methodology template.
+* Extreme high-loss returns
+* Non-normal distribution
+* Log transformation required
 
----
+Implication:
 
-### 6.4 Post-Hoc Analysis
-Following statistically significant Kruskal–Wallis results, **Dunn’s post-hoc tests with Bonferroni correction** were conducted to identify pairwise differences between categories and brands while[...]  
+Normality assumptions are violated, justifying non-parametric testing (Conover, 1999).
 
 ---
 
-## 6.5 Bootstrap Confidence Intervals (Supplementary)
+### 5.2 Category-Level Total Profit Erosion
 
-To complement non-parametric hypothesis testing and provide robust uncertainty estimates for group means, bootstrap 95% confidence intervals were computed for mean profit erosion by group. Bootstrap tables and CI visualizations are produced and saved as reproducible artifacts (see Reproducibility & Visualization Standards).
+**Figure 2: Top Categories by Total Profit Erosion**
 
----
+Top contributors:
 
-## 7. Results
+| Category            | Total Profit Erosion |
+| ------------------- | -------------------- |
+| Outerwear & Coats   | ~$2.0K               |
+| Sweaters            | ~$1.6K               |
+| Jeans               | ~$1.4K               |
+| Suits & Sport Coats | ~$1.3K               |
+| Pants               | ~$1.2K               |
 
-### 7.1 Statistical Test Results
+Interpretation:
 
-The statistical analysis produced the following outcomes:
+Structured and higher-margin apparel categories generate the largest financial losses. This reflects the amplification effect of high unit margins when returns occur (Petersen & Kumar, 2010).
 
-- **Product Categories**
-  - Null hypothesis rejected (p < 0.05)
-  - Effect size exceeded the predefined threshold (ε² ≥ 0.06)
-
-- **Brands**
-  - Null hypothesis rejected (p < 0.05)
-  - Effect size exceeded the predefined threshold (ε² ≥ 0.06)
-
-Both category-level and brand-level analyses meet the **success criteria** defined in the RQ methodology template.
+Loss concentration is economically meaningful rather than evenly distributed.
 
 ---
 
-### 7.2 Descriptive Results
+### 5.3 Department-Level Aggregation
 
-#### Categories
-Several product categories, including **Outerwear & Coats**, **Jeans**, and **Sweaters**, were identified as leading contributors to total profit erosion. These categories exhibit either high return v[...]  
+**Figure 3: Top Departments by Total Profit Erosion**
 
-#### Brands
-At the brand level, profit erosion was unevenly distributed. Some brands contributed heavily to total profit erosion due to return volume, while others exhibited high erosion per return driven by prem[...]  
+| Department | Total Profit Erosion |
+| ---------- | -------------------- |
+| Men        | ~$10.7K              |
+| Women      | ~$8.1K               |
 
-#### Return Rate vs. Profit Erosion
-Analysis of return rate versus mean profit erosion per return revealed a weak linear relationship, indicating that return frequency alone does not adequately explain the economic impact of returns.
+The Men’s department exhibits materially higher total erosion.
 
----
-
-## 8. Interpretation
-
-### 8.1 Category-Level Interpretation
-The results demonstrate that product categories differ substantially in the economic cost of returns. Categories with similar return rates can generate markedly different profit erosion outcomes due t[...]  
-
-High-margin and structurally complex categories incur significantly higher losses per return compared to basic or commodity categories.
+This suggests department-level structural asymmetry in return-related financial exposure.
 
 ---
 
-### 8.2 Brand-Level Interpretation
-Brand-level heterogeneity in profit erosion suggests that return-related financial risk is not evenly distributed across brands. This variation cannot be explained by return rate alone and reflects di[...]  
+### 5.4 Brand-Level Concentration
+
+**Figure 4: Top Brands by Total Profit Erosion**
+
+Top brands include:
+
+* Orvis
+* Allegra K
+* Tommy Hilfiger
+* Volcom
+
+Profit erosion is concentrated among a small subset of brands, indicating heterogeneity in brand-level economic risk.
 
 ---
 
-### 8.3 Implications of Return Rate as a Metric
-The weak association between return rate and profit erosion confirms that return rate is an incomplete proxy for financial risk. Profit erosion provides a more economically meaningful measure for prio[...]  
+### 5.5 Severity vs Volume Decomposition
+
+**Figure 5: Severity vs Volume (Category Decomposition)**
+
+Total erosion decomposed as:
+
+[
+\text{Total Erosion} = \text{Return Volume} \times \text{Mean Erosion per Return}
+]
+
+Findings:
+
+* **Outerwear & Coats:** High severity + moderate volume
+* **Suits & Sport Coats:** Very high severity
+* **Fashion Hoodies:** High volume, moderate severity
+
+Conclusion:
+
+Different categories generate losses through different mechanisms. This distinction is critical for operational targeting (Guide & Van Wassenhove, 2009).
 
 ---
 
-## 9. Limitations
+### 5.6 Return Rate vs Mean Profit Erosion
 
-- The dataset used is synthetic and may not fully capture real-world consumer behavior.
-- Return processing costs are modeled rather than directly observed.
-- Recovery or resale value of returned items is not explicitly incorporated.
+**Figure 6: Return Rate vs Mean Profit Erosion per Return**
 
-These limitations are consistent with the scope and objectives of an academic capstone project.
+The relationship between return rate and erosion severity is weak.
+
+Implication:
+
+Return rate alone is insufficient as a financial risk indicator.
+
+This aligns with findings that frequency-based metrics do not fully capture profitability impact (Petersen & Kumar, 2009).
+
+---
+
+## 6. Statistical Analysis
+
+### 6.1 Category-Level Kruskal–Wallis Test
+
+* **p-value:** 4.99 × 10⁻²⁷
+* **Effect size (ε²):** 0.377
+* **Groups:** 21
+* **Observations:** 436
+* **Decision:** Reject H₀
+
+The extremely small p-value provides overwhelming evidence against equality of group means.
+
+The epsilon-squared value (0.377) indicates a **large practical effect** (Tomczak & Tomczak, 2014).
+
+Therefore, category-level differences are both statistically and economically significant.
+
+---
+
+### 6.2 Brand-Level Kruskal–Wallis Test
+
+* **p-value:** 4.44 × 10⁻⁵
+* **Effect size (ε²):** 0.484
+* **Groups:** 7
+* **Decision:** Reject H₀
+
+The brand-level effect size exceeds the category-level effect.
+
+This suggests brand-specific structural drivers of financial loss.
+
+---
+
+### 6.3 Post-Hoc Testing
+
+Dunn’s post-hoc tests with Bonferroni correction were conducted.
+
+Significant pairwise differences were observed between:
+
+* Structured apparel categories and casual categories
+* High-margin and low-margin brand groups
+
+These results confirm that specific groups drive overall heterogeneity.
+
+---
+
+## 7. Bootstrap Confidence Intervals
+
+**Figure 7: Bootstrap 95% Confidence Intervals (Category Means)**
+
+Bootstrap resampling (Efron & Tibshirani, 1993) was used to estimate robust uncertainty intervals under non-normal conditions.
+
+Example:
+
+| Category        | Mean  | 95% CI         |
+| --------------- | ----- | -------------- |
+| Fashion Hoodies | 26.36 | [22.35, 30.67] |
+| Tops & Tees     | 16.99 | [13.74, 21.39] |
+
+Limited overlap between intervals reinforces structural differences.
+
+---
+
+## 8. Integrated Interpretation
+
+RQ1 provides converging descriptive and inferential evidence that:
+
+1. Profit erosion is not uniformly distributed.
+2. Category-level differences are large and economically meaningful.
+3. Brand-level heterogeneity is pronounced.
+4. Department-level asymmetry exists.
+5. Return rate alone is insufficient as a financial KPI.
+
+The null hypotheses are rejected at both levels.
+
+The effect sizes indicate meaningful structural economic variation rather than trivial statistical artifacts.
+
+---
+
+## 9. Business Implications
+
+From a managerial perspective:
+
+1. High-margin structured apparel requires targeted mitigation strategies.
+2. Brand-level erosion dashboards should supplement traditional return metrics.
+3. Men’s department requires enhanced monitoring.
+4. Reverse logistics cost optimization may materially reduce losses.
+5. Profit erosion should complement return rate as a primary performance metric.
+
+These findings support financially informed return management policy rather than frequency-only monitoring.
 
 ---
 
 ## 10. Conclusion (RQ1)
 
-RQ1 provides strong empirical evidence that **profit erosion from product returns differs significantly across both product categories and brands**. The null hypothesis was rejected in all tested dime[...]  
+RQ1 establishes that profit erosion differs significantly across product categories and brands therefore rejects the null hypotheses.
 
-These findings establish a rigorous descriptive and inferential foundation for subsequent research questions, particularly **RQ2**, where customer segmentation will incorporate economically meaningful[...]  
+The statistical evidence is robust, and effect sizes confirm practical relevance.
+
+These findings provide the inferential foundation for predictive modeling in subsequent research questions.
 
 ---
 
 ## 11. Traceability to User Stories
 
-- **US06:** Return feature engineering and profit erosion computation  
-- **US07:** Descriptive aggregation and reporting of profit erosion metrics  
-- **RQ1:** Statistical validation of cross-category and cross-brand differences  
+* **US06:** Return feature engineering and profit erosion computation
+* **US07:** Descriptive aggregation and visualization outputs
+* **RQ1:** Statistical validation of structural heterogeneity
 
 ---
 
-## 12. Reproducibility & Visualization Standards (post-refactor)
+## 12. References
 
-Following the RQ1 refactor, visualization and pipeline orchestration were standardized to improve reproducibility and CI-safety:
+Conover, W. J. (1999). *Practical Nonparametric Statistics* (3rd ed.). Wiley.
 
-- Centralized visualization API: All RQ1 visuals are implemented in `src/rq1_visuals.py` (functions include `plot_top_groups_total_erosion`, `plot_return_rate_vs_mean_erosion`, `plot_profit_erosion_distribution_log`, and `plot_bootstrap_ci_mean_by_group`). This centralization enforces consistent styling and deterministic outputs.
-- Deterministic artifact locations: All RQ1 figures and CI tables are written deterministically to Figures and processed data directories:
-  - Figures: `figures/rq1/`
-  - Processed inputs and CI tables: `data/processed/rq1/`
-  Storing artifacts at fixed paths enables CI to assert outputs and makes notebook rendering headless-friendly.
-- Log-scale distributions & bootstrap confidence intervals: To support non-parametric inference and robust effect-size interpretation, a log-transformed erosion distribution plot is included and bootstrap 95% confidence interval visualizations and CSV tables are produced and saved. These supplement the Kruskal–Wallis and Dunn post-hoc tests.
-- Notebook orchestration: The primary analysis notebook (`profit_erosion_analysis.ipynb`) was refactored to remove inline rendering. Notebooks now operate as orchestration layers that reference saved PNGs (one-visual-per-cell) so figures are generated deterministically by the pipeline and displayed by embedding the saved image files.
-- Code structure: RQ1 code was migrated from the legacy `src/rq1/` package to top-level modules: `src/rq1_run.py`, `src/rq1_stats.py`, and `src/rq1_visuals.py`. Tests were added to validate statistical outputs and figure generation to improve CI reliability.
+Efron, B., & Tibshirani, R. J. (1993). *An Introduction to the Bootstrap*. Chapman & Hall/CRC.
 
-These refactorings do not change the analytical decisions documented above (units of analysis, tests, effect size), but they do affect how figures and intermediate tables are produced, stored, and consumed by downstream reporting.
+Guide, V. D. R., & Van Wassenhove, L. N. (2009). The evolution of closed-loop supply chain research. *Operations Research*, 57(1), 10–18.
+
+Petersen, J. A., & Kumar, V. (2009). Are product returns a necessary evil? *Journal of Marketing*, 73(3), 35–51.
+
+Petersen, J. A., & Kumar, V. (2010). Can product returns make you money? *MIT Sloan Management Review*, 51(3), 85–89.
+
+Tomczak, M., & Tomczak, E. (2014). The need to report effect size estimates revisited. *Trends in Sport Sciences*, 1(21), 19–25.
+
+---
+

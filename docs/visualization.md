@@ -1,251 +1,191 @@
-# RQ1 Visual Standards & Module Reference
+# Visualization Module - Technical Reference (`src/visualization.py`)
+
+_Last updated: 2026-02-23_
 
 ## Executive Summary
 
-The `src/rq1_visuals.py` module provides publication-quality, research-aligned visualizations for **Research Question 1 (RQ1)**:
+`visualization.py` centralizes plotting functions for:
+- **Baseline / descriptive EDA** (dataset composition and return patterns)
+- **Feature Engineering validation** (post-FE sanity checks)
+- **RQ1 visuals** (profit erosion narrative visuals)
+- **RQ2 visuals** (concentration + clustering diagnostics)
 
-> Do product-level dimensions (category, brand, department) significantly differ in profit erosion?
+The notebook should:
+1) build/prepare the dataset
+2) call plotting functions
+3) save and display figures from disk
 
-This module replaces the legacy `visualization.py` EDA module.
-
-The RQ1 visuals are designed to:
-
-- Identify high-impact product groups
-- Explain erosion mechanisms (frequency vs severity)
-- Justify statistical testing assumptions
-- Provide bootstrap-based inference robustness
-- Produce thesis-ready, reproducible figures
-
-All figures are saved under:
-
-    figures/rq1/
-
-Bootstrap CI tables are saved under:
-
-    data/processed/rq1/
-
-The notebook orchestrates execution only.  
-All matplotlib logic is centralized inside `src/rq1_visuals.py`.
+The visualization module should:
+- validate required columns
+- generate a figure deterministically
+- save to a provided `save_path` / `out_path`
 
 ---
 
-# 1. RQ1 Visual Pipeline
+## 1. Plot Style and Utility
 
-RQ1 visuals follow a structured academic narrative:
+### 1.1 `set_plot_style()`
 
-1. Top Categories by Total Profit Erosion
-2. Top Brands by Total Profit Erosion
-3. Return Rate vs Mean Erosion (Mechanism View)
-4. Severity vs Volume Decomposition
-5. Distribution of Profit Erosion (Log Scale)
-6. Bootstrap 95% Confidence Intervals
+**Purpose:** Applies consistent plot style across the project.
 
-Narrative structure:
+**Signature:**
+```python
+def set_plot_style():
+    ...
+```
+
+### 1.2 `_safe_tight_layout()`
+
+**Purpose:** Applies `plt.tight_layout()` while suppressing layout warnings for small figures.
+
+---
+
+## 2. Baseline Descriptive EDA (Legacy EDA)
+
+These are **visual EDA** functions. They do **not** run hypothesis tests; they provide descriptive evidence used to guide later analysis.
+
+### 2.1 Status distribution
+
+- **Function:** `plot_status_distribution(df, ...)`
+- **Required columns:** `item_status`
+
+### 2.2 Return rate by category
+
+- **Function:** `plot_return_rate_by_category(df, ...)`
+- **Required columns:** `category`, `order_id`, `is_returned_item`
+- **Note:** `is_returned_item` is expected to exist **after** return-flag feature engineering (or must be created minimally from status).
+
+### 2.3 Return-rate heatmap
+
+- **Function:** `plot_return_rate_heatmap(df, row_col="category", col_col="traffic_source", ...)`
+- **Required columns:** `row_col`, `col_col`, `order_id`, `is_returned_item`
+
+### 2.4 Margin distribution
+
+- **Function:** `plot_margin_distribution(df, returned_only=False, ...)`
+- **Required columns:** `item_margin`
+- **Placement:** **Post Feature Engineering** (after margins are computed)
+
+### 2.5 Margin loss by category (returned items)
+
+- **Function:** `plot_margin_loss_by_category(df, ...)`
+- **Required columns:** `category`, `is_returned_item`, `item_margin`
+
+### 2.6 Customer margin exposure (returned items)
+
+- **Function:** `plot_customer_margin_exposure(df, ...)`
+- **Required columns:** `user_id`, `is_returned_item`, `item_margin`, `order_id`
+
+### 2.7 Returned item cost/price/margin grid by country
+
+- **Function:** `plot_price_margin_returned_by_status_country(agg_df, ...)`
+- **Expected input:** output of an aggregator such as `calculate_price_margin_returned_by_country(...)`
+- **Required columns in input:** `country`, `avg_cost`, `total_cost`, `avg_sale_price`, `total_sale_price`, `avg_margin`, `total_margin`, `item_count`
+
+---
+
+## 3. RQ1 Visuals (now centralized in `visualization.py`)
+
+These plots are designed to support RQ1’s narrative:
 
 Descriptive Impact → Mechanism → Statistical Justification → Inference Stability
 
----
+### 3.1 Top groups by total erosion
 
-# 2. Core Visualization Functions
+- `plot_top_groups_total_erosion(df, group_col=..., value_col="total_profit_erosion", ...)`
 
-## 2.1 plot_top_groups_total_erosion()
+### 3.2 Return rate vs mean erosion (mechanism view)
 
-Purpose:
-Rank product groups by total financial exposure.
+- `plot_return_rate_vs_mean_erosion(df, x_col="return_rate", y_col="avg_profit_erosion", ...)`
 
-Used For:
-- Category
-- Brand
-- Department
+### 3.3 Severity vs volume decomposition
 
-Output:
-- Horizontal bar chart
-- Sorted descending
-- Value annotations
-- Saved under figures/rq1/
+- `plot_severity_vs_volume_decomposition(df, ...)`
 
-RQ1 Role:
-Provides descriptive baseline for hypothesis testing.
+### 3.4 Profit erosion distribution (log scale)
+
+- `plot_profit_erosion_distribution_log(returned_df, value_col="profit_erosion", ...)`
+
+### 3.5 Bootstrap confidence intervals
+
+- `plot_bootstrap_ci_mean_by_group(returned_df, group_col=..., value_col="profit_erosion", ...)`
+- **Output:** returns a CI table (DataFrame) and saves a CI figure to `out_path`
 
 ---
 
-## 2.2 plot_return_rate_vs_mean_erosion()
+## 4. RQ2 Visuals (Concentration & Segmentation)
 
-Purpose:
-Distinguish whether high total erosion groups are driven by:
-- High return frequency
-- High per-return severity
-- Or both
+### 4.1 Concentration ranking
 
-Axes:
-- X: Return Rate
-- Y: Mean Profit Erosion per Return
-- Bubble Size: Returned Item Volume
+- `plot_feature_concentration_ranking(concentration_df, ...)`
 
-Design:
-- Top contributors annotated (default: top 10)
-- Clean scatter layout
-- Publication-ready typography
+### 4.2 Gini vs Pareto share scatter
 
-RQ1 Role:
-Explains mechanism behind total impact.
+- `plot_gini_vs_pareto_scatter(concentration_df, ...)`
 
----
+### 4.3 Pareto curve
 
-## 2.3 plot_severity_vs_volume_decomposition()
+- `plot_pareto_curve(pareto_df, gini, ...)`
 
-Identity Visualized:
+### 4.4 Lorenz curve
 
-Total Profit Erosion = Returned Items × Avg Profit Erosion
+- `plot_lorenz_curve(lorenz_df, gini, ...)`
 
-Axes:
-- X: Returned Items
-- Y: Average Erosion
-- Bubble Size: Total Erosion
+### 4.5 Clustering diagnostics
 
-Design:
-- Limited annotation for clarity
-- Top contributors labeled
-- Clean grid background
+- `plot_clustering_diagnostics(elbow_df, silhouette_df, optimal_k, ...)`
 
-RQ1 Role:
-Confirms mathematical structure of erosion.
+### 4.6 Cluster erosion comparison
+
+- `plot_cluster_erosion_comparison(cluster_summary_df, optimal_k, ...)`
+
+### 4.7 Clustering feature importance
+
+- `plot_clustering_feature_importance(feature_importance_df, ...)`
 
 ---
 
-## 2.4 plot_profit_erosion_distribution_log()
+## 5. Notebook Integration Pattern (No Double-Rendering)
 
-Purpose:
-Visualize skewness of item-level profit erosion.
+Recommended notebook pattern:
+1) call plot function with save path
+2) display the saved image
+3) close the matplotlib figure if returned
 
-Design:
-- Log-scale histogram
-- High bin count (default 60)
-- Clean axis labeling
+Example:
 
-RQ1 Role:
-Justifies non-parametric testing (e.g., Kruskal–Wallis).
-
----
-
-## 2.5 plot_bootstrap_ci_mean_by_group()
-
-Purpose:
-Estimate 95% bootstrap confidence intervals for group mean erosion.
-
-Output:
-- Horizontal CI chart
-- Mean marker
-- Error bars representing 95% interval
-
-Additional Output:
-Returns CI DataFrame for persistence:
-
-    data/processed/rq1/rq1_bootstrap_ci_*.parquet
-
-RQ1 Role:
-Strengthens inference robustness beyond p-values.
-
----
-
-# 3. Visual Standards (Updated)
-
-## 3.1 Styling Principles
-
-All visuals follow strict consistency standards:
-
-- Clean white grid
-- Neutral academic color palette
-- No excessive color saturation
-- Limited annotation (top contributors only)
-- Tight layout to prevent clipping
-- High readability font sizes
-- No notebook-dependent rendering logic
-
----
-
-## 3.2 Figure Quality Standards
-
-Format: PNG  
-DPI: 150–200  
-Layout: tight  
-Transparency: Disabled  
-Background: White  
-
-All figures are saved deterministically before notebook display.
-
----
-
-## 3.3 Annotation Rules
-
-To prevent clutter:
-
-- Maximum annotated groups: 8–12
-- Annotate only high-impact contributors
-- Avoid full-label scatter clutter
-- No overlapping label stacks
-
----
-
-## 3.4 Output Standards
-
-Every figure must:
-
-1. Save to figures/rq1/
-2. Be displayed inline via saved file
-3. Return output path (CI-safe)
-4. Not rely on implicit matplotlib state
-
-Notebook pattern:
-
-rq1_visuals.plot_*(...)
+```python
+out_path = FIGURES_DIR / "eda" / "status_distribution.png"
+fig = plot_status_distribution(df, save_path=str(out_path))
+plt.close(fig)
 display(Image(filename=str(out_path)))
+```
+
+This prevents the “figure appears twice” behavior in Jupyter.
 
 ---
 
-# 4. Separation of Concerns
+## 6. Where Each Visual Belongs in the Pipeline
 
-Notebook Responsibilities:
-- Load data
-- Call visualization functions
-- Display saved PNG
-- Save CI tables
+**Baseline Descriptive EDA (pre-FE):**
+- status distribution
+- return rate by category (if `is_returned_item` exists or is minimally created)
 
-Module Responsibilities:
-- Validate schema
-- Generate plot
-- Save figure
-- Return path
-- Close figure
+**Post Feature Engineering validation (post-FE):**
+- margin distribution
+- margin loss by category
+- customer margin exposure
+- country cost/price/margin grid
 
----
-
-# 5. Differences from Legacy visualization.py
-
-The old module:
-- Focused on exploratory EDA
-- Mixed multiple business views
-- Included margin and customer analysis
-
-The new rq1_visuals.py:
-- Is RQ1-specific
-- Supports academic hypothesis testing
-- Enforces standardized output structure
-- Aligns with statistical workflow
-- Produces thesis-ready figures
+**RQ1 / RQ2:**
+- use their dedicated visuals after the corresponding transformation steps.
 
 ---
 
-# 6. Summary
+## Summary
 
-The RQ1 visualization module provides:
-
-- Structured academic storytelling
-- Mechanism-based interpretation
-- Distribution justification for statistical tests
-- Bootstrap inference validation
-- Publication-ready output standards
-- Clean module separation
-- CI-safe deterministic rendering
-
-This module directly supports RQ1 hypothesis validation and final report production.
+`visualization.py` provides a unified, reproducible plotting layer that supports:
+- early descriptive profiling
+- post-FE validation
+- RQ1 research narrative visuals
+- RQ2 concentration and segmentation diagnostics
