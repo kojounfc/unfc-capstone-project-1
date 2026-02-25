@@ -33,9 +33,139 @@ Raw CSV Files (4 tables)
 
 ---
 
-## 2. Core Functions
+## 2. Column Selection Strategy
 
-### 2.1 clean_columns()
+### 2.1 Current Implementation Overview
+
+The current implementation in `build_analysis_dataset()` loads **all available columns** from each source table, but then applies **selective column inclusion** during the merge step. The strategy prioritizes **keeping analytical columns while removing redundant join keys**.
+
+**Load Strategy:** All columns loaded → Selective column merge → Some columns filtered out
+
+| Stage | Columns Action | Rationale |
+|-------|--------|-----------|
+| Load Time | All columns from all 4 tables | `load_raw_data()` called without column parameters; uses default `usecols=None` |
+| Merge Time | Selective inclusion from orders; explicit drop of user_id from order_items | `merge_datasets()` selects only 8 of 9 columns from orders; removes `user_id` from order_items before merge since it comes from orders |
+| Post-Merge | No additional columns removed | `remove_unnecessary_columns()` function exists but is not called in the pipeline |
+| Final Output | ~40 columns from 4 tables merged into single grain | All merged columns saved to parquet and CSV (except those filtered during merge) |
+
+**Summary:**
+- **order_items:** 10 of 11 columns (user_id explicitly dropped)
+- **orders:** 8 of 9 columns (id column filtered out during merge)
+- **products:** All 9 columns
+- **users:** All 16 columns
+- **Total in final dataset:** ~40 columns (accounting for join keys not duplicated)
+
+### 2.2 Source Table Columns in Final Dataset
+
+The following tables and their columns are loaded and merged into the final `returns_eda_v1` dataset. Note that the `merge_datasets()` function performs selective column inclusion for the orders table and drops `user_id` from order_items before merging.
+
+#### From order_items Table (10 of 11 columns - 1 explicitly removed)
+| Column | Type | Status | Action | Renamed To | Purpose |
+|--------|------|--------|--------|------------|---------|
+| `id` | int | ✅ Included | Kept | `order_item_id` | Line-item identifier |
+| `order_id` | int | ✅ Included | Kept | (no change) | Join key to orders |
+| `user_id` | int | ❌ REMOVED | Explicitly dropped before merge | (dropped) | Not needed; will use user_id from orders merge |
+| `product_id` | int | ✅ Included | Kept | (no change) | Join key to products |
+| `inventory_item_id` | int | ✅ Included | Kept | (no change) | Inventory tracking |
+| `status` | string | ✅ Included | Kept | `item_status` | Item fulfillment status |
+| `created_at` | datetime | ✅ Included | Kept | `item_created_at` | Item creation timestamp |
+| `shipped_at` | datetime | ✅ Included | Kept | `item_shipped_at` | Shipping timestamp |
+| `delivered_at` | datetime | ✅ Included | Kept | `item_delivered_at` | Delivery timestamp |
+| `returned_at` | datetime | ✅ Included | Kept | `item_returned_at` | Return timestamp (null if not returned) |
+| `sale_price` | float | ✅ Included | Kept | (no change) | Actual selling price |
+
+**Note:** `user_id` is explicitly removed from order_items with `.drop(columns=["user_id"], errors="ignore")` before merge because it will be obtained via the join with orders table.
+
+#### From orders Table (8 of 9 columns - 1 filtered out in merge)
+| Column | Type | Status | Action | Renamed To | Purpose |
+|--------|------|--------|--------|------------|---------|
+| `id` | int | ❌ EXCLUDED | Not selected in merge | (filtered out) | Order identifier not needed in final dataset |
+| `user_id` | int | ✅ Included | Selected for merge | (no change) | Customer identifier (primary join key with users) |
+| `status` | string | ✅ Included | Selected for merge | `order_status` | Order-level fulfillment status |
+| `created_at` | datetime | ✅ Included | Selected for merge | `order_created_at` | Order creation timestamp |
+| `shipped_at` | datetime | ✅ Included | Selected for merge | `order_shipped_at` | Order-level shipping timestamp |
+| `delivered_at` | datetime | ✅ Included | Selected for merge | `order_delivered_at` | Order-level delivery timestamp |
+| `returned_at` | datetime | ✅ Included | Selected for merge | `order_returned_at` | Order-level return timestamp |
+| `num_of_item` | int | ✅ Included | Selected for merge | (no change) | Item count in order |
+
+**Note:** Only 8 specific columns are selected from orders during merge (via column list). The `id` column is excluded. Code: `orders_renamed[["order_id", "user_id", "order_created_at", "order_status", ...]]`
+
+#### From products Table (All 9 columns included)
+| Column | Type | Status | Renamed To | Purpose |
+|--------|------|--------|------------|---------|
+| `id` | int | ✅ Included | `product_id` | Join key (renamed) |
+| `cost` | float | ✅ Included | (no change) | Product cost (COGS) |
+| `category` | string | ✅ Included | (no change) | Product category |
+| `name` | string | ✅ Included | (no change) | Product name |
+| `brand` | string | ✅ Included | (no change) | Brand name |
+| `retail_price` | float | ✅ Included | (no change) | List price before discount |
+| `department` | string | ✅ Included | (no change) | Product department |
+| `sku` | string | ✅ Included | (no change) | Stock keeping unit |
+| `distribution_center_id` | int | ✅ Included | (no change) | Distribution center |
+
+#### From users Table (All 16 columns included)
+| Column | Type | Status | Renamed To | Purpose |
+|--------|------|--------|------------|---------|
+| `id` | int | ✅ Included | `user_id` | Customer identifier (rename to match orders.user_id) |
+| `first_name` | string | ✅ Included | (no change) | Customer first name |
+| `last_name` | string | ✅ Included | (no change) | Customer last name |
+| `email` | string | ✅ Included | (no change) | Customer email address |
+| `age` | int | ✅ Included | (no change) | Customer age |
+| `gender` | string | ✅ Included | `user_gender` | Customer gender |
+| `state` | string | ✅ Included | (no change) | Customer state/province |
+| `street_address` | string | ✅ Included | (no change) | Customer street address |
+| `postal_code` | string | ✅ Included | (no change) | Customer postal code |
+| `city` | string | ✅ Included | (no change) | Customer city |
+| `country` | string | ✅ Included | (no change) | Customer country |
+| `latitude` | float | ✅ Included | (no change) | Customer location latitude |
+| `longitude` | float | ✅ Included | (no change) | Customer location longitude |
+| `traffic_source` | string | ✅ Included | (no change) | Customer acquisition channel |
+| `created_at` | datetime | ✅ Included | `user_created_at` | Account creation timestamp |
+| `user_geom` | geometry | ✅ Included | (no change) | Geospatial location data |
+
+### 2.3 Column Selection Rationale
+
+**Why specific columns are kept or removed:**
+
+1. **Redundant Join Keys Are Removed:**
+   - `order_items.user_id` is dropped before merge because `orders.user_id` will be obtained via the order join
+   - `orders.id` is excluded from final merge because `orders.order_id` already serves as the join key
+   - This prevents duplicate identifier columns and reduces redundancy
+
+2. **All Other Columns Are Preserved:**
+   - All columns from order_items (except user_id), orders (except id), products, and users tables are kept
+   - Downstream modules and analysis have complete access to all available data attributes
+   
+3. **Analytical Flexibility:** 
+   - Complete datasets allow different research questions to use different column subsets
+   - Data scientists can filter columns as needed using `remove_unnecessary_columns()` utility
+   
+4. **Data Traceability:** 
+   - Keeping all columns maintains complete record of source data
+   - Easier to debug and validate data transformations
+   
+5. **Two-Step Design Philosophy:**
+   - **Step 1 (data_processing.py):** Load complete raw data, remove redundant join keys during merge, output analysis-ready dataset
+   - **Step 2 (downstream):** Individual analysis modules can further filter columns if needed via `remove_unnecessary_columns()` or direct column selection
+
+### 2.4 Column Filtering Options for Consumers
+
+While `build_analysis_dataset()` outputs all columns, downstream code can filter using the `remove_unnecessary_columns()` utility:
+
+```python
+# Example: Data cleaning module can filter to essential analysis columns
+df = load_processed_data()  # Load complete merged dataset
+df_filtered, report = remove_unnecessary_columns(
+    df,
+    columns_to_drop=["first_name", "last_name", "street_address"]
+)
+```
+
+---
+
+## 3. Core Functions
+
+### 3.1 clean_columns()
 
 **Purpose:** Normalize column names by removing whitespace and BOM characters
 
@@ -69,7 +199,7 @@ df_clean = clean_columns(df_raw)
 
 ---
 
-### 2.2 load_raw_data()
+### 3.2 load_raw_data()
 
 **Purpose:** Load four raw CSV files with optional column selection and datetime parsing
 
@@ -125,7 +255,7 @@ oi, orders, products, users = load_raw_data(
 
 ---
 
-### 2.3 remove_unnecessary_columns()
+### 3.3 remove_unnecessary_columns()
 
 **Purpose:** Remove or keep specific columns with detailed reporting
 
@@ -173,7 +303,7 @@ df_subset, report = remove_unnecessary_columns(
 
 ---
 
-### 2.4 merge_datasets()
+### 3.4 merge_datasets()
 
 **Purpose:** Merge four source tables into a single unified dataset at order-item grain
 
@@ -233,7 +363,7 @@ Prevents collisions between tables with overlapping column names:
 
 ---
 
-### 2.5 engineer_return_features()
+### 3.5 engineer_return_features()
 
 **Purpose:** Create return-related flags for analysis
 
@@ -267,7 +397,7 @@ return_rate = df["is_returned_item"].sum() / len(df)
 
 ---
 
-### 2.6 calculate_margins()
+### 3.6 calculate_margins()
 
 **Purpose:** Compute profit and discount metrics for profit erosion analysis
 
@@ -310,7 +440,7 @@ profitable = df.nlargest(10, "item_margin")
 
 ---
 
-### 2.7 standardize_dtypes()
+### 3.7 standardize_dtypes()
 
 **Purpose:** Ensure consistent data types for processing and serialization
 
@@ -342,7 +472,7 @@ def standardize_dtypes(df: pd.DataFrame) -> pd.DataFrame
 
 ---
 
-### 2.8 build_analysis_dataset()
+### 3.8 build_analysis_dataset()
 
 **Purpose:** Execute the complete data pipeline end-to-end
 
