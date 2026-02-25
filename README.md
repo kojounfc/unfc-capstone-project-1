@@ -1,224 +1,224 @@
-# Capstone Project – Profit Erosion in E-commerce
+# Analyzing Profit Erosion from Product Returns in E-Commerce
+### A Multi-Method Analytics Framework
 
-## Overview
+**Course**: DAMO-699-4 Capstone Project — Winter 2026
+**Institution**: University of Niagara Falls Canada
 
-This project investigates **profit erosion driven by product returns** in e-commerce. While much of the existing analytics literature emphasizes return rates or customer satisfaction, our work reframes returns as an economic problem by quantifying:
-
-- **Margin reversal** on returned items using observed sale price and product cost
-- **Incremental profit erosion** after incorporating return process costs (customer care, inspection, restocking, logistics)
+---
 
 ## Problem Statement
 
-Our capstone focuses on profit erosion driven by product returns and post-transaction credits. We aim to:
-1. Quantify margin reversal on returned items
-2. Model incremental profit erosion from return processing costs
-3. Identify customer and product segments with high return exposure
-4. Provide actionable recommendations using analytics
+Product returns are **economic reversal events** that directly erode realized revenue and margin. This project reframes returns beyond operational metrics to quantify:
 
-## Data Source
+- **Margin reversal** — the margin lost on returned items (sale price − cost)
+- **Incremental processing costs** — customer service, inspection, restocking, logistics ($12 base per return, category-tier adjusted)
 
-**BigQuery Public Dataset**: `bigquery-public-data.thelook_ecommerce`
+> **Core formula:** `Profit Erosion = Margin Reversal + Processing Cost`
 
-### Why This Dataset
-- Publicly available via Google BigQuery (not Kaggle-hosted)
-- Explicit product cost and sale price fields enable direct margin computation
-- Clear item-level return indicators allow identification of economic reversals
-- Customer-level attributes enable behavioral analysis
+---
 
-### Tables Used
+## Research Questions
+
+| RQ | Focus | Method | Key Result |
+|----|-------|--------|------------|
+| **RQ1** | Profit erosion differences across product categories & brands | Descriptive Analysis + Kruskal-Wallis | Significant cross-category differences (H₀ rejected) |
+| **RQ2** | Customer behavioral segments with differential profit erosion | K-Means Clustering + Gini/Lorenz/Pareto | Behaviorally distinct segments confirmed |
+| **RQ3** | Predict high-erosion customers (target AUC > 0.70) | ML Classification (RF, GB, LR) | RF champion AUC = 0.9798 |
+| **RQ4** | Marginal associations between behaviors and profit erosion | Log-Linear OLS Regression | Significant behavioral predictors identified |
+
+---
+
+## Data Sources
+
+**Primary**: `bigquery-public-data.thelook_ecommerce` (Google BigQuery)
+
 | Table | Description |
 |-------|-------------|
-| `order_items` | Individual items within orders (grain level) |
+| `order_items` | Item-level transactions (grain level) |
 | `orders` | Order-level information |
 | `products` | Product catalog with cost and pricing |
 | `users` | Customer demographics and acquisition |
+
+**External Validation**: School Specialty LLC (SSL) — U.S. educational supplies B2B retailer
+- `data/raw/SSL_Returns_df_yoy.csv` — ~234K return order lines, ~16.7K accounts, 2024–2025
+- Used for directional validation of RQ3 and RQ4 models
+
+---
 
 ## Repository Structure
 
 ```
 unfc-capstone-project/
+├── app/                        # Streamlit dashboard
+│   ├── Home.py                 # Landing page with project KPIs
+│   ├── pages/
+│   │   ├── 1_RQ1_Category_Analysis.py
+│   │   ├── 2_RQ2_Customer_Segments.py
+│   │   ├── 3_RQ3_Predictive_Model.py
+│   │   └── 4_RQ4_Behavioral_Associations.py
+│   └── requirements.txt        # Dashboard dependencies
 ├── data/
-│   ├── raw/              # Source CSV files from BigQuery (not tracked)
-│   └── processed/        # Merged and engineered parquet files (tracked)
-├── figures/              # Generated charts and visualizations
-├── notebooks/            # Jupyter notebooks for EDA and analysis
-├── reports/              # Project proposal and final report
-├── src/                  # Python modules
-│   ├── __init__.py
-│   ├── config.py         # Configuration constants and paths
-│   ├── data_cleaning.py  # Data cleaning functions
-│   ├── data_processing.py # Data loading, cleaning, merging
-│   ├── visualization.py  # Plotting functions
-│   └── modeling.py       # Profit erosion analysis functions
-├── tests/                # Unit tests (pytest)
-├── docs/                 # Technical documentation
-├── .github/
-│   └── workflows/
-│       └── ci.yml        # GitHub Actions CI workflow
-├── .gitignore
-├── Branching_Strategy_Capstone.md
-├── CONTRIBUTING.md
-├── README.md
-├── pytest.ini            # Pytest configuration
+│   ├── raw/                    # Source CSV files (not tracked)
+│   └── processed/              # Parquet/CSV outputs (tracked)
+│       ├── rq1/                # RQ1 statistical summaries
+│       └── rq2/                # RQ2 cluster artifacts
+├── figures/                    # Generated visualizations
+│   ├── rq1/                    # 7 RQ1 category/brand figures
+│   ├── rq2/                    # RQ2 clustering & concentration figures
+│   └── rq4/                    # RQ4 regression diagnostic figures
+├── reports/
+│   ├── rq3/                    # RQ3 model & validation artifacts
+│   └── rq4/                    # RQ4 regression & validation artifacts
+├── notebooks/                  # Jupyter analysis notebooks
+│   ├── profit_erosion_analysis.ipynb   # MASTER pipeline (all RQs)
+│   ├── rq3_predictive_modeling.ipynb
+│   ├── rq3_ssl_validation.ipynb
+│   ├── rq4_behavioral_associations.ipynb
+│   └── rq4_ssl_validation.ipynb
+├── src/                        # Python source modules (flat, no sub-packages)
+│   ├── config.py               # Path constants and thresholds
+│   ├── data_processing.py      # ETL pipeline and data loading
+│   ├── data_cleaning.py        # Data quality validation
+│   ├── feature_engineering.py  # Profit erosion feature creation
+│   ├── analytics.py            # Analysis, segmentation, validation
+│   ├── visualization.py        # Shared plotting functions
+│   ├── descriptive_transformations.py
+│   ├── rq1_stats.py            # Kruskal-Wallis + Dunn post-hoc
+│   ├── rq3_modeling.py         # ML pipeline: screening, training, evaluation
+│   ├── rq3_visuals.py          # ROC curves, feature importance, confusion matrices
+│   ├── rq3_validation.py       # SSL external validation pipeline
+│   ├── rq4_econometrics.py     # Log-linear OLS regression pipeline
+│   ├── rq4_validation.py       # RQ4 SSL validation
+│   └── rq4_visuals.py          # Coefficient forest plot, residual diagnostics
+├── tests/                      # pytest unit tests
+│   ├── test_rq3_modeling.py
+│   ├── test_rq3_validation.py
+│   ├── test_rq4_econometrics.py
+│   ├── test_rq4_validation.py
+│   └── test_rq4_visuals.py
+├── docs/                       # Technical documentation
+│   ├── DATA_DICTIONARY.md
+│   ├── PROCESSING_COST_METHODOLOGY.md
+│   ├── rq1_technical_documentation.md
+│   ├── rq3_technical_documentation.md
+│   └── validation_module_reference.md
+├── .github/workflows/ci.yml    # GitHub Actions CI
+├── CLAUDE.md                   # Claude Code development instructions
+├── pytest.ini
 └── requirements.txt
 ```
 
-## Tools & Technologies
+---
 
-- **Python 3.11** (Pandas, NumPy, Matplotlib, Seaborn, Scikit-learn)
-- **Jupyter Notebook** for exploratory analysis
-- **BigQuery** for data extraction
-- **PyArrow** for parquet file handling
-- **pytest** for test-driven development
-- **GitHub Actions** for continuous integration (automated testing on PRs)
-- **GitHub** for version control
-- **Power BI / Tableau** for dashboards (where applicable)
+## Cost Model
+
+**Base cost: $12.00 per return** (conservative mid-range of $10–$25 literature range)
+
+| Component | Amount |
+|-----------|--------|
+| Customer Care | $4.00 |
+| Inspection | $2.50 |
+| Restocking | $3.00 |
+| Logistics | $2.50 |
+
+**Category tier multipliers** (justified by margin CV = 59.4% across categories):
+
+| Tier | Multiplier | Effective Cost | Categories |
+|------|------------|----------------|------------|
+| Premium | 1.3× | $15.60 | Outerwear, Jeans, Suits, Dresses, Sweaters |
+| Moderate | 1.15× | $13.80 | Active, Swim, Accessories, Sleep & Lounge |
+| Standard | 1.0× | $12.00 | Tops & Tees, Intimates, Socks, Underwear |
+
+---
 
 ## Getting Started
 
 ### Prerequisites
-- Python 3.11 or higher
+
+- Python 3.11+
 - Git
 
 ### Setup
 
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/your-org/unfc-capstone-project.git
-   cd unfc-capstone-project
-   ```
+```bash
+git clone https://github.com/your-org/unfc-capstone-project.git
+cd unfc-capstone-project
 
-2. **Create virtual environment**:
-   ```bash
-   python -m venv venv
-   # Windows:
-   venv\Scripts\activate
-   # Linux/Mac:
-   source venv/bin/activate
-   ```
+python -m venv venv
+# Windows:
+venv\Scripts\activate
+# macOS/Linux:
+source venv/bin/activate
 
-3. **Install dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. **Run the analysis**:
-   ```bash
-   jupyter notebook notebooks/the_look_ecom_EDA.ipynb
-   ```
-
-5. **Run tests**:
-   ```bash
-   pytest tests/ -v
-   ```
-
-## Usage
-
-### Using the src modules in notebooks:
-
-```python
-# Data processing
-from src.data_processing import load_processed_data, build_analysis_dataset
-
-# Load existing processed data
-df = load_processed_data()
-
-# Or rebuild from raw files
-df = build_analysis_dataset()
+pip install -r requirements.txt
 ```
 
-## RQ1 — Return Drivers & Profit Erosion
-
-Run RQ1 artifact generation (writes to `data/processed/rq1/`):
+### Run the master notebook
 
 ```bash
-python -m src.rq1_run
+jupyter notebook notebooks/profit_erosion_analysis.ipynb
 ```
 
-Run RQ1 statistical tests (reads `rq1_returned_items.parquet` and writes summaries):
+Run cells top-to-bottom. Each section is guarded with `try/except` so partial runs are safe.
+
+### Run tests
 
 ```bash
-python -m src.rq1_stats
+pytest tests/ -v
 ```
 
-Generate RQ1 figures (writes to `figures/rq1/`):
+### Launch the dashboard
 
 ```bash
-python -m src.rq1_visuals
+cd app
+pip install -r requirements.txt
+streamlit run Home.py
 ```
 
-## RQ3 — Predictive Modeling (High Profit Erosion Customers)
+---
 
-Run the full RQ3 modeling pipeline (feature screening, train/evaluate 3 models, export results to `reports/rq3/`):
+## Analysis Notebooks
 
-```bash
-jupyter notebook notebooks/rq3_predictive_modeling.ipynb
-```
+| Notebook | Purpose |
+|----------|---------|
+| `profit_erosion_analysis.ipynb` | **Master pipeline** — validates all RQs end-to-end |
+| `rq3_predictive_modeling.ipynb` | RQ3 standalone: feature screening → train → evaluate |
+| `rq3_ssl_validation.ipynb` | RQ3 external validation against SSL data |
+| `rq4_behavioral_associations.ipynb` | RQ4 OLS regression with diagnostics |
+| `rq4_ssl_validation.ipynb` | RQ4 external validation against SSL data |
 
-Run external validation against School Specialty LLC data (requires `data/raw/SSL_Returns_df_yoy.csv`):
+---
 
-```bash
-jupyter notebook notebooks/rq3_ssl_validation.ipynb
-```
+## RQ3 — Known Results
 
-## RQ4 — Behavioral Associations with Profit Erosion
+| Model | CV AUC | Test AUC | F1 | Precision | Recall |
+|-------|--------|----------|----|-----------|--------|
+| **Random Forest ★** | 0.9792 | **0.9798** | 0.8419 | 0.7822 | 0.9115 |
+| Gradient Boosting | 0.9797 | 0.9795 | 0.8484 | 0.7801 | 0.9299 |
+| Logistic Regression | 0.9646 | 0.9687 | 0.8256 | 0.7591 | 0.9048 |
 
-Interactive econometric analysis with data exploration and model diagnostics:
+Surviving features (7/12): `return_frequency`, `avg_order_value`, `avg_basket_size`, `total_margin`, `avg_item_margin`, `total_items`, `customer_return_rate`
 
-```bash
-jupyter notebook notebooks/rq4_behavioral_associations.ipynb
-```
+**SSL External Validation**: Directional accuracy = 76.4%, Spearman ρ = 0.75 (p ≈ 0.00)
 
-Run external validation against School Specialty LLC data (requires `data/raw/SSL_Returns_df_yoy.csv`):
-
-```bash
-jupyter notebook notebooks/rq4_ssl_validation.ipynb
-``
-
-```python
-# Visualization
-from src.visualization import plot_margin_distribution, plot_return_rate_by_category
-
-plot_margin_distribution(df, returned_only=True)
-plot_return_rate_by_category(df, top_n=15)
-
-# Profit erosion metrics (returned items only)
-from src.feature_engineering import summarize_profit_erosion, engineer_customer_behavioral_features
-
-returned_df = df[df["is_returned_item"] == 1].copy()
-summary = summarize_profit_erosion(returned_df)
-customer_features = engineer_customer_behavioral_features(df)
-
-# Customer segmentation
-from src.analytics import segment_customers_by_return_behavior
-
-customer_segments = segment_customers_by_return_behavior(df)
-```
+---
 
 ## Continuous Integration
 
-This project uses **GitHub Actions** for automated testing. The CI workflow:
+GitHub Actions runs the full pytest suite on every PR to `main` and `dev`. PRs require passing checks before merge.
 
-- Runs automatically on all pull requests to `main` and `dev` branches
-- Executes the full test suite using pytest
-- Ensures code quality before merging
-
-Pull requests require passing status checks before the merge button is enabled.
-
-## Status
-
-**In Progress** – Winter 2026 Capstone Project
-University of Niagara Falls Canada
+---
 
 ## Team
 
-| Name | Student ID | Email |
-|------|------------|-------|
-| Mario Zamudio | NF1002499 | mario.zamudio2499@myunfc.ca |
-| Joseph Kojo Foli | NF1007842 | joseph.foli7842@myunfc.ca |
-| Avinash Brandon Maharaj | NF1002706 | avinash.maharaj2706@myunfc.ca |
-| Roberto San Miguel | NF1001332 | roberto.san1332@myunfc.ca |
+| Name | Student ID | Primary RQ |
+|------|------------|-----------|
+| Mario Zamudio | NF1002499 | RQ1 & RQ2 |
+| Joseph Kojo Foli | NF1007842 | RQ3 & RQ4 |
+| Avinash Brandon Maharaj | NF1002706 | RQ2 |
+| Roberto San Miguel | NF1001332 | RQ1 |
 
-## License
+---
 
-This project is for academic purposes as part of the UNFC Data Analytics Capstone.
+*Data: `bigquery-public-data.thelook_ecommerce` | External validation: School Specialty LLC (SSL) 2024–2025*
+*Academic use only — University of Niagara Falls Canada*

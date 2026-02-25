@@ -3,31 +3,31 @@
   "top_features": [
     {
       "feature": "purchase_recency_days",
-      "gini_coefficient": 0.5276,
+      "gini_coefficient": 0.5304,
       "p_value": 0.0
     },
     {
       "feature": "total_margin_reversal",
-      "gini_coefficient": 0.4981,
+      "gini_coefficient": 0.4941,
       "p_value": 0.0
     },
     {
       "feature": "total_margin",
-      "gini_coefficient": 0.4742,
+      "gini_coefficient": 0.4718,
       "p_value": 0.0
     },
     {
       "feature": "total_sales",
-      "gini_coefficient": 0.4649,
+      "gini_coefficient": 0.4635,
       "p_value": 0.0
     },
     {
       "feature": "total_profit_erosion",
-      "gini_coefficient": 0.4122,
+      "gini_coefficient": 0.4093,
       "p_value": 0.0
     }
   ],
-  "avg_gini": 0.3386,
+  "avg_gini": 0.3377,
   "n_significant": 18,
   "n_extreme": 0,
   "n_high": 1,

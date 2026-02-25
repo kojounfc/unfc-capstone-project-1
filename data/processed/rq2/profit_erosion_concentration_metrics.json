@@ -1,19 +1,19 @@
 {
-  "gini_coefficient": 0.41224257632492717,
-  "top_20_pct_share": 0.4759846410559889,
+  "gini_coefficient": 0.4092911746141102,
+  "top_20_pct_share": 0.476310228016643,
   "top_50_impact": {
     "count": 50,
-    "absolute_loss": 25828.85,
-    "percentage_of_total": 3.2
+    "absolute_loss": 23808.31,
+    "percentage_of_total": 2.92
   },
   "bootstrap_test": {
-    "observed_gini": 0.41224257632492717,
-    "null_mean_gini": -5.0039096664799024e-17,
+    "observed_gini": 0.4092911746141102,
+    "null_mean_gini": -4.8715444154977985e-17,
     "p_value": 0.0,
     "n_bootstrap": 1000
   },
   "business_summary": {
-    "gini_index": 0.412,
+    "gini_index": 0.409,
     "concentration_level": "Moderate",
     "pareto_ratio": "20% of customers = 47.6% of loss",
     "recommendation": "Broad Policy"

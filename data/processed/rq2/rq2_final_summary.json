@@ -1,25 +1,25 @@
 {
-  "analysis_date": "2026-02-19T19:57:43.848639",
+  "analysis_date": "2026-02-23T00:54:56.477030",
   "research_question": "To what extent is profit erosion concentrated among a small subset of customers, and can customers be meaningfully segmented?",
   "population": {
-    "total_customers": 79935,
-    "customers_with_returns": 11790,
-    "return_rate_pct": 14.749483955714018,
-    "total_profit_erosion": 808252.0689943936
+    "total_customers": 79944,
+    "customers_with_returns": 11988,
+    "return_rate_pct": 14.995496847793454,
+    "total_profit_erosion": 816500.9422838693
   },
   "finding_1_feature_concentration": {
     "features_analyzed": 18,
     "significant_features": 18,
     "top_feature": "purchase_recency_days",
-    "top_feature_gini": 0.5276,
-    "top_feature_top20_share": 54.18
+    "top_feature_gini": 0.5304,
+    "top_feature_top20_share": 54.17
   },
   "finding_2_erosion_concentration": {
-    "gini_coefficient": 0.41224257632492717,
+    "gini_coefficient": 0.4092911746141102,
     "concentration_level": "Moderate",
-    "top_20_pct_share": 0.4759846410559889,
-    "top_50_absolute": 25828.85,
-    "top_50_percentage": 3.2,
+    "top_20_pct_share": 0.476310228016643,
+    "top_50_absolute": 23808.31,
+    "top_50_percentage": 2.92,
     "bootstrap_p_value": 0.0
   },
   "finding_3_segmentation": {
@@ -37,15 +37,15 @@
     ],
     "n_features": 8,
     "highest_risk_cluster": 0,
-    "highest_risk_mean_erosion": 95.51,
-    "highest_risk_size": 4302
+    "highest_risk_mean_erosion": 96.68,
+    "highest_risk_size": 4375
   },
   "feature_selection": {
     "initial_candidates": 8,
     "after_screening": 7,
     "dropped_correlation": 1,
-    "top_discriminative_feature": "order_frequency",
-    "top_feature_f_statistic": 12485.997441421187,
+    "top_discriminative_feature": "total_sales",
+    "top_feature_f_statistic": 13988.065358750482,
     "top_feature_p_value": 0.0
   },
   "hypothesis_test": {
@@ -55,10 +55,10 @@
     "conclusion": "Segments differ significantly in profit erosion",
     "accepted_hypothesis": "H1\u2082 (Alternative)",
     "evidence_strength": "Very Strong",
-    "anova_p_value": 4.617241227098057e-305,
-    "kruskal_wallis_p_value": 2.5527526948376757e-196,
-    "effect_size_eta_squared": 0.11152247802870946,
-    "variance_explained_pct": 11.152247802870946,
+    "anova_p_value": 0.0,
+    "kruskal_wallis_p_value": 1.5178496786739485e-212,
+    "effect_size_eta_squared": 0.13020325638611308,
+    "variance_explained_pct": 13.020325638611308,
     "alpha": 0.05,
     "segmentation_valid": true
   },

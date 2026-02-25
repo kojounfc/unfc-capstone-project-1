@@ -710,7 +710,7 @@ class TestSaveCleanedDataset:
     """Test cases for the save_cleaned_dataset function."""
 
     def test_saves_to_default_directory(self):
-        """Test that dataset is saved to default PROCESSED_DATA_DIR."""
+        """Test that dataset is saved to the specified output directory."""
         df = pd.DataFrame(
             {
                 "id": [1, 2, 3],
@@ -718,17 +718,18 @@ class TestSaveCleanedDataset:
             }
         )
 
-        # Save with default directory
-        save_cleaned_dataset(df)
+        # Use a temp directory to avoid overwriting production data files.
+        # Calling save_cleaned_dataset(df) without output_dir defaults to
+        # PROCESSED_DATA_DIR and overwrites the real returns_eda_v1.parquet.
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_dir = Path(tmpdir)
+            save_cleaned_dataset(df, output_dir=output_dir)
 
-        # Verify files were created (check in default location)
-        from src.config import PROCESSED_DATA_DIR
+            parquet_file = output_dir / "returns_eda_v1.parquet"
+            csv_file = output_dir / "returns_eda_v1.csv"
 
-        parquet_file = PROCESSED_DATA_DIR / "returns_eda_v1.parquet"
-        csv_file = PROCESSED_DATA_DIR / "returns_eda_v1.csv"
-
-        assert parquet_file.exists(), f"Parquet file not found at {parquet_file}"
-        assert csv_file.exists(), f"CSV file not found at {csv_file}"
+            assert parquet_file.exists(), f"Parquet file not found at {parquet_file}"
+            assert csv_file.exists(), f"CSV file not found at {csv_file}"
 
     def test_saves_to_custom_directory(self):
         """Test that dataset can be saved to custom directory."""
