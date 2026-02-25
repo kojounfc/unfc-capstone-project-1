@@ -1,56 +1,53 @@
-# Configuration Module - Technical Reference
+# Configuration Module - Technical Reference (`src/config.py`)
+
+_Last updated: 2026-02-23_
 
 ## Executive Summary
 
-The `config.py` module centralizes all configuration constants and directory paths for the Profit Erosion E-commerce Capstone Project. This module ensures consistent path resolution across development environments and provides a single source of truth for file locations and data parameters.
+`config.py` is the single source of truth for **directory paths**, **input/output file locations**, and **shared analysis parameters** used across the Profit Erosion E-commerce Capstone Project.
+
+It ensures:
+- Consistent path resolution on any machine (Windows/macOS/Linux)
+- One place to change thresholds and modeling parameters
+- Stable references for notebooks and Python modules
 
 ---
 
-## 1. Directory Structure
+## 1. Project Root and Directory Paths
 
 ### 1.1 Project Root
+
 ```python
 PROJECT_ROOT = Path(__file__).parent.parent
 ```
-- **Purpose:** Dynamically identifies the project root directory
-- **Usage:** Base reference for all relative paths
-- **Benefit:** Environment-agnostic path resolution
 
-### 1.2 Data Directories
+All other directories are defined relative to `PROJECT_ROOT`.
 
-#### Raw Data Directory
+### 1.2 Core Directories
+
 ```python
 RAW_DATA_DIR = PROJECT_ROOT / "data" / "raw"
-```
-- **Contents:** Original CSV files from TheLook e-commerce dataset
-- **Expected Files:** `order_items.csv`, `orders.csv`, `products.csv`, `users.csv`
-
-#### Processed Data Directory
-```python
 PROCESSED_DATA_DIR = PROJECT_ROOT / "data" / "processed"
-```
-- **Contents:** Cleaned and processed datasets after data cleaning pipeline
-- **Output Format:** Both CSV and Parquet for compatibility
-
-#### Figures Directory
-```python
 FIGURES_DIR = PROJECT_ROOT / "figures"
-```
-- **Purpose:** Storage location for generated visualizations
-- **Output Format:** PNG with 150 DPI resolution
-
-#### Reports Directory
-```python
 REPORTS_DIR = PROJECT_ROOT / "reports"
 ```
-- **Purpose:** Location for analysis reports and findings
-- **Output Format:** Markdown and HTML documents
+
+### 1.3 RQ-Specific Directories (currently defined)
+
+```python
+RQ1_PROCESSED_DIR = PROCESSED_DATA_DIR / "rq1"
+RQ1_FIGURES_DIR = FIGURES_DIR / "rq1"
+RQ4_FIGURES_DIR = FIGURES_DIR / "rq4"
+```
 
 ---
 
 ## 2. File Mappings
 
-### 2.1 Raw Data Files Dictionary
+### 2.1 Raw file map
+
+`RAW_FILES` provides named access to the raw CSVs:
+
 ```python
 RAW_FILES = {
     "order_items": RAW_DATA_DIR / "order_items.csv",
@@ -60,216 +57,143 @@ RAW_FILES = {
 }
 ```
 
-**File Descriptions:**
+### 2.2 Processed dataset outputs
 
-| File | Records | Purpose | Key Columns |
-|------|---------|---------|-------------|
-| order_items.csv | ~465k | Individual line items per order | id, order_id, product_id, status, sale_price, cost |
-| orders.csv | ~95k | Order-level aggregations | order_id, user_id, status, num_of_item |
-| products.csv | ~7k | Product catalog | id, name, category, brand, cost, retail_price |
-| users.csv | ~130k | Customer master data | id, first_name, country, city, gender, created_at |
-
-### 2.2 Processed Data Files
 ```python
 PROCESSED_PARQUET = PROCESSED_DATA_DIR / "returns_eda_v1.parquet"
 PROCESSED_CSV = PROCESSED_DATA_DIR / "returns_eda_v1.csv"
+RQ1_PROCESSED_PARQUET = RQ1_PROCESSED_DIR / "returns_eda_v1.parquet"
+RQ1_PROCESSED_CSV = RQ1_PROCESSED_DIR / "returns_eda_v1.csv"
 ```
-
-- **Format:** Dual format storage for flexibility
-  - **Parquet:** Optimal for analysis (compression, type preservation)
-  - **CSV:** Universal compatibility (Excel, Python, R)
-- **Content:** Merged, cleaned, and feature-engineered dataset at order-item grain
-- **Grain:** One row per order item (465k+ rows)
 
 ---
 
-## 3. Column Type Definitions
+## 3. Column Type Configuration
 
-### 3.1 DateTime Columns
+These lists are used to standardize parsing and type casting during data loading and cleaning.
+
+### 3.1 Date/time columns
+
 ```python
 DATETIME_COLS = [
-    "item_created_at",
-    "item_shipped_at",
-    "item_delivered_at",
-    "item_returned_at",
-    "order_created_at",
-    "order_shipped_at",
-    "order_delivered_at",
-    "order_returned_at",
+    "item_created_at", "item_shipped_at", "item_delivered_at", "item_returned_at",
+    "order_created_at", "order_shipped_at", "order_delivered_at", "order_returned_at",
     "user_created_at",
 ]
 ```
 
-**Purpose:** Configures pandas datetime parsing during data loading
-**Usage:** Ensures timestamps are parsed as datetime objects, not strings
-**Count:** 9 datetime columns across the merged dataset
+### 3.2 Numeric columns
 
-### 3.2 Numeric Columns
 ```python
-NUMERIC_COLS = [
-    "sale_price",
-    "retail_price", 
-    "cost",
-    "age",
-    "num_of_item"
-]
+NUMERIC_COLS = ["sale_price", "retail_price", "cost", "age", "num_of_item"]
 ```
 
-**Purpose:** Identifies columns requiring numeric type handling
-**Usage:** Reference for feature engineering and statistical analysis
-**Note:** Other numeric columns exist (order_id, user_id) but are categorized as IDs, not metrics
+### 3.3 String columns (mixed-type handling)
 
-### 3.3 String Columns
 ```python
-STRING_COLS = [
-    "postal_code",
-    "sku",
-    "user_geom",
-    "street_address",
-    "email"
-]
+STRING_COLS = ["postal_code", "sku", "user_geom", "street_address", "email"]
 ```
-
-**Purpose:** Identifies columns with mixed-type characteristics
-**Challenge:** These columns may contain numeric or string data
-**Handling:** Special parsing logic required to preserve data integrity
-**Note:** `postal_code` is treated as string to preserve leading zeros (e.g., "01234")
 
 ---
 
-## 4. Analysis Parameters
+## 4. Shared Analysis Parameters
 
-### 4.1 Minimum Rows Threshold
+### 4.1 Minimum aggregation threshold
+
 ```python
 MIN_ROWS_THRESHOLD = 200
 ```
 
-**Purpose:** Ensures statistical reliability in aggregated analyses
-**Usage:** Applied in return rate analysis and segmentation functions
-**Rationale:** Groups with < 200 records are excluded from analysis due to:
-- Statistical instability at small sample sizes
-- Potential for misleading conclusions
-- Recommendation from data quality standards (minimum 20-30x effect size)
-
-**Application Examples:**
-- Return rate calculations by category require ≥ 200 items per category
-- Customer segmentation analysis filters to customers with ≥ 200 purchases
-- Geographic breakdowns only show regions with ≥ 200 transaction records
+Used in grouped summaries and visualizations to avoid unstable rates or misleading small-sample results.
 
 ---
 
-## 5. Usage Examples
+## 5. RQ3: Predictive Modeling Parameters
 
-### 5.1 Loading Raw Data
 ```python
-from src.config import RAW_FILES
-import pandas as pd
-
-# Access specific file path
-order_items_path = RAW_FILES["order_items"]
-df = pd.read_csv(order_items_path)
+RANDOM_STATE = 42
+TEST_SIZE = 0.20
+CV_FOLDS = 5
+AUC_THRESHOLD = 0.70
+RQ3_TARGET = "is_high_erosion_customer"
 ```
 
-### 5.2 Saving Processed Results
-```python
-from src.config import PROCESSED_PARQUET, PROCESSED_CSV
+### 5.1 RQ3 data inputs / outputs
 
-# Save to both formats
-df.to_parquet(PROCESSED_PARQUET, compression="snappy")
-df.to_csv(PROCESSED_CSV, index=False)
+```python
+CUSTOMER_TARGETS_CSV = PROCESSED_DATA_DIR / "customer_profit_erosion_targets.csv"
+SSL_RETURNS_CSV = RAW_DATA_DIR / "SSL_Returns_df_yoy.csv"
 ```
 
-### 5.3 Saving Visualizations
-```python
-from src.config import FIGURES_DIR
+### 5.2 Candidate features and leakage controls
 
-# Create figure and save
-fig.savefig(
-    FIGURES_DIR / "return_rate_by_category.png",
-    dpi=150,
-    bbox_inches="tight"
-)
-```
+`RQ3_CANDIDATE_FEATURES` defines the baseline features considered for modeling.
 
-### 5.4 Configuration in Functions
-```python
-from src.config import MIN_ROWS_THRESHOLD
-
-def analyze_returns(df):
-    # Automatically uses configured minimum threshold
-    filtered = df.groupby("category").filter(
-        lambda x: len(x) >= MIN_ROWS_THRESHOLD
-    )
-    return filtered
-```
+`RQ3_LEAKAGE_COLUMNS` lists columns that must be excluded to prevent training on target leakage (including IDs and any direct erosion totals).
 
 ---
 
-## 6. Configuration Best Practices
+## 6. RQ3 Sensitivity Analysis
 
-### 6.1 Environment Independence
-- Uses `Path` objects for cross-platform compatibility (Windows, macOS, Linux)
-- Relative paths ensure code works regardless of installation location
-- No hardcoded absolute paths
-
-### 6.2 Centralized Updates
-- Changing `MIN_ROWS_THRESHOLD` updates all analyses using it
-- Modifying data directory structure only requires config.py edit
-- File naming conventions change in one location
-
-### 6.3 Type Safety
-- All paths are `Path` objects with full pathlib functionality
-- Type hints support IDE autocompletion and type checking
-- Constants are uppercase for easy identification
-
----
-
-## 7. Integration with Other Modules
-
-| Module | Usage | References |
-|--------|-------|-----------|
-| data_processing.py | Directory and column definitions | RAW_DATA_DIR, DATETIME_COLS, NUMERIC_COLS |
-| data_cleaning.py | Data file locations | PROCESSED_DATA_DIR |
-| feature_engineering.py | Output directory, cost constants | PROCESSED_DATA_DIR |
-| analytics.py | Statistical threshold | MIN_ROWS_THRESHOLD |
-| visualization.py | Output directory | FIGURES_DIR |
-
----
-
-## 8. Troubleshooting
-
-### Issue: "No such file or directory" errors
-**Solution:** Verify data files exist in RAW_DATA_DIR structure
-```bash
-ls -la data/raw/  # Check file existence
-```
-
-### Issue: Import errors for config module
-**Solution:** Ensure src directory is in Python path
 ```python
-import sys
-sys.path.insert(0, '/path/to/project')
-from src.config import RAW_DATA_DIR
+SENSITIVITY_BASE_COSTS = [8.0, 10.0, 12.0, 14.0, 18.0]
+SENSITIVITY_THRESHOLDS = [0.50, 0.60, 0.70, 0.75, 0.80, 0.90]
 ```
 
-### Issue: Inconsistent paths across environments
-**Solution:** Use Path objects consistently throughout codebase
-```python
-# Correct
-from pathlib import Path
-file_path = PROCESSED_DATA_DIR / "file.csv"
-
-# Avoid
-file_path = "data/processed/file.csv"  # Platform-dependent
-```
+Used to test how conclusions change under different operational cost assumptions and “high-erosion” threshold definitions.
 
 ---
 
-## Summary
+## 7. RQ4: Behavioral Econometrics Parameters
 
-The `config.py` module provides:
-- ✅ Centralized path management
-- ✅ Environment-independent configuration
-- ✅ Single source of truth for file locations
-- ✅ Consistent data type handling across the project
-- ✅ Easy updates for parameter changes (threshold, file locations)
+```python
+RQ4_TARGET_COL = "total_profit_erosion"
+RQ4_BEHAVIORAL_CONTROLS = ["order_frequency", "avg_order_value", "customer_tenure_days", "customer_return_rate"]
+RQ4_HYPOTHESIS_PREDICTORS = ["return_frequency", "avg_basket_size", "purchase_recency_days"]
+RQ4_ALPHA = 0.05
+RQ4_COLLINEARITY_THRESHOLD = 0.85
+```
+
+These constants support regression specification and common validation rules (significance level and multicollinearity threshold).
+
+---
+
+## Appendix: Current Constant Assignments (from `config.py`)
+
+Below is a direct list of top-level constant assignments currently present in `config.py`:
+
+```text
+PROJECT_ROOT = Path(__file__).parent.parent
+RAW_DATA_DIR = PROJECT_ROOT / "data" / "raw"
+PROCESSED_DATA_DIR = PROJECT_ROOT / "data" / "processed"
+FIGURES_DIR = PROJECT_ROOT / "figures"
+REPORTS_DIR = PROJECT_ROOT / "reports"
+RQ1_PROCESSED_DIR = PROCESSED_DATA_DIR / "rq1"
+RQ1_FIGURES_DIR = FIGURES_DIR / "rq1"
+RQ4_FIGURES_DIR = FIGURES_DIR / "rq4"
+RAW_FILES = {
+PROCESSED_PARQUET = PROCESSED_DATA_DIR / "returns_eda_v1.parquet"
+PROCESSED_CSV = PROCESSED_DATA_DIR / "returns_eda_v1.csv"
+RQ1_PROCESSED_PARQUET = RQ1_PROCESSED_DIR / "returns_eda_v1.parquet"
+RQ1_PROCESSED_CSV = RQ1_PROCESSED_DIR / "returns_eda_v1.csv"
+DATETIME_COLS = [
+NUMERIC_COLS = ["sale_price", "retail_price", "cost", "age", "num_of_item"]
+STRING_COLS = ["postal_code", "sku", "user_geom", "street_address", "email"]
+MIN_ROWS_THRESHOLD = 200
+RANDOM_STATE = 42
+TEST_SIZE = 0.20
+CV_FOLDS = 5
+AUC_THRESHOLD = 0.70
+CUSTOMER_TARGETS_CSV = PROCESSED_DATA_DIR / "customer_profit_erosion_targets.csv"
+SSL_RETURNS_CSV = RAW_DATA_DIR / "SSL_Returns_df_yoy.csv"
+RQ3_TARGET = "is_high_erosion_customer"
+RQ3_CANDIDATE_FEATURES = [
+RQ3_LEAKAGE_COLUMNS = [
+SENSITIVITY_BASE_COSTS = [8.0, 10.0, 12.0, 14.0, 18.0]
+SENSITIVITY_THRESHOLDS = [0.50, 0.60, 0.70, 0.75, 0.80, 0.90]
+RQ4_TARGET_COL = "total_profit_erosion"
+RQ4_BEHAVIORAL_CONTROLS = ['order_frequency', 'avg_order_value', 'customer_tenure_days', 'customer_return_rate']
+RQ4_HYPOTHESIS_PREDICTORS = ['return_frequency', 'avg_basket_size', 'purchase_recency_days']
+RQ4_ALPHA = 0.05
+RQ4_COLLINEARITY_THRESHOLD = 0.85
+```

@@ -12,6 +12,8 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 
+from pathlib import Path
+from typing import Sequence
 
 from src.config import FIGURES_DIR, MIN_ROWS_THRESHOLD
 
@@ -21,7 +23,6 @@ plt.rcParams.update({
 })
 
 
-
 def _safe_tight_layout():
     """Apply tight_layout with warning suppression for small figures."""
     with warnings.catch_warnings():
@@ -29,18 +30,189 @@ def _safe_tight_layout():
         plt.tight_layout()
 
 
+
 def set_plot_style():
     """Set consistent plotting style for all visualizations."""
-    sns.set_theme(style="whitegrid")  # use theme, not set_style
+    sns.set_style("whitegrid")
+    plt.rcParams["figure.figsize"] = (10, 6)
+    plt.rcParams["font.size"] = 11
 
-    # Force font AFTER seaborn sets theme (seaborn can override rcParams)
-    plt.rcParams.update({
-        "font.family": "sans-serif",
-        "font.sans-serif": ["DejaVu Sans"],
-        "figure.figsize": (10, 6),
-        "font.size": 11,
-    })
 
+def _validate_columns(df: pd.DataFrame, required: Sequence[str], *, context: str) -> None:
+    """
+    Validate required columns exist before plotting.
+
+    Args:
+        df: Input DataFrame.
+        required: List/sequence of required column names.
+        context: Name of calling function for error messaging.
+
+    Raises:
+        ValueError: If any required columns are missing.
+    """
+    missing = [c for c in required if c not in df.columns]
+    if missing:
+        raise ValueError(
+            f"[{context}] Missing required columns: {missing}. "
+            f"Available columns: {list(df.columns)[:50]}..."
+        )
+
+
+def _ensure_parent_dir(out_path: Path) -> None:
+    """
+    Ensure output directory exists.
+
+    Args:
+        out_path: File path where the figure will be saved.
+    """
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+
+
+def plot_missingness_overview(
+    df: pd.DataFrame,
+    *,
+    out_path: Path,
+    top_n: int = 30,
+    figsize: Tuple[int, int] = (12, 8),
+) -> Path:
+    """
+    Plot missingness rate (%) for the top-N columns with missing values.
+
+    Args:
+        df: Input DataFrame.
+        out_path: Output PNG path.
+        top_n: Number of columns to display (sorted by missingness desc).
+        figsize: Figure size.
+
+    Returns:
+        Saved figure path.
+    """
+    set_plot_style()
+    _ensure_parent_dir(out_path)
+
+    miss_pct = df.isna().mean().sort_values(ascending=False) * 100
+    miss_pct = miss_pct[miss_pct > 0].head(top_n)
+
+    if miss_pct.empty:
+        # still save an "empty" diagnostic plot for traceability
+        fig, ax = plt.subplots(figsize=figsize)
+        ax.text(0.5, 0.5, "No missing values detected.", ha="center", va="center", fontsize=12)
+        ax.axis("off")
+        fig.savefig(out_path, dpi=200, bbox_inches="tight")
+        plt.close(fig)
+        return out_path
+
+    fig, ax = plt.subplots(figsize=(12, max(5, 0.35 * len(miss_pct) + 2)))
+    ax.barh(miss_pct.index[::-1], miss_pct.values[::-1], edgecolor="black", alpha=0.85)
+
+    ax.set_xlabel("Missing Rate (%)")
+    ax.set_title("Missingness Overview (Top Columns)")
+    ax.grid(axis="x", alpha=0.25, linestyle=":")
+
+    _safe_tight_layout()
+    fig.savefig(out_path, dpi=200, bbox_inches="tight")
+    plt.close(fig)
+    return out_path
+
+
+def plot_numeric_distributions_grid(
+    df: pd.DataFrame,
+    *,
+    numeric_cols: Sequence[str],
+    out_path: Path,
+    sample_n: int = 80_000,
+    bins: int = 50,
+) -> Path:
+    """
+    Plot histograms for multiple numeric columns in a single grid.
+
+    Args:
+        df: Input DataFrame.
+        numeric_cols: Numeric columns to plot.
+        out_path: Output PNG path.
+        sample_n: Maximum number of rows to sample for speed.
+        bins: Histogram bins.
+
+    Returns:
+        Saved figure path.
+    """
+    set_plot_style()
+    _ensure_parent_dir(out_path)
+    _validate_columns(df, list(numeric_cols), context="plot_numeric_distributions_grid")
+
+    d = df[list(numeric_cols)].copy()
+    if len(d) > sample_n:
+        d = d.sample(sample_n, random_state=42)
+
+    cols = list(numeric_cols)
+    if not cols:
+        raise ValueError("numeric_cols is empty. Provide at least one numeric column.")
+
+    n = len(cols)
+    ncols = 2
+    nrows = int(np.ceil(n / ncols))
+
+    fig, axes = plt.subplots(nrows, ncols, figsize=(14, 4.2 * nrows))
+    axes = np.array(axes).reshape(-1)
+
+    for i, col in enumerate(cols):
+        x = pd.to_numeric(d[col], errors="coerce").dropna()
+        axes[i].hist(x, bins=bins, edgecolor="black", alpha=0.8)
+        axes[i].set_title(col)
+        axes[i].grid(alpha=0.2, linestyle=":")
+
+    for j in range(n, len(axes)):
+        axes[j].axis("off")
+
+    fig.suptitle("Numeric Distributions (Sampled)", y=0.995, fontweight="bold")
+    _safe_tight_layout()
+    fig.savefig(out_path, dpi=200, bbox_inches="tight")
+    plt.close(fig)
+    return out_path
+
+
+def plot_binary_target_balance(
+    df: pd.DataFrame,
+    *,
+    target_col: str,
+    out_path: Path,
+    figsize: Tuple[int, int] = (8, 5),
+) -> Path:
+    """
+    Plot class balance for a binary target column (e.g., is_returned_item).
+
+    Args:
+        df: Input DataFrame.
+        target_col: Binary target column.
+        out_path: Output PNG path.
+        figsize: Figure size.
+
+    Returns:
+        Saved figure path.
+    """
+    set_plot_style()
+    _ensure_parent_dir(out_path)
+    _validate_columns(df, [target_col], context="plot_binary_target_balance")
+
+    counts = df[target_col].value_counts(dropna=False).sort_index()
+    labels = [str(i) for i in counts.index]
+    total = counts.sum()
+
+    fig, ax = plt.subplots(figsize=figsize)
+    bars = ax.bar(labels, counts.values, edgecolor="black", alpha=0.85)
+
+    ax.set_xlabel(target_col)
+    ax.set_ylabel("Rows")
+    ax.set_title(f"Target Balance: {target_col}")
+
+    for b, v in zip(bars, counts.values):
+        pct = (v / total * 100) if total else 0
+        ax.text(b.get_x() + b.get_width() / 2, v, f"{v:,} ({pct:.1f}%)", ha="center", va="bottom", fontsize=10)
+
+    _safe_tight_layout()
+    fig.savefig(out_path, dpi=200, bbox_inches="tight")
+    plt.close(fig)
+    return out_path
 
 
 def plot_status_distribution(
@@ -1082,3 +1254,437 @@ def plot_clustering_feature_importance(
         fig.savefig(save_path, dpi=300, bbox_inches='tight')
     
     return fig
+
+# ============================================================================
+# RQ1 VISUALS
+# Notes:
+# - These functions were migrated from `rq1_visuals.py` so that RQ1 visuals live
+#   in a single module (`visualization.py`).
+# - All figures are saved to the provided `out_path`. The notebook is responsible
+#   for ensuring `out_path` is inside figures/rq1/.
+# - Each plot calls `set_plot_style()` and `_safe_tight_layout()` for consistency.
+# ============================================================================
+
+from pathlib import Path
+from typing import Sequence, List
+
+
+def _rq1_validate_columns(df: pd.DataFrame, required: Sequence[str], *, context: str) -> None:
+    """Validate that required columns exist in a DataFrame."""
+    missing = [c for c in required if c not in df.columns]
+    if missing:
+        raise ValueError(
+            f"[{context}] Missing required columns: {missing}. "
+            f"Available columns: {list(df.columns)[:40]}..."
+        )
+
+
+def _rq1_ensure_parent_dir(out_path: Path) -> None:
+    """Create the parent directory for an output path if it does not exist."""
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+
+
+def _rq1_safe_float_series(s: pd.Series) -> pd.Series:
+    """Convert a pandas Series to floats (coercing errors to NaN)."""
+    return pd.to_numeric(s, errors="coerce").astype(float)
+
+
+def _rq1_format_currency(x: float) -> str:
+    """Format a numeric value into a compact currency label for annotations."""
+    if np.isnan(x):
+        return "n/a"
+    absx = abs(x)
+    if absx >= 1_000_000:
+        return f"${x/1_000_000:.1f}M"
+    if absx >= 1_000:
+        return f"${x/1_000:.1f}K"
+    return f"${x:.0f}"
+
+
+def plot_top_groups_total_erosion(
+    df: pd.DataFrame,
+    *,
+    group_col: str,
+    value_col: str = "total_profit_erosion",
+    top_n: int = 15,
+    out_path: Path,
+    title: Optional[str] = None,
+    annotate_top_k: int = 10,
+) -> Path:
+    """Plot top groups ranked by total profit erosion (horizontal bar chart).
+
+    Purpose
+    -------
+    Identifies which product-level groups (category, brand, department) contribute
+    the greatest absolute financial impact from returns.
+
+    Inputs
+    ------
+    Expects an aggregated table with at least:
+    - group_col (e.g., category/brand/department)
+    - value_col (default: total_profit_erosion)
+
+    Output
+    ------
+    Saves a PNG image to `out_path` and returns the same path.
+
+    Notes
+    -----
+    Annotation is limited to `annotate_top_k` bars to keep the figure readable.
+    """
+    set_plot_style()
+    _rq1_validate_columns(df, [group_col, value_col], context="plot_top_groups_total_erosion")
+    _rq1_ensure_parent_dir(out_path)
+
+    df2 = df[[group_col, value_col]].copy()
+    df2[value_col] = _rq1_safe_float_series(df2[value_col])
+    df2 = df2.dropna(subset=[value_col])
+
+    df_top = df2.sort_values(value_col, ascending=False).head(top_n).copy()
+    df_top = df_top.iloc[::-1]
+
+    fig, ax = plt.subplots(figsize=(12, 7))
+    bars = ax.barh(df_top[group_col].astype(str), df_top[value_col])
+
+    ax.set_xlabel("Total Profit Erosion")
+    ax.set_ylabel(group_col.replace("_", " ").title())
+    ax.set_title(title or f"Top {top_n} {group_col.replace('_', ' ').title()} by Total Profit Erosion")
+
+    maxv = float(df_top[value_col].max()) if not df_top.empty else 0.0
+    ax.set_xlim(0, maxv * 1.12 if maxv > 0 else 1.0)
+
+    k = min(annotate_top_k, len(df_top))
+    if k > 0:
+        for bar in bars[-k:]:
+            v = float(bar.get_width())
+            ax.text(
+                v + (maxv * 0.01 if maxv > 0 else 0.01),
+                bar.get_y() + bar.get_height() / 2,
+                _rq1_format_currency(v),
+                va="center",
+                ha="left",
+            )
+
+    _safe_tight_layout()
+    fig.savefig(out_path, bbox_inches="tight")
+    plt.close(fig)
+    return out_path
+
+
+def plot_return_rate_vs_mean_erosion(
+    df: pd.DataFrame,
+    *,
+    x_col: str = "return_rate",
+    y_col: str = "avg_profit_erosion",
+    label_col: str = "category",
+    size_col: Optional[str] = "returned_items",
+    out_path: Path,
+    title: str = "Return Rate vs Mean Profit Erosion per Return",
+    annotate_top_k: int = 10,
+) -> Path:
+    """Plot return rate vs mean erosion per return (bubble scatter).
+
+    Purpose
+    -------
+    Helps interpret total erosion by separating drivers into:
+    - frequency (return rate)
+    - severity (mean profit erosion per return)
+
+    Inputs
+    ------
+    Expects group-level columns:
+    - x_col (return_rate)
+    - y_col (avg_profit_erosion)
+    - label_col (group label)
+    - optional size_col (returned_items)
+
+    Output
+    ------
+    Saves a PNG image to `out_path` and returns the same path.
+
+    Notes
+    -----
+    Labels only the top `annotate_top_k` groups by total_profit_erosion if present,
+    otherwise by y_col.
+    """
+    set_plot_style()
+    req = [x_col, y_col, label_col]
+    if size_col is not None:
+        req.append(size_col)
+
+    _rq1_validate_columns(df, req, context="plot_return_rate_vs_mean_erosion")
+    _rq1_ensure_parent_dir(out_path)
+
+    d = df[req].copy()
+    d[x_col] = _rq1_safe_float_series(d[x_col])
+    d[y_col] = _rq1_safe_float_series(d[y_col])
+    if size_col is not None:
+        d[size_col] = _rq1_safe_float_series(d[size_col]).clip(lower=0)
+
+    d = d.dropna(subset=[x_col, y_col])
+
+    if size_col is None or size_col not in d.columns or d[size_col].max() <= 0:
+        sizes = np.full(len(d), 140.0)
+    else:
+        s_raw = d[size_col].to_numpy(dtype=float)
+        s_norm = s_raw / (np.max(s_raw) if np.max(s_raw) > 0 else 1.0)
+        sizes = s_norm * 1200 + 60
+
+    fig, ax = plt.subplots(figsize=(12, 7))
+    ax.scatter(d[x_col], d[y_col], s=sizes, alpha=0.65)
+
+    ax.set_xlabel(x_col.replace("_", " ").title())
+    ax.set_ylabel(y_col.replace("_", " ").title())
+    ax.set_title(title)
+
+    rank_col = "total_profit_erosion" if "total_profit_erosion" in df.columns else y_col
+    if rank_col in df.columns:
+        d_rank = df[[label_col, rank_col]].copy()
+        d_rank[rank_col] = _rq1_safe_float_series(d_rank[rank_col])
+        top_labels = (
+            d_rank.dropna()
+            .sort_values(rank_col, ascending=False)
+            .head(min(annotate_top_k, len(d_rank)))[label_col]
+            .astype(str)
+            .tolist()
+        )
+    else:
+        top_labels = (
+            d.sort_values(y_col, ascending=False)
+            .head(min(annotate_top_k, len(d)))[label_col]
+            .astype(str)
+            .tolist()
+        )
+
+    d[label_col] = d[label_col].astype(str)
+    for _, r in d.iterrows():
+        if str(r[label_col]) in top_labels:
+            ax.annotate(
+                str(r[label_col]),
+                (float(r[x_col]), float(r[y_col])),
+                textcoords="offset points",
+                xytext=(6, 6),
+                fontsize=9,
+            )
+
+    _safe_tight_layout()
+    fig.savefig(out_path, bbox_inches="tight")
+    plt.close(fig)
+    return out_path
+
+
+def plot_severity_vs_volume_decomposition(
+    df: pd.DataFrame,
+    *,
+    group_col: str,
+    returned_items_col: str = "returned_items",
+    avg_erosion_col: str = "avg_profit_erosion",
+    total_erosion_col: str = "total_profit_erosion",
+    out_path: Path,
+    title: str = "Severity vs Volume Decomposition (Total Erosion = Volume × Severity)",
+    annotate_top_k: int = 10,
+) -> Path:
+    """Plot the volume-by-severity decomposition of total erosion.
+
+    Identity
+    --------
+    total_profit_erosion = returned_items * avg_profit_erosion
+
+    Inputs
+    ------
+    Expects group-level columns:
+    - returned_items_col
+    - avg_erosion_col
+    - total_erosion_col
+
+    Output
+    ------
+    Saves a PNG image to `out_path` and returns the same path.
+    """
+    set_plot_style()
+    _rq1_validate_columns(
+        df,
+        [group_col, returned_items_col, avg_erosion_col, total_erosion_col],
+        context="plot_severity_vs_volume_decomposition",
+    )
+    _rq1_ensure_parent_dir(out_path)
+
+    df2 = df[[group_col, returned_items_col, avg_erosion_col, total_erosion_col]].copy()
+    df2[returned_items_col] = _rq1_safe_float_series(df2[returned_items_col]).clip(lower=0)
+    df2[avg_erosion_col] = _rq1_safe_float_series(df2[avg_erosion_col]).clip(lower=0)
+    df2[total_erosion_col] = _rq1_safe_float_series(df2[total_erosion_col]).clip(lower=0)
+    df2 = df2.dropna()
+
+    s_raw = df2[total_erosion_col]
+    s = (s_raw / (s_raw.max() if s_raw.max() > 0 else 1.0)) * 1400 + 40
+
+    fig, ax = plt.subplots(figsize=(12, 7))
+    ax.scatter(df2[returned_items_col], df2[avg_erosion_col], s=s, alpha=0.60)
+
+    ax.set_xlabel("Returned Items (Volume)")
+    ax.set_ylabel("Average Profit Erosion per Return (Severity)")
+    ax.set_title(title)
+
+    k = min(annotate_top_k, len(df2))
+    top = df2.sort_values(total_erosion_col, ascending=False).head(k)
+    for _, r in top.iterrows():
+        ax.annotate(
+            str(r[group_col]),
+            (float(r[returned_items_col]), float(r[avg_erosion_col])),
+            textcoords="offset points",
+            xytext=(6, 6),
+            fontsize=9,
+        )
+
+    _safe_tight_layout()
+    fig.savefig(out_path, bbox_inches="tight")
+    plt.close(fig)
+    return out_path
+
+
+def plot_profit_erosion_distribution_log(
+    returned_df: pd.DataFrame,
+    *,
+    value_col: str = "profit_erosion",
+    out_path: Path,
+    title: str = "Distribution of Profit Erosion for Returned Items (Log Scale)",
+    bins: int = 60,
+) -> Path:
+    """Plot the distribution of item-level profit erosion on a log-scaled x-axis.
+
+    Purpose
+    -------
+    Demonstrates skewness and heavy tails in item-level erosion, providing a visual
+    justification for non-parametric tests in RQ1.
+
+    Input
+    -----
+    Expects an item-level returned-items dataset with `value_col`.
+
+    Output
+    ------
+    Saves a PNG image to `out_path` and returns the same path.
+
+    Raises
+    ------
+    ValueError if no positive values exist (required for log scaling).
+    """
+    set_plot_style()
+    _rq1_validate_columns(returned_df, [value_col], context="plot_profit_erosion_distribution_log")
+    _rq1_ensure_parent_dir(out_path)
+
+    x = _rq1_safe_float_series(returned_df[value_col]).dropna()
+    x = x[x > 0]
+    if x.empty:
+        raise ValueError("No positive values available for log-scale plot.")
+
+    fig, ax = plt.subplots(figsize=(10.5, 6.5))
+    ax.hist(x, bins=bins, alpha=0.85)
+    ax.set_xscale("log")
+    ax.set_xlabel(f"{value_col} (log scale)")
+    ax.set_ylabel("Count of returned items")
+    ax.set_title(title)
+
+    _safe_tight_layout()
+    fig.savefig(out_path, bbox_inches="tight")
+    plt.close(fig)
+    return out_path
+
+
+def plot_bootstrap_ci_mean_by_group(
+    returned_df: pd.DataFrame,
+    *,
+    group_col: str = "category",
+    value_col: str = "profit_erosion",
+    out_path: Path,
+    title: str = "Bootstrap 95% CI for Mean Profit Erosion (Top Groups)",
+    n_boot: int = 800,
+    min_group_size: int = 30,
+    top_n_plot: int = 15,
+    random_state: int = 42,
+) -> Tuple[pd.DataFrame, Path]:
+    """Compute and plot bootstrap 95% confidence intervals for mean profit erosion.
+
+    Purpose
+    -------
+    Adds uncertainty quantification to RQ1 by estimating confidence intervals for
+    group mean erosion via bootstrap resampling.
+
+    Input
+    -----
+    Item-level returned-items dataset with:
+    - group_col (e.g., category, brand)
+    - value_col (profit_erosion)
+
+    Output
+    ------
+    Returns a DataFrame of all eligible groups (including CI bounds) and saves a PNG
+    figure to `out_path`.
+
+    Raises
+    ------
+    ValueError if no groups meet `min_group_size`.
+    """
+    set_plot_style()
+    _rq1_validate_columns(returned_df, [group_col, value_col], context="plot_bootstrap_ci_mean_by_group")
+    _rq1_ensure_parent_dir(out_path)
+
+    df = returned_df[[group_col, value_col]].dropna().copy()
+    df[value_col] = _rq1_safe_float_series(df[value_col])
+
+    counts = df[group_col].value_counts(dropna=False)
+    keep = counts[counts >= min_group_size].index
+    df = df[df[group_col].isin(keep)].copy()
+    if df.empty:
+        raise ValueError(f"No groups meet min_group_size={min_group_size}.")
+
+    rng = np.random.default_rng(random_state)
+
+    rows = []
+    for g, sub in df.groupby(group_col):
+        vals = sub[value_col].to_numpy()
+        n = len(vals)
+
+        boot_means = np.empty(n_boot, dtype=float)
+        for i in range(n_boot):
+            sample = rng.choice(vals, size=n, replace=True)
+            boot_means[i] = float(np.mean(sample))
+
+        mean_hat = float(np.mean(vals))
+        ci_low = float(np.quantile(boot_means, 0.025))
+        ci_high = float(np.quantile(boot_means, 0.975))
+
+        rows.append(
+            {
+                group_col: g,
+                "n_returned_items": int(n),
+                "mean_profit_erosion": mean_hat,
+                "ci_low_95": ci_low,
+                "ci_high_95": ci_high,
+                "ci_width": ci_high - ci_low,
+            }
+        )
+
+    ci_df = pd.DataFrame(rows).sort_values("mean_profit_erosion", ascending=False).reset_index(drop=True)
+
+    plot_df = ci_df.head(top_n_plot).sort_values("mean_profit_erosion", ascending=True).copy()
+    y = np.arange(len(plot_df))
+    means = plot_df["mean_profit_erosion"].to_numpy()
+    err_low = means - plot_df["ci_low_95"].to_numpy()
+    err_high = plot_df["ci_high_95"].to_numpy() - means
+
+    fig, ax = plt.subplots(figsize=(12, 7))
+    ax.errorbar(means, y, xerr=[err_low, err_high], fmt="o", capsize=4, linewidth=1.2)
+
+    ax.set_yticks(y)
+    ax.set_yticklabels(plot_df[group_col].astype(str))
+    ax.set_xlabel("Mean Profit Erosion per Returned Item")
+    ax.set_title(title)
+
+    for yi, mean, n in zip(y, means, plot_df["n_returned_items"].to_numpy()):
+        ax.text(mean, yi, f"  n={int(n)}", va="center", ha="left", fontsize=9)
+
+    _safe_tight_layout()
+    fig.savefig(out_path, bbox_inches="tight")
+    plt.close(fig)
+    return ci_df, out_path
