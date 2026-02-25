@@ -1,4 +1,3 @@
-
 # RQ1 Technical Documentation
 
 **Capstone Project – Master of Data Analytics**
@@ -301,3 +300,65 @@ Tomczak, M., & Tomczak, E. (2014). The need to report effect size estimates revi
 
 ---
 
+
+---
+
+## 9. External Validation Using SSL Dataset (Real-world Returns)
+
+### 9.1 Validation Purpose
+
+TheLook is a synthetic dataset designed for analytics benchmarking. To strengthen external validity, we replicated the full RQ1 workflow on a real-world returns dataset (SSL). The objective is **structural validation**: confirm that the same RQ1 conclusion (profit erosion differs across product groupings) holds under operational data.
+
+Dataset citation (APA): *SSL_Returns_df_yoy* (School Specialty, Inc., 2025).
+
+### 9.2 Field Mapping and Canonical Alignment
+
+Field mappings were documented in `rq1_ssl_validation_reference.md`. In summary:
+
+- **Category proxy (SSL):** `Class`
+- **Brand proxy (SSL):** `Supplier Name`
+- **Department (SSL):** `Department`
+- **Profit erosion (SSL):** `profit_erosion = abs(total_loss)`
+
+This differs from TheLook where profit erosion is modeled as margin reversal + processing cost (Guide & Van Wassenhove, 2009), but it preserves the RQ1 intent: measure **economic impact per returned item**.
+
+### 9.3 SSL Dataset Scope
+
+- **Rows (returned lines):** 133800
+- **Unit of analysis:** Returned order line (returned item)
+- **Note:** SSL extract is returns-only; therefore **return rate is not directly comparable** to TheLook without the non-return population.
+
+### 9.4 Visual Replication (SSL)
+
+The SSL notebook reproduces the same 7 RQ1 visuals:
+
+1. Top Categories by Total Profit Erosion  
+2. Top Brands by Total Profit Erosion  
+3. Return Rate vs Mean Profit Erosion (Category) *(interpret cautiously in SSL)*  
+4. Top Departments by Total Profit Erosion  
+5. Severity vs Volume Decomposition (Category)  
+6. Distribution of Profit Erosion (Log Scale)  
+7. Bootstrap 95% CI for Mean Profit Erosion (Category)
+
+Across SSL, the same pattern holds: losses are **right-skewed** and concentrated in specific categories, brands, and departments, with total erosion explained by a mix of **return volume** and **loss severity**.
+
+### 9.5 Hypothesis Testing Results (SSL)
+
+The SSL dataset exhibits non-normal profit erosion distributions; therefore, non-parametric testing is used (Conover, 1999).
+
+- **Category-level test:** Kruskal-Wallis  
+  p = 0.0000e+00 → **Reject H₀**
+
+- **Brand-level test:** Kruskal-Wallis  
+  p = 0.0000e+00 → **Reject H₀**
+
+**Conclusion:** The RQ1 findings generalize directionally to real-world data: profit erosion differs significantly across product groupings (category and brand). This supports targeted risk-mitigation and supplier/category-specific interventions.
+
+---
+
+## References (APA) – Addendum for Validation
+
+- School Specialty, Inc. (2025). *SSL_Returns_df_yoy* [Unpublished internal dataset].  
+- Conover, W. J. (1999). *Practical nonparametric statistics* (3rd ed.). Wiley.  
+- Efron, B., & Tibshirani, R. J. (1993). *An introduction to the bootstrap*. Chapman & Hall/CRC.  
+- Looker. (n.d.). *TheLook eCommerce dataset* [Demo dataset]. Looker.
