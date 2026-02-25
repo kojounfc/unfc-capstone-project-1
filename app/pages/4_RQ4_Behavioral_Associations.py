@@ -113,15 +113,70 @@ with col_a:
 
 with col_b:
     st.subheader("Coefficient Forest Plot")
-    coef_path = FIGURES_RQ4 / "rq4_coefficient_plot.png"
-    if coef_path.exists():
-        st.image(str(coef_path), use_container_width=True)
+    if _coef_df is not None and "coefficient" in _coef_df.columns:
+        # Build interactive forest plot (significant features, p < 0.05, by default)
+        _sig_only = st.checkbox("Show significant predictors only (p < 0.05)", value=True)
+        _forest_df = _coef_df.copy()
+        if _sig_only and "p_value" in _forest_df.columns:
+            _forest_df = _forest_df[
+                pd.to_numeric(_forest_df["p_value"], errors="coerce") < 0.05
+            ]
+        _forest_df = (
+            _forest_df
+            .assign(_abs_coef=_forest_df["coefficient"].abs())
+            .sort_values("_abs_coef", ascending=True)
+        )
+        _colors = [
+            "#EF5350" if c > 0 else "#42A5F5"
+            for c in _forest_df["coefficient"]
+        ]
+        fig_forest = go.Figure()
+        fig_forest.add_trace(go.Scatter(
+            x=_forest_df["coefficient"],
+            y=_forest_df["feature"],
+            mode="markers",
+            marker=dict(size=9, color=_colors),
+            error_x=dict(
+                type="data",
+                symmetric=False,
+                array=(
+                    (_forest_df["ci_upper"] - _forest_df["coefficient"]).tolist()
+                    if "ci_upper" in _forest_df.columns else None
+                ),
+                arrayminus=(
+                    (_forest_df["coefficient"] - _forest_df["ci_lower"]).tolist()
+                    if "ci_lower" in _forest_df.columns else None
+                ),
+                visible=True,
+            ),
+            hovertemplate=(
+                "<b>%{y}</b><br>"
+                "Coefficient: %{x:.4f}<br>"
+                "<extra></extra>"
+            ),
+        ))
+        fig_forest.add_vline(x=0, line_dash="dash", line_color="gray", line_width=1)
+        fig_forest.update_layout(
+            title="OLS Coefficient Forest Plot (Log-Linear)",
+            xaxis_title="Coefficient (log-scale — % effect on profit erosion)",
+            yaxis_title="",
+            height=max(400, len(_forest_df) * 22),
+        )
+        st.plotly_chart(fig_forest, use_container_width=True)
         st.caption(
-            "OLS coefficients with 95% CIs. Points to the right = positive association "
-            "(more erosion); left = negative (less erosion)."
+            "Red = positive association (more erosion); blue = negative (less erosion). "
+            "Error bars show 95% CIs. Points right of zero → higher profit erosion."
         )
     else:
-        st.warning("Coefficient plot not found.")
+        coef_path = FIGURES_RQ4 / "rq4_coefficient_plot.png"
+        if coef_path.exists():
+            st.image(str(coef_path), use_container_width=True)
+            st.caption(
+                "OLS coefficients with 95% CIs. Points to the right = positive association "
+                "(more erosion); left = negative (less erosion)."
+            )
+        else:
+            st.warning("Coefficient plot not found.")
 
 st.divider()
 

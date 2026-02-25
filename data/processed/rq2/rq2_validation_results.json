@@ -1,14 +1,14 @@
 {
-  "validation_date": "2026-02-19T19:57:45.365231",
+  "validation_date": "2026-02-23T00:55:04.950730",
   "external_dataset": "School Specialty LLC (SSL)",
   "validation_type": "Pattern-based (Level 1 only)",
   "reason": "RQ2 uses unsupervised clustering, no trained model for directional validation",
   "pattern_validation": {
     "n_features_tested": 10,
-    "n_agreement": 5,
+    "n_agreement": 6,
     "n_both_pass": 4,
-    "n_both_fail": 1,
-    "agreement_rate": 0.5,
+    "n_both_fail": 2,
+    "agreement_rate": 0.6,
     "success_threshold": 0.5,
     "validation_passed": true,
     "generalizing_features": [
@@ -19,7 +19,6 @@
     ],
     "domain_specific_features": [
       "return_frequency",
-      "order_frequency",
       "customer_tenure_days",
       "purchase_recency_days",
       "total_items"

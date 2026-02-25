@@ -59,6 +59,12 @@ if _cat_path.exists():
     _cat_df = pd.read_parquet(_cat_path)
     _rq1_top_cat = _cat_df.nlargest(1, "total_profit_erosion").iloc[0]["category"]
 
+_rq1_top_brand = None
+_brand_path = PROCESSED / "us07_product_profit_erosion_by_brand.parquet"
+if _brand_path.exists():
+    _brand_df = pd.read_parquet(_brand_path)
+    _rq1_top_brand = _brand_df.nlargest(1, "total_profit_erosion").iloc[0]["brand"]
+
 _cs_path = PROCESSED / "rq2" / "cluster_summary.parquet"
 if _cs_path.exists():
     _cs_df = pd.read_parquet(_cs_path)
@@ -159,7 +165,12 @@ st.divider()
 # ── Research questions overview (data-driven Key Results) ─────────────────────
 st.header("Research Questions")
 
-_rq1_result = f"{_rq1_top_cat} — highest total erosion category" if _rq1_top_cat else "See RQ1 page"
+if _rq1_top_cat and _rq1_top_brand:
+    _rq1_result = f"{_rq1_top_cat} (category) · {_rq1_top_brand} (brand) — highest erosion"
+elif _rq1_top_cat:
+    _rq1_result = f"{_rq1_top_cat} — highest total erosion category"
+else:
+    _rq1_result = "See RQ1 page"
 _rq2_result = (
     f"{_rq2_n_clusters} behaviorally distinct customer segment(s) identified"
     if _rq2_n_clusters else "See RQ2 page"
@@ -269,7 +280,7 @@ st.dataframe(
             "Roberto San Miguel",
         ],
         "Student ID": ["NF1002499", "NF1007842", "NF1002706", "NF1001332"],
-        "Primary RQ": ["RQ1 & RQ2", "RQ3 & RQ4", "RQ2", "RQ1"],
+        "Primary RQ": ["RQ4", "RQ3 & RQ4", "RQ2", "RQ1"],
     }),
     use_container_width=True,
     hide_index=True,
