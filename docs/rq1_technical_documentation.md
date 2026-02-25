@@ -300,18 +300,17 @@ Tomczak, M., & Tomczak, E. (2014). The need to report effect size estimates revi
 
 ---
 
+## 13. External Validation Using SSL Dataset (Real-world Returns)
 
----
+### 13.1 Validation Purpose
 
-## 9. External Validation Using SSL Dataset (Real-world Returns)
-
-### 9.1 Validation Purpose
+This external validation is implemented in `profit_erosion_analysis.ipynb` (Section **6.14–6.27**) and reproduces the full RQ1 artifact + visual set on SSL.
 
 TheLook is a synthetic dataset designed for analytics benchmarking. To strengthen external validity, we replicated the full RQ1 workflow on a real-world returns dataset (SSL). The objective is **structural validation**: confirm that the same RQ1 conclusion (profit erosion differs across product groupings) holds under operational data.
 
 Dataset citation (APA): *SSL_Returns_df_yoy* (School Specialty, Inc., 2025).
 
-### 9.2 Field Mapping and Canonical Alignment
+### 13.2 Field Mapping and Canonical Alignment
 
 Field mappings were documented in `rq1_ssl_validation_reference.md`. In summary:
 
@@ -322,15 +321,15 @@ Field mappings were documented in `rq1_ssl_validation_reference.md`. In summary:
 
 This differs from TheLook where profit erosion is modeled as margin reversal + processing cost (Guide & Van Wassenhove, 2009), but it preserves the RQ1 intent: measure **economic impact per returned item**.
 
-### 9.3 SSL Dataset Scope
+### 13.3 SSL Dataset Scope
 
 - **Rows (returned lines):** 133800
 - **Unit of analysis:** Returned order line (returned item)
 - **Note:** SSL extract is returns-only; therefore **return rate is not directly comparable** to TheLook without the non-return population.
 
-### 9.4 Visual Replication (SSL)
+### 13.4 Visual Replication (SSL)
 
-The SSL notebook reproduces the same 7 RQ1 visuals:
+The SSL notebook recreates and displays the full **7-figure RQ1 visual suite**:
 
 1. Top Categories by Total Profit Erosion  
 2. Top Brands by Total Profit Erosion  
@@ -342,7 +341,7 @@ The SSL notebook reproduces the same 7 RQ1 visuals:
 
 Across SSL, the same pattern holds: losses are **right-skewed** and concentrated in specific categories, brands, and departments, with total erosion explained by a mix of **return volume** and **loss severity**.
 
-### 9.5 Hypothesis Testing Results (SSL)
+### 13.5 Hypothesis Testing Results (SSL)
 
 The SSL dataset exhibits non-normal profit erosion distributions; therefore, non-parametric testing is used (Conover, 1999).
 
@@ -353,6 +352,24 @@ The SSL dataset exhibits non-normal profit erosion distributions; therefore, non
   p = 0.0000e+00 → **Reject H₀**
 
 **Conclusion:** The RQ1 findings generalize directionally to real-world data: profit erosion differs significantly across product groupings (category and brand). This supports targeted risk-mitigation and supplier/category-specific interventions.
+
+
+### 13.6 Validation Artifacts Produced (SSL)
+
+All SSL validation outputs are written under `data/processed/rq1_ssl/` to keep traceability consistent with the main pipeline:
+
+- `rq1_ssl_engineered.parquet` (+ optional `.csv`)
+- `rq1_ssl_returned_items.parquet`
+- `rq1_ssl_base_canonical.parquet`
+- `rq1_ssl_by_category.csv`
+- `rq1_ssl_by_brand.csv`
+- `rq1_ssl_by_department.csv`
+- `rq1_ssl_test_summary_category.csv`
+- `rq1_ssl_test_summary_brand.csv`
+- `rq1_ssl_posthoc_category.csv` (optional)
+- `rq1_ssl_posthoc_brand.csv` (optional)
+- `rq1_ssl_bootstrap_ci_category_mean.csv` (+ optional `.parquet`)
+
 
 ---
 

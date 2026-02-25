@@ -19,6 +19,8 @@ Validation checks two things:
 
 ## 2. Dataset Scope and Unit of Analysis
 
+**Primary engineered artifact:** `data/processed/rq1_ssl/rq1_ssl_engineered.parquet` (optional CSV also saved for audit).
+
 - **Dataset:** `SSL_Returns_df_yoy.csv` (cleaned + feature engineered prior to validation)
 - **Rows (engineered):** 133800
 - **Columns:** 82
@@ -127,3 +129,22 @@ Because the profit erosion distribution is non-normal and group counts differ su
 - School Specialty, Inc. (2025). *SSL_Returns_df_yoy* [Unpublished internal dataset].  
 - Conover, W. J. (1999). *Practical nonparametric statistics* (3rd ed.). Wiley.  
 - Efron, B., & Tibshirani, R. J. (1993). *An introduction to the bootstrap*. Chapman & Hall/CRC.
+
+
+---
+
+## 8. Validation Artifacts Produced (SSL)
+
+The SSL validation workflow produces the following reproducible artifacts under `data/processed/rq1_ssl/`:
+
+- `rq1_ssl_engineered.parquet` (+ optional `.csv`)
+- `rq1_ssl_returned_items.parquet`
+- `rq1_ssl_base_canonical.parquet`
+- `rq1_ssl_by_category.csv`
+- `rq1_ssl_by_brand.csv`
+- `rq1_ssl_by_department.csv`
+- `rq1_ssl_test_summary_category.csv`
+- `rq1_ssl_test_summary_brand.csv`
+- `rq1_ssl_posthoc_category.csv` (optional)
+- `rq1_ssl_posthoc_brand.csv` (optional)
+- `rq1_ssl_bootstrap_ci_category_mean.csv` (+ optional `.parquet`)

@@ -91,11 +91,16 @@ Why this is acceptable for validation:
 
 The RQ1 SSL notebook produces the same artifact types as the TheLook RQ1 notebook:
 
+- `rq1_ssl_engineered.parquet` (feature-engineered SSL dataset)
 - `rq1_ssl_returned_items.parquet` (canonical return-line dataset)
+- `rq1_ssl_base_canonical.parquet` (canonical base dataset incl. non-return-safe fields)
 - `rq1_ssl_by_category.csv`
 - `rq1_ssl_by_brand.csv`
 - `rq1_ssl_by_department.csv`
-- `rq1_ssl_statistical_tests_summary.csv`
+- `rq1_ssl_posthoc_category.csv` (if Dunn post-hoc enabled)
+- `rq1_ssl_posthoc_brand.csv` (if Dunn post-hoc enabled)
+- `rq1_ssl_test_summary_category.csv`
+- `rq1_ssl_test_summary_brand.csv`
 - Figures (7): top categories, top brands, return-rate vs mean erosion, top departments, severity vs volume, erosion distribution (log), bootstrap CI plot
 
 ---
