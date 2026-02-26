@@ -175,106 +175,110 @@ This aligns with findings that frequency-based metrics do not fully capture prof
 
 ---
 
+
+
 ## 6. Statistical Analysis
 
 ### 6.1 Category-Level Kruskal–Wallis Test
 
-* **p-value:** 4.99 × 10⁻²⁷
-* **Effect size (ε²):** 0.377
-* **Groups:** 21
-* **Observations:** 436
-* **Decision:** Reject H₀
+- **p-value:** 2.63 × 10⁻³³  
+- **Effect size (ε²):** 0.454  
+- **Groups:** 21  
+- **Observations:** 436  
+- **Decision:** Reject H₀  
 
-The extremely small p-value provides overwhelming evidence against equality of group means.
+The p-value (2.63 × 10⁻³³) is far below 0.05, which means profit erosion is not equal across product categories. The differences we observe are extremely unlikely to be caused by random variation.
 
-The epsilon-squared value (0.377) indicates a **large practical effect** (Tomczak & Tomczak, 2014).
-
-Therefore, category-level differences are both statistically and economically significant.
+The effect size (ε² = 0.454) is considered large (Tomczak & Tomczak, 2014). This confirms that category differences are not just statistically significant — they are also meaningful in real business terms.
 
 ---
 
 ### 6.2 Brand-Level Kruskal–Wallis Test
 
-* **p-value:** 4.44 × 10⁻⁵
-* **Effect size (ε²):** 0.484
-* **Groups:** 7
-* **Decision:** Reject H₀
+- **p-value:** 1.08 × 10⁻⁴  
+- **Effect size (ε²):** 0.442  
+- **Groups:** 7  
+- **Observations:** 56  
+- **Decision:** Reject H₀  
 
-The brand-level effect size exceeds the category-level effect.
+The brand-level results also lead us to reject the null hypothesis. The p-value (1.08 × 10⁻⁴) shows strong statistical evidence that profit erosion differs across brands.
 
-This suggests brand-specific structural drivers of financial loss.
+The effect size (ε² = 0.442) indicates a large difference, suggesting that brand identity is an important driver of financial loss from returns.
 
 ---
 
 ### 6.3 Post-Hoc Testing
 
-Dunn’s post-hoc tests with Bonferroni correction were conducted.
-
-Significant pairwise differences were observed between:
-
-* Structured apparel categories and casual categories
-* High-margin and low-margin brand groups
-
-These results confirm that specific groups drive overall heterogeneity.
-
----
+Dunn’s post-hoc tests with Bonferroni correction were conducted on the top groups. Significant pairwise differences confirm that the overall statistical result is driven by clear and consistent group-level differences.
 
 ## 7. Bootstrap Confidence Intervals
 
-**Figure 7: Bootstrap 95% Confidence Intervals (Category Means)**
-
-Bootstrap resampling (Efron & Tibshirani, 1993) was used to estimate robust uncertainty intervals under non-normal conditions.
+Bootstrap resampling (1,000 iterations) was used to estimate 95% confidence intervals without assuming normality (Efron & Tibshirani, 1993).
 
 Example:
 
 | Category        | Mean  | 95% CI         |
-| --------------- | ----- | -------------- |
+|-----------------|-------|---------------|
 | Fashion Hoodies | 26.36 | [22.35, 30.67] |
 | Tops & Tees     | 16.99 | [13.74, 21.39] |
 
-Limited overlap between intervals reinforces structural differences.
+Limited overlap between intervals supports the conclusion that category differences are stable and reliable.
 
 ---
 
 ## 8. Integrated Interpretation
 
-RQ1 provides converging descriptive and inferential evidence that:
+When we look at the descriptive charts and statistical tests together, a clear pattern emerges:
 
-1. Profit erosion is not uniformly distributed.
-2. Category-level differences are large and economically meaningful.
-3. Brand-level heterogeneity is pronounced.
-4. Department-level asymmetry exists.
-5. Return rate alone is insufficient as a financial KPI.
+1. Profit erosion is not evenly distributed.  
+2. Category differences are statistically significant and meaningful in practice.  
+3. Brand-level differences are even stronger.  
+4. The Men’s department generates higher total erosion.  
+5. Return rate alone does not fully capture financial risk.
 
-The null hypotheses are rejected at both levels.
-
-The effect sizes indicate meaningful structural economic variation rather than trivial statistical artifacts.
+Overall, both null hypotheses are rejected. Category and brand membership clearly influence return-related financial loss.
 
 ---
 
 ## 9. Business Implications
 
-From a managerial perspective:
+From a business perspective, these findings suggest:
 
-1. High-margin structured apparel requires targeted mitigation strategies.
-2. Brand-level erosion dashboards should supplement traditional return metrics.
-3. Men’s department requires enhanced monitoring.
-4. Reverse logistics cost optimization may materially reduce losses.
-5. Profit erosion should complement return rate as a primary performance metric.
+1. High-margin structured apparel should be prioritized for return mitigation.  
+2. Brand-level monitoring should complement return-rate dashboards.  
+3. The Men’s department requires closer monitoring due to higher total erosion.  
+4. Improving reverse logistics efficiency could reduce financial impact.  
+5. Profit erosion should be tracked alongside return rate as a key performance indicator.
 
-These findings support financially informed return management policy rather than frequency-only monitoring.
+These recommendations are based on statistically significant and practically meaningful results.
 
 ---
 
 ## 10. Conclusion (RQ1)
 
-RQ1 establishes that profit erosion differs significantly across product categories and brands therefore rejects the null hypotheses.
+RQ1 confirms that profit erosion differs significantly across product categories and brands at α = 0.05.
 
-The statistical evidence is robust, and effect sizes confirm practical relevance.
-
-These findings provide the inferential foundation for predictive modeling in subsequent research questions.
+The results are statistically robust, and the effect sizes show that the differences matter in practice. These findings provide a strong foundation for later predictive modeling work.
 
 ---
+
+## 14. Dashboard Element Interpretations
+
+### KPI Cards
+
+**Total Profit Erosion** – Total financial loss from all returned items.  
+**Total Returns Analyzed** – Number of returned items included in the analysis.  
+**Mean Erosion per Return** – Average loss per returned item.  
+**Highest-Risk Category** – Category contributing the largest total erosion.
+
+### Statistical Summary
+
+The Kruskal–Wallis tests show statistically significant differences across categories (ε² = 0.454) and brands (ε² = 0.442). These are large effect sizes, meaning the differences are meaningful for business decision-making.
+
+### Key Takeaway
+
+Profit erosion is not evenly distributed. Category and brand are important drivers of financial loss from returns.
+
 
 ## 11. Traceability to User Stories
 
@@ -300,17 +304,18 @@ Tomczak, M., & Tomczak, E. (2014). The need to report effect size estimates revi
 
 ---
 
-## 13. External Validation Using SSL Dataset (Real-world Returns)
 
-### 13.1 Validation Purpose
+---
 
-This external validation is implemented in `profit_erosion_analysis.ipynb` (Section **6.14–6.27**) and reproduces the full RQ1 artifact + visual set on SSL.
+## 9. External Validation Using SSL Dataset (Real-world Returns)
+
+### 9.1 Validation Purpose
 
 TheLook is a synthetic dataset designed for analytics benchmarking. To strengthen external validity, we replicated the full RQ1 workflow on a real-world returns dataset (SSL). The objective is **structural validation**: confirm that the same RQ1 conclusion (profit erosion differs across product groupings) holds under operational data.
 
 Dataset citation (APA): *SSL_Returns_df_yoy* (School Specialty, Inc., 2025).
 
-### 13.2 Field Mapping and Canonical Alignment
+### 9.2 Field Mapping and Canonical Alignment
 
 Field mappings were documented in `rq1_ssl_validation_reference.md`. In summary:
 
@@ -321,15 +326,15 @@ Field mappings were documented in `rq1_ssl_validation_reference.md`. In summary:
 
 This differs from TheLook where profit erosion is modeled as margin reversal + processing cost (Guide & Van Wassenhove, 2009), but it preserves the RQ1 intent: measure **economic impact per returned item**.
 
-### 13.3 SSL Dataset Scope
+### 9.3 SSL Dataset Scope
 
 - **Rows (returned lines):** 133800
 - **Unit of analysis:** Returned order line (returned item)
 - **Note:** SSL extract is returns-only; therefore **return rate is not directly comparable** to TheLook without the non-return population.
 
-### 13.4 Visual Replication (SSL)
+### 9.4 Visual Replication (SSL)
 
-The SSL notebook recreates and displays the full **7-figure RQ1 visual suite**:
+The SSL notebook reproduces the same 7 RQ1 visuals:
 
 1. Top Categories by Total Profit Erosion  
 2. Top Brands by Total Profit Erosion  
@@ -341,7 +346,7 @@ The SSL notebook recreates and displays the full **7-figure RQ1 visual suite**:
 
 Across SSL, the same pattern holds: losses are **right-skewed** and concentrated in specific categories, brands, and departments, with total erosion explained by a mix of **return volume** and **loss severity**.
 
-### 13.5 Hypothesis Testing Results (SSL)
+### 9.5 Hypothesis Testing Results (SSL)
 
 The SSL dataset exhibits non-normal profit erosion distributions; therefore, non-parametric testing is used (Conover, 1999).
 
@@ -352,24 +357,6 @@ The SSL dataset exhibits non-normal profit erosion distributions; therefore, non
   p = 0.0000e+00 → **Reject H₀**
 
 **Conclusion:** The RQ1 findings generalize directionally to real-world data: profit erosion differs significantly across product groupings (category and brand). This supports targeted risk-mitigation and supplier/category-specific interventions.
-
-
-### 13.6 Validation Artifacts Produced (SSL)
-
-All SSL validation outputs are written under `data/processed/rq1_ssl/` to keep traceability consistent with the main pipeline:
-
-- `rq1_ssl_engineered.parquet` (+ optional `.csv`)
-- `rq1_ssl_returned_items.parquet`
-- `rq1_ssl_base_canonical.parquet`
-- `rq1_ssl_by_category.csv`
-- `rq1_ssl_by_brand.csv`
-- `rq1_ssl_by_department.csv`
-- `rq1_ssl_test_summary_category.csv`
-- `rq1_ssl_test_summary_brand.csv`
-- `rq1_ssl_posthoc_category.csv` (optional)
-- `rq1_ssl_posthoc_brand.csv` (optional)
-- `rq1_ssl_bootstrap_ci_category_mean.csv` (+ optional `.parquet`)
-
 
 ---
 
