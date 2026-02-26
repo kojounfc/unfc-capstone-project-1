@@ -241,10 +241,15 @@ if stats_path.exists():
 st.title("📊 RQ1: Profit Erosion by Category & Brand")
 st.markdown(
     """
-**Research Question**: Do profit erosion levels differ significantly across product categories and brands?
+<p><strong>Research Question (RQ1):</strong> Do returned items exhibit statistically significant differences in profit erosion across product categories and brands?</p>
+<div style="margin-left: 1.5rem;">
+<p><strong>Null Hypothesis (H₀):</strong> Mean profit erosion associated with returned items is equal across product categories and brands.</p>
+<p><strong>Alternative Hypothesis (H₁):</strong> Mean profit erosion associated with returned items differs significantly across product categories and/or brands.</p>
+</div>
 
 **Method**: Kruskal–Wallis test with post-hoc Dunn comparisons and bootstrap confidence intervals.
-"""
+""",
+    unsafe_allow_html=True,
 )
 st.divider()
 
