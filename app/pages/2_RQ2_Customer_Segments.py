@@ -879,10 +879,10 @@ Instead we ask: do the same features pass 3-gate screening in both datasets?
                     labels={feat_col:"","x":"","color":""},
                     text="Status")
                 fig_val.update_traces(textposition="inside", insidetextanchor="middle")
-                fig_val.update_layout(**LAYOUT,
-                    height=max(300, len(pv_df)*42),
-                    xaxis=dict(visible=False), yaxis=dict(title=""),
-                    showlegend=True, legend=dict(orientation="h", y=1.06, x=0), bargap=0.3)
+                fig_val.update_layout(**{**LAYOUT,
+                    "height": max(300, len(pv_df)*42),
+                    "xaxis": dict(visible=False), "yaxis": dict(title=""),
+                    "showlegend": True, "legend": dict(orientation="h", y=1.06, x=0), "bargap": 0.3})
                 st.plotly_chart(fig_val, use_container_width=True)
 
                 with st.expander("ℹ️ How to read this chart", expanded=False):
