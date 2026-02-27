@@ -1,5 +1,6 @@
 """
-EDA Page — TheLook E-Commerce Dataset
+EDA Page — TheLook E-Commerce Dataset (Presentation-First, Graduate Tone)
+
 Exploratory Data Analysis overview for the full dataset.
 This page is a placeholder; charts are generated from processed data.
 """
@@ -9,19 +10,149 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
-# ── Paths ─────────────────────────────────────────────────────────────────────
-ROOT = Path(__file__).parent.parent.parent
-PROCESSED = ROOT / "data" / "processed"
-PARQUET = PROCESSED / "returns_eda_v1.parquet"
-FEATURE_PARQUET = PROCESSED / "feature_engineered_dataset.parquet"
-
+# ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="EDA — TheLook",
     page_icon="🔍",
     layout="wide",
 )
 
-st.title("Exploratory Data Analysis — TheLook E-Commerce")
+
+# ── CSS: inline hover tooltip for all section headers ─────────────────────────
+st.markdown(
+    """
+    <style>
+    .eda-tip-title {
+        display: flex;
+        align-items: center;
+        margin-bottom: 0.4rem;
+    }
+    .eda-tip-title h2 {
+        margin: 0; padding: 0;
+        font-size: 1.5rem; font-weight: 700; letter-spacing: -0.01em;
+    }
+    .eda-tip-title h3 {
+        margin: 0; padding: 0;
+        font-size: 1.35rem; font-weight: 600; letter-spacing: -0.01em;
+    }
+    .eda-tip {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        cursor: help;
+        margin-left: 10px;
+        flex-shrink: 0;
+    }
+    .eda-tip-icon { font-size: 0.9rem; color: #888; user-select: none; }
+    .eda-tip-box {
+        visibility: hidden;
+        opacity: 0;
+        width: 380px;
+        background-color: rgba(28, 28, 44, 0.97);
+        color: #e4e4f0;
+        text-align: left;
+        border-radius: 8px;
+        padding: 14px 18px;
+        font-size: 0.95rem;
+        line-height: 1.65;
+        position: absolute;
+        z-index: 9999;
+        bottom: calc(100% + 10px);
+        left: 50%;
+        transform: translateX(-50%);
+        transition: opacity 0.2s ease;
+        box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
+        pointer-events: none;
+        white-space: normal;
+    }
+    .eda-tip-box::after {
+        content: "";
+        position: absolute;
+        top: 100%; left: 50%; margin-left: -6px;
+        border: 6px solid transparent;
+        border-top-color: rgba(28, 28, 44, 0.97);
+    }
+    .eda-tip:hover .eda-tip-box { visibility: visible; opacity: 1; }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+
+# ── Paths ─────────────────────────────────────────────────────────────────────
+ROOT = Path(__file__).resolve().parents[2]
+PROCESSED = ROOT / "data" / "processed"
+PARQUET = PROCESSED / "returns_eda_v1.parquet"
+FEATURE_PARQUET = PROCESSED / "feature_engineered_dataset.parquet"
+
+
+# ── Tooltips ──────────────────────────────────────────────────────────────────
+_TOOLTIPS = {
+    "dataset_overview": (
+        "**Dataset Source:** BigQuery public dataset `bigquery-public-data.thelook_ecommerce`. "
+        "Four tables were merged at the order-item grain: order_items, orders, products, and users. "
+        "The analytical unit is one row per order-item, not per order."
+    ),
+    "schema": (
+        "**Schema & Data Types:** Displays all columns and their inferred types after the merge and "
+        "standardization pipeline. Key columns include sale_price, cost, item_status, category, brand, "
+        "and engineered features like profit_erosion."
+    ),
+    "status_dist": (
+        "**Item Status Distribution:** Order items progress through statuses: Shipped, Complete, "
+        "Returned, Cancelled, Processing. Only items with status == 'Returned' are included in "
+        "profit erosion calculations. The share of returned items validates the scope and relevance of the analysis."
+    ),
+    "return_by_cat": (
+        "**Return Rate by Category:** Return rate = returned items / total items per category. "
+        "Categories with fewer than 200 items are excluded for stability. "
+        "The processing cost model applies tiered multipliers (1.0×–1.3×) based on category risk."
+    ),
+    "margin_dist": (
+        "**Item Margin Distribution:** item_margin = sale_price − cost. "
+        "For returned items, the margin is reversed and added to the processing cost to form profit_erosion. "
+        "The heavy left tail in returned items illustrates why average-based analysis alone is insufficient."
+    ),
+    "geo_dist": (
+        "**Geographic Distribution:** Return rates were compared across all countries in the dataset. "
+        "The coefficient of variation (CV) was 3.58%, below the 10% threshold for meaningful geographic tiering. "
+        "No geographic multipliers were applied to the processing cost model as a result."
+    ),
+    "data_quality": (
+        "**Data Quality Checks:** The cleaning pipeline checks for duplicates, missing values, "
+        "price inconsistencies, status logic errors, and temporal ordering violations. "
+        "Flagged rows are written to data/processed/data_to_review.csv for audit."
+    ),
+    "feature_engineering": (
+        "**Engineered Features:** Key derived columns support all four research questions. "
+        "profit_erosion = margin_reversal + process_cost is the central outcome variable. "
+        "is_high_erosion_customer flags customers at or above the 75th percentile of total erosion."
+    ),
+}
+
+
+def _tip_header(label: str, tooltip_key: str, level: int = 2) -> None:
+    """Render a section header with an inline CSS hover tooltip."""
+    raw = _TOOLTIPS[tooltip_key]
+    parts = raw.split("**")
+    tip_html = "".join(
+        f"<strong>{p}</strong>" if i % 2 == 1 else p
+        for i, p in enumerate(parts)
+    )
+    st.markdown(
+        f'<div class="eda-tip-title">'
+        f'<h{level}>{label}</h{level}>'
+        f'<span class="eda-tip">'
+        f'<span class="eda-tip-icon">ℹ️</span>'
+        f'<span class="eda-tip-box">{tip_html}</span>'
+        f'</span>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
+
+
+# ── Page header ───────────────────────────────────────────────────────────────
+st.title("🔍 Exploratory Data Analysis — TheLook E-Commerce")
 st.markdown(
     """
 **Source**: `bigquery-public-data.thelook_ecommerce` (Google BigQuery)
@@ -63,7 +194,7 @@ if df is None:
     st.stop()
 
 # ── Section 1: Dataset Overview ───────────────────────────────────────────────
-st.header("1. Dataset Overview")
+_tip_header("1. Dataset Overview", "dataset_overview")
 
 total_rows = len(df)
 n_orders = df["order_id"].nunique() if "order_id" in df.columns else None
@@ -86,7 +217,7 @@ c5.metric(
 st.divider()
 
 # ── Section 2: Schema ─────────────────────────────────────────────────────────
-st.header("2. Schema & Data Types")
+_tip_header("2. Schema & Data Types", "schema")
 with st.expander("View column list", expanded=False):
     schema_df = pd.DataFrame(
         {"column": df.columns, "dtype": df.dtypes.astype(str).values}
@@ -96,7 +227,7 @@ with st.expander("View column list", expanded=False):
 st.divider()
 
 # ── Section 3: Item Status Distribution ───────────────────────────────────────
-st.header("3. Item Status Distribution")
+_tip_header("3. Item Status Distribution", "status_dist")
 st.markdown(
     "Order items progress through statuses: `Shipped`, `Complete`, `Returned`, `Cancelled`, `Processing`."
 )
@@ -129,10 +260,10 @@ else:
 st.divider()
 
 # ── Section 4: Return Rate by Category ────────────────────────────────────────
-st.header("4. Return Rate by Product Category")
+_tip_header("4. Return Rate by Product Category", "return_by_cat")
 st.markdown(
     "Categories vary widely in return rates. "
-    "The processing cost model applies tiered multipliers (1.0x–1.3x) based on category."
+    "The processing cost model applies tiered multipliers (1.0×–1.3×) based on category."
 )
 
 if "category" in df.columns and "is_returned_item" in df.columns:
@@ -174,7 +305,7 @@ else:
 st.divider()
 
 # ── Section 5: Margin Distribution ───────────────────────────────────────────
-st.header("5. Item Margin Distribution")
+_tip_header("5. Item Margin Distribution", "margin_dist")
 st.markdown(
     "`item_margin = sale_price − cost`. For returned items, this becomes the **margin reversal** "
     "component of profit erosion."
@@ -229,7 +360,7 @@ else:
 st.divider()
 
 # ── Section 6: Geographic Distribution ───────────────────────────────────────
-st.header("6. Geographic Distribution")
+_tip_header("6. Geographic Distribution", "geo_dist")
 st.markdown(
     "Return rates show low variance across countries (CV = 3.58% < 10% threshold), "
     "so no geographic tiers were applied to the processing cost model."
@@ -268,7 +399,7 @@ else:
 st.divider()
 
 # ── Section 7: Data Quality Summary ──────────────────────────────────────────
-st.header("7. Data Quality Summary")
+_tip_header("7. Data Quality Summary", "data_quality")
 st.markdown(
     "The cleaning pipeline in `src/data_cleaning.py` checks for duplicates, missing values, "
     "price inconsistencies, status logic errors, and temporal ordering violations. "
@@ -294,7 +425,7 @@ if review_path.exists():
 st.divider()
 
 # ── Section 8: Feature Engineering Overview ───────────────────────────────────
-st.header("8. Engineered Features — Quick Reference")
+_tip_header("8. Engineered Features — Quick Reference", "feature_engineering")
 st.markdown("Key derived columns added by `src/feature_engineering.py`:")
 
 features_table = pd.DataFrame(
