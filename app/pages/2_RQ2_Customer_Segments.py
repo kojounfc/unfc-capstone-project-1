@@ -328,29 +328,40 @@ with tab_ov:
         _tip_header("Lorenz Curve — Inequality", "fig_lorenz")
         st.caption("The curve bows below the equality diagonal — a small subset drives a "
                    "disproportionate share of total profit erosion.")
-        if _lorenz_df is not None:
-            pop_col = next((c for c in ["cumulative_population","cum_population","customer_share","x"]
-                            if c in _lorenz_df.columns), None)
-            val_col = next((c for c in ["cumulative_value","cum_value","value_share","y"]
-                            if c in _lorenz_df.columns), None)
-            if pop_col and val_col:
-                lsrc = _lorenz_df.sort_values(pop_col)
-                scale = 100 if lsrc[pop_col].max() <= 1.0 else 1
-                lx = np.concatenate([[0], lsrc[pop_col].values * scale])
-                ly = np.concatenate([[0], lsrc[val_col].values * scale])
-                fig_ml = go.Figure()
-                fig_ml.add_trace(go.Scatter(x=[0,100], y=[0,100], mode="lines",
-                    line=dict(dash="dash", color="#999", width=1),
-                    hoverinfo="skip", showlegend=False))
-                fig_ml.add_trace(go.Scatter(x=lx, y=ly, mode="lines",
-                    line=dict(color="#E65100", width=2), fill="tonexty",
-                    fillcolor="rgba(230,81,0,0.10)", showlegend=False,
-                    hovertemplate="Bottom %{x:.1f}%<br>→ %{y:.1f}% of erosion<extra></extra>"))
-                fig_ml.update_layout(height=300, margin=dict(t=10,b=40,l=50,r=10),
-                    plot_bgcolor="white", paper_bgcolor="white",
-                    xaxis_title="Cumulative % of Customers",
-                    yaxis_title="Cumulative % of Erosion")
-                st.plotly_chart(fig_ml, use_container_width=True)
+        if _pareto_df is not None and "customer_share" in _pareto_df.columns:
+            if _lorenz_df is not None:
+                pop_col = next((c for c in ["cumulative_population","cum_population","customer_share","x"]
+                                if c in _lorenz_df.columns), None)
+                val_col = next((c for c in ["cumulative_value","cum_value","value_share","y"]
+                                if c in _lorenz_df.columns), None)
+                if pop_col and val_col:
+                    lsrc  = _lorenz_df.sort_values(pop_col)
+                    scale = 100 if lsrc[pop_col].max() <= 1.0 else 1
+                    lx = np.concatenate([[0], lsrc[pop_col].values * scale])
+                    ly = np.concatenate([[0], lsrc[val_col].values * scale])
+                else:
+                    pdf_r = _pareto_df.sort_values("customer_share")
+                    lx = np.concatenate([[0], (1 - pdf_r["customer_share"].values[::-1]) * 100])
+                    ly = np.concatenate([[0], (1 - pdf_r["value_share"].values[::-1]) * 100])
+            else:
+                pdf_r = _pareto_df.sort_values("customer_share")
+                lx = np.concatenate([[0], (1 - pdf_r["customer_share"].values[::-1]) * 100])
+                ly = np.concatenate([[0], (1 - pdf_r["value_share"].values[::-1]) * 100])
+
+            fig_l = go.Figure()
+            fig_l.add_trace(go.Scatter(x=[0,100], y=[0,100], mode="lines", name="Perfect Equality",
+                line=dict(dash="dash", color="#999", width=1.5), hoverinfo="skip"))
+            fig_l.add_trace(go.Scatter(x=lx, y=ly, mode="lines",
+                name=f"Lorenz Curve (Gini={_gini:.3f})" if isinstance(_gini, float) else "Lorenz Curve",
+                line=dict(color="#E65100", width=2.5),
+                fill="tonexty", fillcolor="rgba(230,81,0,0.12)",
+                hovertemplate="Bottom %{x:.1f}% of customers<br>→ %{y:.1f}% of total erosion<extra></extra>"))
+            fig_l.update_layout(height=300, margin=dict(t=10,b=40,l=50,r=10),
+                plot_bgcolor="white", paper_bgcolor="white",
+                xaxis_title="Cumulative % of Customers",
+                yaxis_title="Cumulative % of Profit Erosion",
+                legend=dict(x=0.05, y=0.95))
+            st.plotly_chart(fig_l, use_container_width=True)
         else:
             fp = FIGURES_RQ2 / "lorenz_curve.png"
             if fp.exists():
@@ -798,16 +809,6 @@ Clear separation confirms the two archetypes are behaviorally distinct.
 with tab_val:
 
     _tip_header("External Validation — School Specialty LLC (SSL)", "ssl_validation", level=2)
-    st.markdown("""
-TheLook is a synthetic dataset. To strengthen external validity, the same behavioral features
-were tested on a real-world returns dataset (SSL — School Specialty, Inc., 2025).
-
-Since RQ2 uses **unsupervised clustering**, direct model transfer is not possible.
-We use **Level 1 Pattern Validation**: do the same features that discriminate high-loss customers
-in TheLook also do so in SSL?
-
-**Success criterion:** Agreement rate >= 50% — patterns generalise across datasets.
-""")
     with st.expander("ℹ️ What does this mean?", expanded=False):
         st.markdown("""
 **Why Level 1 only?** K-Means cluster IDs have no shared meaning across datasets.
