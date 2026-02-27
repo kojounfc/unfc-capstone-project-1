@@ -15,16 +15,20 @@ class RQ1SSLMapping:
     # Engineered SSL fields
     ssl_returns_col: str = "Returns"
     ssl_loss_col: str = "total_loss"
-    ssl_category_col: str = "Class"
-    ssl_brand_col: str = "Supplier Name"
+
+    # Category is built by concatenating three SSL fields:
+    #   {Pillar} - {Major Market Cat} - {Department}
+    ssl_pillar_col: str = "Pillar"
+    ssl_major_market_cat_col: str = "Major Market Cat"
     ssl_department_col: str = "Department"
+
+    # Separator used when concatenating the three fields
+    category_sep: str = "-"
 
     # Canonical RQ1 fields
     canonical_return_flag: str = "is_returned_item"
     canonical_profit_erosion: str = "profit_erosion"
     canonical_category: str = "category"
-    canonical_brand: str = "brand"
-    canonical_department: str = "department"
 
 
 def _coerce_bool_to_int(series: pd.Series) -> pd.Series:
@@ -38,14 +42,37 @@ def _safe_numeric(series: pd.Series) -> pd.Series:
     return pd.to_numeric(series, errors="coerce")
 
 
+def _build_category_label(df: pd.DataFrame, m: RQ1SSLMapping) -> pd.Series:
+    """
+    Concatenate Pillar + Major Market Cat + Department with the configured
+    separator to form a single category label.
+
+    Example: "STEM" + "-" + "Science" + "-" + "Physics" → "STEM-Science-Physics"
+
+    Missing values in any component are filled with "Unknown" before
+    concatenation so no row produces a NaN label.
+    """
+    pillar = df[m.ssl_pillar_col].fillna("Unknown").astype(str).str.strip()
+    major = df[m.ssl_major_market_cat_col].fillna("Unknown").astype(str).str.strip()
+    dept = df[m.ssl_department_col].fillna("Unknown").astype(str).str.strip()
+    return pillar + m.category_sep + major + m.category_sep + dept
+
+
 def validate_ssl_columns(df: pd.DataFrame, m: RQ1SSLMapping) -> None:
-    required = [m.ssl_returns_col, m.ssl_loss_col, m.ssl_category_col, m.ssl_brand_col, m.ssl_department_col]
+    required = [
+        m.ssl_returns_col,
+        m.ssl_loss_col,
+        m.ssl_pillar_col,
+        m.ssl_major_market_cat_col,
+        m.ssl_department_col,
+    ]
     missing = [c for c in required if c not in df.columns]
     if missing:
         raise ValueError(
             "Engineered SSL dataset is missing required columns for RQ1 mapping:\n"
             f"{missing}\n\n"
-            "Fix preprocessing or update RQ1SSLMapping."
+            "Fix preprocessing or update RQ1SSLMapping.\n\n"
+            "Note: category is built from Pillar + Major Market Cat + Department."
         )
 
 
@@ -67,9 +94,8 @@ def build_rq1_ssl_canonical_base(
     if enforce_positive_erosion:
         df[m.canonical_profit_erosion] = df[m.canonical_profit_erosion].abs()
 
-    df[m.canonical_category] = df[m.ssl_category_col].fillna("Unknown").astype(str)
-    df[m.canonical_brand] = df[m.ssl_brand_col].fillna("Unknown").astype(str)
-    df[m.canonical_department] = df[m.ssl_department_col].fillna("Unknown").astype(str)
+    # Category: concatenation of Pillar + Major Market Cat + Department
+    df[m.canonical_category] = _build_category_label(df, m)
 
     return df
 
@@ -116,10 +142,13 @@ def _group_metrics(
 
 
 def build_rq1_ssl_group_artifacts(base_df: pd.DataFrame) -> Dict[str, pd.DataFrame]:
+    """Build category-level group artifacts only.
+
+    Brand and department are not validated — category alone is the
+    validation dimension, constructed from Pillar + Major Market Cat + Department.
+    """
     return {
         "by_category": _group_metrics(base_df, "category"),
-        "by_brand": _group_metrics(base_df, "brand"),
-        "by_department": _group_metrics(base_df, "department"),
     }
 
 

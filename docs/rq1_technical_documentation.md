@@ -262,7 +262,7 @@ The results are statistically robust, and the effect sizes show that the differe
 
 ---
 
-## 14. Dashboard Element Interpretations
+## 11. Dashboard Element Interpretations
 
 ### KPI Cards
 
@@ -280,7 +280,7 @@ The Kruskal–Wallis tests show statistically significant differences across cat
 Profit erosion is not evenly distributed. Category and brand are important drivers of financial loss from returns.
 
 
-## 11. Traceability to User Stories
+## 12. Traceability to User Stories
 
 * **US06:** Return feature engineering and profit erosion computation
 * **US07:** Descriptive aggregation and visualization outputs
@@ -288,7 +288,7 @@ Profit erosion is not evenly distributed. Category and brand are important drive
 
 ---
 
-## 12. References
+## 13. References
 
 Conover, W. J. (1999). *Practical Nonparametric Statistics* (3rd ed.). Wiley.
 
@@ -307,60 +307,76 @@ Tomczak, M., & Tomczak, E. (2014). The need to report effect size estimates revi
 
 ---
 
-## 9. External Validation Using SSL Dataset (Real-world Returns)
+## 14. External Validation Using SSL Dataset (Real-world Returns)
 
-### 9.1 Validation Purpose
+### 14.1 Validation Purpose
 
-TheLook is a synthetic dataset designed for analytics benchmarking. To strengthen external validity, we replicated the full RQ1 workflow on a real-world returns dataset (SSL). The objective is **structural validation**: confirm that the same RQ1 conclusion (profit erosion differs across product groupings) holds under operational data.
+TheLook is a synthetic dataset designed for analytics benchmarking. To strengthen external
+validity, we replicated the RQ1 **category-level** workflow on a real-world returns dataset
+(SSL). The objective is **structural validation**: confirm that the same RQ1 conclusion (profit
+erosion differs across product categories) holds under operational data.
+
+**Validation scope:** Category level only. Brand and department are **not** validated
+independently.
 
 Dataset citation (APA): *SSL_Returns_df_yoy* (School Specialty, Inc., 2025).
 
-### 9.2 Field Mapping and Canonical Alignment
+### 14.2 SSL Category Construction
 
-Field mappings were documented in `rq1_ssl_validation_reference.md`. In summary:
+SSL does not have a single category field equivalent to TheLook's `category`. The category
+dimension is constructed by concatenating three SSL fields:
 
-- **Category proxy (SSL):** `Class`
-- **Brand proxy (SSL):** `Supplier Name`
-- **Department (SSL):** `Department`
-- **Profit erosion (SSL):** `profit_erosion = abs(total_loss)`
+```
+category = Pillar + "-" + Major Market Cat + "-" + Department
+```
 
-This differs from TheLook where profit erosion is modeled as margin reversal + processing cost (Guide & Van Wassenhove, 2009), but it preserves the RQ1 intent: measure **economic impact per returned item**.
+**Example:** `STEM-Science-Physics`, `Art-Visual Arts-Ceramics/Sculpture`
 
-### 9.3 SSL Dataset Scope
+This composite label captures the full SSL product hierarchy and is the sole grouping dimension
+for all statistical tests and visuals. Full field mapping is documented in
+`rq1_ssl_validation_reference.md`.
 
-- **Rows (returned lines):** 133800
+**Profit erosion (SSL):** `profit_erosion = abs(total_loss)`
+
+This differs from TheLook where profit erosion is modeled as margin reversal + processing cost
+(Guide & Van Wassenhove, 2009), but it preserves the RQ1 intent: measure **economic impact per
+returned item**.
+
+### 14.3 SSL Dataset Scope
+
+- **Rows (returned lines):** 133,800
 - **Unit of analysis:** Returned order line (returned item)
-- **Note:** SSL extract is returns-only; therefore **return rate is not directly comparable** to TheLook without the non-return population.
+- **Note:** SSL extract is returns-only; therefore **return rate is not directly comparable** to
+  TheLook without the non-return population.
 
-### 9.4 Visual Replication (SSL)
+### 14.4 Visual Replication (SSL)
 
-The SSL notebook reproduces the same 7 RQ1 visuals:
+The SSL notebook reproduces 5 category-focused RQ1 visuals:
 
-1. Top Categories by Total Profit Erosion  
-2. Top Brands by Total Profit Erosion  
-3. Return Rate vs Mean Profit Erosion (Category) *(interpret cautiously in SSL)*  
-4. Top Departments by Total Profit Erosion  
-5. Severity vs Volume Decomposition (Category)  
-6. Distribution of Profit Erosion (Log Scale)  
-7. Bootstrap 95% CI for Mean Profit Erosion (Category)
+1. Top Categories by Total Profit Erosion
+2. Return Rate vs Mean Profit Erosion per Return (Category) *(interpret cautiously — SSL is returns-only)*
+3. Severity vs Volume Decomposition (Category)
+4. Distribution of Profit Erosion (Log Scale)
+5. Bootstrap 95% CI for Mean Profit Erosion (Category)
 
-Across SSL, the same pattern holds: losses are **right-skewed** and concentrated in specific categories, brands, and departments, with total erosion explained by a mix of **return volume** and **loss severity**.
+Across SSL, the same pattern holds: losses are **right-skewed** and concentrated in specific
+categories, with total erosion explained by a mix of **return volume** and **loss severity**.
 
-### 9.5 Hypothesis Testing Results (SSL)
+### 14.5 Hypothesis Testing Results (SSL)
 
-The SSL dataset exhibits non-normal profit erosion distributions; therefore, non-parametric testing is used (Conover, 1999).
+The SSL dataset exhibits non-normal profit erosion distributions; therefore, non-parametric
+testing is used (Conover, 1999).
 
-- **Category-level test:** Kruskal-Wallis  
+- **Category-level test:** Kruskal-Wallis (grouping: `Pillar-Major Market Cat-Department`)
   p = 0.0000e+00 → **Reject H₀**
 
-- **Brand-level test:** Kruskal-Wallis  
-  p = 0.0000e+00 → **Reject H₀**
-
-**Conclusion:** The RQ1 findings generalize directionally to real-world data: profit erosion differs significantly across product groupings (category and brand). This supports targeted risk-mitigation and supplier/category-specific interventions.
+**Conclusion:** The RQ1 category-level finding generalizes to real-world data: profit erosion
+differs significantly across product categories. This supports targeted risk-mitigation and
+category-specific interventions.
 
 ---
 
-## References (APA) – Addendum for Validation
+## References (APA) — Addendum for Validation
 
 - School Specialty, Inc. (2025). *SSL_Returns_df_yoy* [Unpublished internal dataset].  
 - Conover, W. J. (1999). *Practical nonparametric statistics* (3rd ed.). Wiley.  

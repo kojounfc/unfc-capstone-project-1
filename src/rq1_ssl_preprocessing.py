@@ -30,6 +30,11 @@ class RQ1SSLPreprocessConfig:
 
     The RQ1 validation pipeline will then map:
       profit_erosion := total_loss
+      category      := Pillar + "-" + Major Market Cat + "-" + Department
+                        (concatenated in rq1_ssl_validation.py)
+
+    The columns Pillar, Major Market Cat, and Department are passed through
+    untouched by this preprocessing step and combined downstream.
     """
 
     # IO
