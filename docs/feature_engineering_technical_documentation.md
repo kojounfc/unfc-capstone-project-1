@@ -1,25 +1,62 @@
-# Feature Engineering Validation Technical Documentation
+# Feature Engineering Technical Documentation
 
-**Capstone Project -- Master of Data Analytics**
+**Capstone Project — Master of Data Analytics**
 
-------------------------------------------------------------------------
+---
 
 ## 1. Objective
 
-This section validates the outputs of the US06 Feature Engineering
-Pipeline, particularly:
+This document covers the US06 Feature Engineering Pipeline: the
+derivation, validation, and interpretation of engineered economic
+features used across RQ1–RQ4.
+
+Key areas:
+
+- Engineered feature definitions and formulas
+- Item-level margin calculation
+- Margin distribution structure
+- Margin exposure concentration
+- Category-level total margin loss
+
+This phase confirms that engineered economic features behave
+consistently and logically before use in inferential and predictive modeling.
+
+---
+
+## 2. Engineered Features — Definitions
+
+Key derived columns added by `src/feature_engineering.py`:
+
+| Feature | Level | Formula / Definition |
+|---|---|---|
+| `is_returned_item` | Item | 1 if item_status == 'Returned', else 0 |
+| `item_margin` | Item | sale_price − cost |
+| `item_margin_pct` | Item | (sale_price − cost) / sale_price |
+| `discount_amount` | Item | retail_price − sale_price |
+| `margin_reversal` | Item (returned only) | item_margin (for returned items) |
+| `process_cost` | Item (returned only) | USD 12 base × category tier multiplier (1.0 / 1.15 / 1.3) |
+| `profit_erosion` | Item (returned only) | margin_reversal + process_cost |
+| `total_profit_erosion` | Customer | SUM(profit_erosion) per customer |
+| `is_high_erosion_customer` | Customer | 1 if total_profit_erosion ≥ 75th percentile |
+
+`profit_erosion` is the central outcome variable across all four research
+questions. For the full data dictionary see `docs/DATA_DICTIONARY.md`.
+For processing cost methodology see `docs/PROCESSING_COST_METHODOLOGY.md`.
+
+---
+
+## 3. Validation Objective
+
+This section validates the outputs of the feature engineering pipeline:
 
 -   Item-level margin calculation
 -   Margin distribution structure
 -   Margin exposure concentration
 -   Category-level total margin loss
 
-This phase confirms that engineered economic features behave
-consistently and logically before use in RQ1--RQ4.
-
 ------------------------------------------------------------------------
 
-## 2. Margin Distribution -- All Items
+## 4. Margin Distribution — All Items
 
 ### Figure: Margin Distribution (All Items)
 
@@ -41,7 +78,7 @@ disproportionately impact profit erosion.
 
 ------------------------------------------------------------------------
 
-## 3. Margin Distribution -- Returned Items Only
+## 5. Margin Distribution — Returned Items Only
 
 ### Figure: Margin Distribution (Returned Only)
 
@@ -62,7 +99,7 @@ not purely frequency-driven.
 
 ------------------------------------------------------------------------
 
-## 4. Customer Margin Exposure
+## 6. Customer Margin Exposure
 
 ### Figure: Top 20 Customers by Margin Exposure
 
@@ -80,7 +117,7 @@ This finding later supports RQ2 concentration analysis.
 
 ------------------------------------------------------------------------
 
-## 5. Category-Level Margin Loss from Returns
+## 7. Category-Level Margin Loss from Returns
 
 ### Figure: Top 15 Categories by Margin Loss
 
@@ -102,7 +139,7 @@ erosion modeling in RQ1.
 
 ------------------------------------------------------------------------
 
-## 6. Feature Engineering Validation Summary
+## 8. Feature Engineering Validation Summary
 
 The engineered economic variables demonstrate:
 
