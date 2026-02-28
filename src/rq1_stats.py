@@ -357,6 +357,7 @@ def run_factor(
     summary = {
         "factor": group_col,
         "test_used": test_used,
+        "statistic": float(stat),
         "p_value": float(p),
         "effect_size": float(effect),
         "effect_metric": effect_metric,
