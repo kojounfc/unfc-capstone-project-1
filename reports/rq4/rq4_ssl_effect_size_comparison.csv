@@ -1,4 +1,4 @@
 feature,thelook_effect_size,ssl_effect_size,effect_size_ratio
-return_frequency,50.013,0.402,0.01
-avg_basket_size,-27.655,1.758,-0.06
-purchase_recency_days,0.726,1.432,1.97
+return_frequency,73.492,0.557,0.01
+avg_basket_size,-23.326,6.52,-0.28
+purchase_recency_days,-0.222,2.998,-13.5
