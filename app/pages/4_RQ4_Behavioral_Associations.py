@@ -18,9 +18,122 @@ st.set_page_config(
     layout="wide",
 )
 
+# ── CSS: hover tooltip system (mirrors RQ1 / RQ2) ────────────────────────────
+st.markdown(
+    """
+    <style>
+    .rq4-tip-title {
+        display: flex; align-items: center; margin-bottom: 0.4rem;
+    }
+    .rq4-tip-title h2 { margin:0; padding:0; font-size:1.5rem; font-weight:700; letter-spacing:-0.01em; }
+    .rq4-tip-title h3 { margin:0; padding:0; font-size:1.35rem; font-weight:600; letter-spacing:-0.01em; }
+    .rq4-tip {
+        position: relative; display: inline-flex; align-items: center;
+        cursor: help; margin-left: 10px; flex-shrink: 0;
+    }
+    .rq4-tip-icon { font-size: 0.9rem; color: #888; user-select: none; }
+    .rq4-tip-box {
+        visibility: hidden; opacity: 0; width: 380px;
+        background-color: rgba(28,28,44,0.97); color: #e4e4f0;
+        text-align: left; border-radius: 8px; padding: 14px 18px;
+        font-size: 0.95rem; line-height: 1.65;
+        position: absolute; z-index: 9999;
+        bottom: calc(100% + 10px); left: 50%; transform: translateX(-50%);
+        transition: opacity 0.2s ease;
+        box-shadow: 0 6px 24px rgba(0,0,0,0.45);
+        pointer-events: none; white-space: normal;
+    }
+    .rq4-tip-box::after {
+        content: ""; position: absolute; top: 100%; left: 50%; margin-left: -6px;
+        border: 6px solid transparent; border-top-color: rgba(28,28,44,0.97);
+    }
+    .rq4-tip:hover .rq4-tip-box { visibility: visible; opacity: 1; }
+    .rq4-step-badge {
+        background:#f0f4ff; border-radius:6px; padding:8px 14px; margin-bottom:8px;
+        font-size:0.75rem; font-weight:700; color:#2c5282; letter-spacing:0.08em;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 ROOT = Path(__file__).parent.parent.parent
 REPORTS_RQ4 = ROOT / "reports" / "rq4"
 FIGURES_RQ4 = ROOT / "figures" / "rq4"
+
+# ── Tooltips ──────────────────────────────────────────────────────────────────
+_TOOLTIPS = {
+    "kpi_r2": (
+        "**R² (TheLook):** Proportion of variance in log(total_profit_erosion) explained by "
+        "behavioral + category + demographic features. R²=0.7765 means the model explains "
+        "77.65% of the variance in log-erosion — a strong fit for econometric work."
+    ),
+    "kpi_n": (
+        "**Observations:** Number of TheLook customers with at least one return included in the "
+        "OLS regression. The analysis population is restricted to returners because "
+        "profit erosion is zero for non-returning customers."
+    ),
+    "kpi_sig_feats": (
+        "**Significant Features:** Count of predictors with p < 0.05 in the log-linear OLS. "
+        "Behavioral and category features dominate; demographic features show no significant "
+        "marginal effect after controlling for behavior."
+    ),
+    "kpi_h0": (
+        "**Hypothesis Decision:** H₀ states that no customer behavioral feature has a "
+        "statistically significant marginal association with profit erosion. "
+        "All models reject H₀ — return_frequency, avg_order_value, avg_basket_size, and "
+        "dominant return category all show significant associations."
+    ),
+    "fig_target": (
+        "**Target Distribution:** Profit erosion is strongly right-skewed. "
+        "The log transformation achieves near-normality (Jarque-Bera 281.8× improvement), "
+        "validating the OLS normality assumption."
+    ),
+    "fig_forest": (
+        "**Coefficient Forest Plot:** Each point is an OLS coefficient. Points right of zero "
+        "increase erosion; left decrease it. Error bars are 95% CIs. "
+        "return_frequency (+0.445) is the strongest behavioral driver."
+    ),
+    "fig_residuals": (
+        "**Residual Diagnostics:** Four-panel OLS assumption check. "
+        "Heteroscedasticity (funnel pattern) is present and corrected with HC3 robust standard errors. "
+        "Durbin-Watson = 1.98 confirms no autocorrelation."
+    ),
+    "fig_qq": (
+        "**QQ Plot:** Compares residual quantiles to a normal distribution. "
+        "Log-linear residuals hug the diagonal (Jarque-Bera = 2,198) vs. linear model "
+        "(Jarque-Bera = 619,317) — a 281.8× improvement in normality."
+    ),
+    "ssl_validation": (
+        "**External Validation (SSL):** The same log-linear OLS specification was fitted on "
+        "School Specialty LLC (B2B). SSL R²=0.6185 (ratio=0.80), generalization score=0.33. "
+        "return_frequency direction aligns; avg_basket_size sign reverses (B2B vs B2C context)."
+    ),
+}
+
+
+def _tip_header(label: str, tooltip_key: str, level: int = 3) -> None:
+    """Render a section header with an inline CSS hover tooltip — mirrors RQ1/RQ2."""
+    raw = _TOOLTIPS[tooltip_key]
+    parts = raw.split("**")
+    tip_html = "".join(
+        f"<strong>{p}</strong>" if i % 2 == 1 else p
+        for i, p in enumerate(parts)
+    )
+    st.markdown(
+        f'<div class="rq4-tip-title">'
+        f'<h{level}>{label}</h{level}>'
+        f'<span class="rq4-tip">'
+        f'<span class="rq4-tip-icon">ℹ️</span>'
+        f'<span class="rq4-tip-box">{tip_html}</span>'
+        f'</span>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
+
+
+def _plain_tip(key: str) -> str:
+    return _TOOLTIPS[key].replace("**", "")
 
 # ── Load data once ────────────────────────────────────────────────────────────
 _coef_df = None
@@ -62,15 +175,97 @@ _sig_agree = int(float(_val_dict.get("significance_agreement_count", 0))) if _va
 st.title("📐 RQ4: Behavioral Associations with Profit Erosion")
 st.markdown(
     """
-**Research Question**: What is the marginal association between customer behavioral features
-and profit erosion, holding other factors constant?
+<p><strong>Research Question (RQ4):</strong> What is the marginal association between customer
+behavioral features and profit erosion, holding other factors constant?</p>
+<div style="margin-left: 1.5rem;">
+<p><strong>Null Hypothesis (H₀):</strong> No customer behavioral feature has a statistically
+significant marginal association with profit erosion from returns.</p>
+<p><strong>Alternative Hypothesis (H₁):</strong> At least one customer behavioral feature has
+a statistically significant marginal association with profit erosion from returns.</p>
+</div>
 
 **Method**: Log-Linear OLS Regression — `log(total_profit_erosion) ~ behaviors + categories + demographics`
 
 Log-linear specification chosen because profit erosion is right-skewed; log transform achieves
-normality. Coefficients are interpreted as **% change in profit erosion** per unit change in predictor.
-"""
+near-normality (281.8× Jarque-Bera improvement). Coefficients are interpreted as
+**% change in profit erosion** per unit change in predictor.
+""",
+    unsafe_allow_html=True,
 )
+st.divider()
+
+# ── Executive Summary Banner ───────────────────────────────────────────────────
+st.markdown(
+    """
+    <div style="
+        background: linear-gradient(135deg, #0f2440 0%, #1a3660 100%);
+        border-left: 5px solid #7986CB;
+        border-radius: 10px;
+        padding: 22px 28px;
+        margin-bottom: 8px;
+    ">
+        <p style="
+            color: #f0c040;
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            margin: 0 0 10px 0;
+        ">Executive Summary — Key Findings &amp; Implications</p>
+        <p style="color: #e8eaf0; font-size: 1.0rem; line-height: 1.75; margin: 0;">
+            <strong style="color: #ffffff;">Customer behavior explains 77.6% of profit erosion variance.</strong>
+            The log-linear OLS model (R²&nbsp;=&nbsp;0.7765, n&nbsp;=&nbsp;11,694 TheLook customers) confirms
+            that <em>return frequency</em> is the dominant driver (+56% erosion per additional return),
+            followed by high-cost return categories (Suits, Outerwear, Sweaters).
+            Demographics show no significant marginal effect after controlling for behavior.
+            External validation on School Specialty LLC (B2B, 13,600 accounts) yields R²&nbsp;=&nbsp;0.6185
+            — an 80% R² retention rate. Return frequency direction aligns across datasets;
+            basket-size effects reverse between B2C and B2B (product mix heterogeneity).
+            <strong style="color: #f0c040;">Decision: Reject H₀</strong> — behavioral and category
+            features have statistically significant marginal associations with profit erosion.
+        </p>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+st.markdown(
+    "<hr style='border: 0; border-top: 1px solid rgba(49,51,63,0.3); margin: 20px 0 24px 0;'>",
+    unsafe_allow_html=True,
+)
+
+# ── KPI Cards (model-level, no SSL metrics here) ──────────────────────────────
+kpi1, kpi2, kpi3, kpi4 = st.columns(4)
+
+kpi1.metric(
+    "R² (TheLook)",
+    f"{_thelook_r2:.4f}" if not pd.isna(_thelook_r2) else "N/A",
+    f"{_thelook_r2 * 100:.1f}% of log-erosion variance explained" if not pd.isna(_thelook_r2) else "",
+    help=_plain_tip("kpi_r2"),
+)
+kpi2.metric(
+    "Observations",
+    f"{_thelook_n:,}" if _thelook_n else "N/A",
+    "customers with ≥1 return",
+    help=_plain_tip("kpi_n"),
+)
+_n_sig = (
+    len(_coef_df[pd.to_numeric(_coef_df.get("p_value", pd.Series(dtype=float)), errors="coerce") < 0.05])
+    if _coef_df is not None else None
+)
+_n_total = len(_coef_df) if _coef_df is not None else None
+kpi3.metric(
+    "Significant Features",
+    f"{_n_sig}" if _n_sig is not None else "N/A",
+    f"out of {_n_total} total" if _n_total is not None else "",
+    help=_plain_tip("kpi_sig_feats"),
+)
+kpi4.metric(
+    "H₀ Decision",
+    "✅ Rejected",
+    "All behavioral features significant",
+    help=_plain_tip("kpi_h0"),
+)
+
 st.divider()
 
 # ── 5-Tab layout ─────────────────────────────────────────────────────────────
@@ -80,46 +275,116 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs(
 
 
 with tab1:
-    # ── KPI cards (data-driven) ───────────────────────────────────────────────────
-    st.header("Model Overview")
-    col1, col2, col3, col4 = st.columns(4)
+    # ── 3-Panel Logic Chain (mirrors RQ1 Step 1/2/3 storytelling) ────────────────
+    col_a, col_b, col_c = st.columns(3)
 
+    with col_a:
+        st.markdown(
+            "<div class='rq4-step-badge'>STEP 1 — WHY LOG-TRANSFORM?</div>",
+            unsafe_allow_html=True,
+        )
+        _tip_header("Target Distribution (Raw vs Log)", "fig_target")
+        st.caption(
+            "Profit erosion is strongly right-skewed. Log transformation achieves near-normality "
+            "(Jarque-Bera 281.8× improvement), validating OLS assumptions."
+        )
+        target_path = FIGURES_RQ4 / "rq4_target_distribution.png"
+        if target_path.exists():
+            st.image(str(target_path), use_container_width=True)
+        else:
+            st.info("Figure not found: rq4_target_distribution.png")
+
+    with col_b:
+        st.markdown(
+            "<div class='rq4-step-badge'>STEP 2 — WHAT DRIVES EROSION?</div>",
+            unsafe_allow_html=True,
+        )
+        _tip_header("Coefficient Forest Plot", "fig_forest")
+        st.caption(
+            "return_frequency is the dominant driver (+56% per return). "
+            "High-cost categories (Suits, Outerwear) amplify erosion; Socks, Intimates reduce it."
+        )
+        if _coef_df is not None and "coefficient" in _coef_df.columns:
+            _forest_top = (
+                _coef_df[pd.to_numeric(_coef_df.get("p_value", pd.Series(dtype=float)), errors="coerce") < 0.05]
+                .assign(_abs=_coef_df["coefficient"].abs())
+                .nlargest(12, "_abs")
+                .sort_values("_abs", ascending=True)
+            )
+            _colors = ["#EF5350" if c > 0 else "#42A5F5" for c in _forest_top["coefficient"]]
+            _fig_ov = go.Figure()
+            _fig_ov.add_trace(go.Scatter(
+                x=_forest_top["coefficient"],
+                y=_forest_top["feature"],
+                mode="markers",
+                marker=dict(size=9, color=_colors),
+                error_x=dict(
+                    type="data", symmetric=False,
+                    array=(_forest_top["ci_upper"] - _forest_top["coefficient"]).tolist() if "ci_upper" in _forest_top.columns else None,
+                    arrayminus=(_forest_top["coefficient"] - _forest_top["ci_lower"]).tolist() if "ci_lower" in _forest_top.columns else None,
+                    visible=True,
+                ),
+                hovertemplate="<b>%{y}</b><br>Coef: %{x:.4f}<extra></extra>",
+            ))
+            _fig_ov.add_vline(x=0, line_dash="dash", line_color="gray", line_width=1)
+            _fig_ov.update_layout(
+                xaxis_title="Coefficient (log-scale)",
+                yaxis_title="",
+                height=350,
+                margin=dict(l=0, r=10, t=10, b=30),
+            )
+            st.plotly_chart(_fig_ov, use_container_width=True)
+        else:
+            coef_path = FIGURES_RQ4 / "rq4_coefficient_plot.png"
+            if coef_path.exists():
+                st.image(str(coef_path), use_container_width=True)
+            else:
+                st.info("Figure not found: rq4_coefficient_plot.png")
+
+    with col_c:
+        st.markdown(
+            "<div class='rq4-step-badge'>STEP 3 — ARE RESULTS RELIABLE?</div>",
+            unsafe_allow_html=True,
+        )
+        _tip_header("Residual Diagnostics", "fig_residuals")
+        st.caption(
+            "Heteroscedasticity detected (Breusch-Pagan confirmed) and corrected with HC3 robust SEs. "
+            "Durbin-Watson = 1.98 — no autocorrelation. Results are reliable."
+        )
+        resid_path = FIGURES_RQ4 / "rq4_residual_diagnostics.png"
+        if resid_path.exists():
+            st.image(str(resid_path), use_container_width=True)
+        else:
+            st.info("Figure not found: rq4_residual_diagnostics.png")
+
+    st.divider()
+
+    # ── Statistical Evidence ───────────────────────────────────────────────────
+    st.header("Statistical Evidence")
+    col1, col2, col3 = st.columns(3)
     col1.metric(
         "R² (TheLook)",
         f"{_thelook_r2:.4f}" if not pd.isna(_thelook_r2) else "N/A",
-        f"{_thelook_r2*100:.1f}% of log-erosion variance explained" if not pd.isna(_thelook_r2) else "",
-        help=(
-                "R² indicates how well the model explains the variance in log-transformed profit erosion. "
-            ),
+        f"{_thelook_r2 * 100:.1f}% of log-erosion variance explained" if not pd.isna(_thelook_r2) else "",
+        help=_plain_tip("kpi_r2"),
     )
     col2.metric(
-        "R² (SSL)",
-        f"{_ssl_r2:.4f}" if not pd.isna(_ssl_r2) else "N/A",
-        f"R² ratio = {_r2_ratio:.2f}" if not pd.isna(_r2_ratio) else "",
-        help=(
-                "R² ratio indicates how much better the SSL model performs compared to TheLook model. "
-            ),
-    )
-    col3.metric(
-        "Observations (TheLook)",
+        "Observations",
         f"{_thelook_n:,}" if _thelook_n else "N/A",
         "customers with ≥1 return",
-        help=(
-                "Number of customer accounts in TheLook dataset used for OLS regression. "
-            ),
+        help=_plain_tip("kpi_n"),
     )
-    col4.metric(
-        "SSL Accounts Validated",
-        f"{_ssl_n:,}" if _ssl_n else "N/A",
-        help=(
-                "Number of customer accounts in the SSL dataset that were validated against TheLook. "
-            ),
+    col3.metric(
+        "Significant Features",
+        f"{_n_sig}" if _n_sig is not None else "N/A",
+        f"out of {_n_total} total" if _n_total is not None else "",
+        help=_plain_tip("kpi_sig_feats"),
     )
 
     st.divider()
 
-    # ── Visualizations ────────────────────────────────────────────────────────────
-    st.header("Visualizations")
+    # ── Detailed visualizations (interactive forest + diagnostics) ────────────
+    st.header("Detailed Visualizations")
 
     col_a, col_b = st.columns(2)
 
@@ -419,46 +684,9 @@ with tab2:
             st.image(str(resid_path), use_container_width=True)
     
     st.divider()
-    
-    # ── External Validation Snapshot ──────────────────────────────────────────────
-    st.subheader("3. Cross-Dataset Performance (SSL Validation)")
-    
-    col_x, col_y, col_z = st.columns(3)
-    col_x.metric(
-        "R² (SSL External)",
-        f"{_ssl_r2:.4f}" if not pd.isna(_ssl_r2) else "N/A",
-        f"Ratio: {_r2_ratio:.2f}x TheLook",
-        help="External validation on B2B dataset (School Specialty LLC)",
-    )
-    col_y.metric(
-        "SSL Accounts Tested",
-        f"{_ssl_n:,}" if _ssl_n else "N/A",
-        "from B2B channel",
-        help="Number of SSL accounts with sufficient return history",
-    )
-    col_z.metric(
-        "Generalization Score",
-        f"{_gen_score:.2f}" if not pd.isna(_gen_score) else "N/A",
-        f"{_dir_aligned}/{_n_hyp} hypothesis features aligned",
-        help="0 = no transfer, 1 = perfect transfer",
-    )
-    
-    st.markdown(
-        f"""
-        **Interpretation:**
-        
-        - R² decreased from {_thelook_r2:.4f} (TheLook) to {_ssl_r2:.4f} (SSL) — 
-          {((1 - _r2_ratio) * 100):.0f}% variance capture drop on external data
-        - Only {_dir_pct:.0f}% of hypothesis predictors maintain same direction in SSL
-        - **Implication:** Core behavioral patterns exist, but **magnitude varies by customer segment** 
-          (B2C vs. B2B have different erosion drivers)
-        """
-    )
-    
-    st.divider()
-    
+
     # ── Model Summary Statistics ──────────────────────────────────────────────────
-    st.subheader("4. Feature Category Breakdown")
+    st.subheader("3. Feature Category Breakdown")
     
     if _coef_df is not None:
         # Categorize features
@@ -849,8 +1077,53 @@ with tab3:
 with tab4:
     st.header("External Validation — School Specialty LLC (SSL)")
 
+    st.markdown(
+        """
+TheLook is a synthetic dataset. To test whether the behavioral associations generalise
+to real-world data, the same log-linear OLS specification was fitted on
+**School Specialty LLC (SSL)** — a U.S. B2B educational supplies retailer
+(13,600 accounts, 2024–2025 returns).
+
+**Objective:** Confirm that behavioral features maintain direction and significance
+across a structurally different dataset (B2B vs B2C, real vs synthetic).
+"""
+    )
+    st.divider()
+
+    # ── Cross-Dataset Performance ─────────────────────────────────────────────
+    st.subheader("Cross-Dataset Model Fit")
+    cx1, cx2, cx3 = st.columns(3)
+    cx1.metric(
+        "R² (TheLook)",
+        f"{_thelook_r2:.4f}" if not pd.isna(_thelook_r2) else "N/A",
+        f"{_thelook_r2 * 100:.1f}% variance explained",
+        help="Proportion of variance in log(profit_erosion) explained on TheLook training data.",
+    )
+    cx2.metric(
+        "R² (SSL External)",
+        f"{_ssl_r2:.4f}" if not pd.isna(_ssl_r2) else "N/A",
+        f"R² ratio = {_r2_ratio:.2f} (80% retention)" if not pd.isna(_r2_ratio) else "",
+        help="External validation R² on SSL. Ratio = SSL R² / TheLook R².",
+    )
+    cx3.metric(
+        "SSL Accounts Validated",
+        f"{_ssl_n:,}" if _ssl_n else "N/A",
+        "B2B accounts with return history",
+        help="Number of SSL customer accounts used in the external OLS fit.",
+    )
+    st.markdown(
+        f"R² decreased from **{_thelook_r2:.4f}** (TheLook) to **{_ssl_r2:.4f}** (SSL) — "
+        f"a {((1 - _r2_ratio) * 100):.0f}% drop in variance capture on external data. "
+        "An 80% R² retention rate indicates **moderate generalisability** across datasets."
+        if not pd.isna(_r2_ratio) else ""
+    )
+
+    st.divider()
+
+    # ── Hypothesis-Predictor Alignment ───────────────────────────────────────
+    st.subheader("Hypothesis Predictor Alignment")
+
     if _align_df is not None:
-        # KPI cards from validation summary
         c1, c2, c3 = st.columns(3)
         c1.metric(
             "Direction Aligned",
