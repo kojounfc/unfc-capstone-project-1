@@ -163,9 +163,12 @@ _TOOLTIPS = {
 
     # Validation
     "ssl_validation": (
-        "**External Validation (SSL):** Running the same workflow on real-world SSL returns data "
-        "supports the same conclusion: profit erosion differs across product groupings. "
-        "This strengthens confidence that the findings are not dataset-specific."
+        "**External Validation (SSL — Category only):** The RQ1 category-level workflow was "
+        "replicated on real-world SSL returns data. SSL category is constructed by concatenating "
+        "Pillar + Major Market Cat + Department (e.g., STEM-Science-Physics). "
+        "Brand and department are not validated independently. "
+        "The result supports the same conclusion: profit erosion differs significantly across "
+        "product categories, strengthening confidence that findings are not dataset-specific."
     ),
 }
 
@@ -215,20 +218,20 @@ _dept_df = None
 _ci_df = None
 _stats_df = None
 
-cat_path = PROCESSED_RQ1 / "rq1_product_profit_erosion_by_category.parquet"
-brand_path = PROCESSED_RQ1 / "rq1_product_profit_erosion_by_brand.parquet"
-dept_path = PROCESSED_RQ1 / "rq1_product_profit_erosion_by_department.parquet"
+cat_path = PROCESSED_RQ1 / "rq1_erosion_by_category.csv"
+brand_path = PROCESSED_RQ1 / "rq1_erosion_by_brand.csv"
+dept_path = PROCESSED_RQ1 / "rq1_erosion_by_department.csv"
 ci_path = PROCESSED_RQ1 / "rq1_bootstrap_ci_category_mean.parquet"
 stats_path = PROCESSED_RQ1 / "rq1_statistical_tests_summary.parquet"
 
 if cat_path.exists():
-    _cat_df = _safe_read_parquet(cat_path)
+    _cat_df = pd.read_csv(cat_path)
 
 if brand_path.exists():
-    _brand_df = _safe_read_parquet(brand_path)
+    _brand_df = pd.read_csv(brand_path)
 
 if dept_path.exists():
-    _dept_df = _safe_read_parquet(dept_path)
+    _dept_df = pd.read_csv(dept_path)
 
 if ci_path.exists():
     _ci_df = _safe_read_parquet(ci_path)
@@ -675,19 +678,25 @@ with tab_val:
     _tip_header("External Validation — School Specialty LLC (SSL)", "ssl_validation", level=2)
     st.markdown(
         """
-TheLook is a synthetic dataset. To strengthen external validity, the RQ1 workflow was replicated on
-a real-world returns dataset (SSL — School Specialty, Inc., 2025).
+TheLook is a synthetic dataset. To strengthen external validity, the RQ1 category-level workflow was
+replicated on a real-world returns dataset (SSL — School Specialty, Inc., 2025).
 
-**Objective:** Confirm that profit erosion differs across product groupings under operational conditions.
-The same non-parametric workflow, grouping structure, and erosion definition were applied to the SSL dataset.
+**Objective:** Confirm that profit erosion differs across product categories under operational conditions.
 
-| Test | Dataset | p-value | Decision |
-|---|---|---|---|
-| Kruskal–Wallis (Category) | SSL | < 0.001 | ✅ Reject H₀ |
-| Kruskal–Wallis (Brand / Supplier) | SSL | < 0.001 | ✅ Reject H₀ |
+**SSL Category definition:**
+Category is constructed by concatenating three SSL fields:
+> `Pillar` + `-` + `Major Market Cat` + `-` + `Department`
+> Example: `STEM-Science-Physics`
 
-**Conclusion:** The replication on SSL data supports the RQ1 findings — profit erosion differs
-significantly across product groupings under operational conditions. This strengthens confidence
-that category- and brand-level differences are not artifacts of the synthetic dataset.
+The same non-parametric workflow and erosion definition were applied. Brand and department are
+**not** validated independently — only the composite category dimension is tested.
+
+| Test | Dataset | Groups | p-value | Decision |
+|---|---|---|---|---|
+| Kruskal–Wallis (Category) | SSL | Pillar-MajorMarketCat-Dept | < 0.001 | ✅ Reject H₀ |
+
+**Conclusion:** The replication on SSL data supports the RQ1 category-level finding — profit erosion
+differs significantly across product categories under operational conditions. This strengthens
+confidence that category-level differences are not artifacts of the synthetic dataset.
 """
     )
