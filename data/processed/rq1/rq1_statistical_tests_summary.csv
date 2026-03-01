@@ -1,3 +1,3 @@
-factor,test_used,p_value,effect_size,effect_metric,reject_h0,meets_effect_threshold,success_criteria_met,n_groups,n_rows,posthoc_ran,posthoc_note
-category,kruskal,2.6305296373906074e-33,0.4535673033998879,epsilon_squared,True,True,True,21,436,True,Dunn post-hoc ran on top 12 groups with up to 2000 rows per group.
-brand,kruskal,0.00010843583040621395,0.44223155069403336,epsilon_squared,True,True,True,7,56,True,Dunn post-hoc ran on top 7 groups with up to 2000 rows per group.
+factor,test_used,statistic,p_value,effect_size,effect_metric,reject_h0,meets_effect_threshold,success_criteria_met,n_groups,n_rows,posthoc_ran,posthoc_note
+category,kruskal,208.23043091095346,2.6305296373906074e-33,0.4535673033998879,epsilon_squared,True,True,True,21,436,True,Dunn post-hoc ran on top 12 groups with up to 2000 rows per group.
+brand,kruskal,27.669345984007634,0.00010843583040621395,0.44223155069403336,epsilon_squared,True,True,True,7,56,True,Dunn post-hoc ran on top 7 groups with up to 2000 rows per group.
