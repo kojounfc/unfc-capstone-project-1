@@ -524,7 +524,13 @@ class TestBuildValidationSummary:
 # ============================================================================
 
 
+_SSL_RAW_PATH = Path(__file__).parent.parent / "data" / "raw" / "SSL_Returns_df_yoy.csv"
+
 @pytest.mark.integration
+@pytest.mark.skipif(
+    not _SSL_RAW_PATH.exists(),
+    reason="SSL raw data not available in this environment",
+)
 class TestRQ4ValidationIntegration:
     """Integration tests using actual RQ4 data files."""
 
