@@ -303,7 +303,7 @@ with tab1:
         )
         target_path = FIGURES_RQ4 / "rq4_target_distribution.png"
         if target_path.exists():
-            st.image(str(target_path), use_container_width=True)
+            st.image(str(target_path), width='stretch')
         else:
             st.info("Figure not found: rq4_target_distribution.png")
 
@@ -350,7 +350,7 @@ with tab1:
         else:
             coef_path = FIGURES_RQ4 / "rq4_coefficient_plot.png"
             if coef_path.exists():
-                st.image(str(coef_path), use_container_width=True)
+                st.image(str(coef_path), width='stretch')
             else:
                 st.info("Figure not found: rq4_coefficient_plot.png")
 
@@ -366,7 +366,7 @@ with tab1:
         )
         resid_path = FIGURES_RQ4 / "rq4_residual_diagnostics.png"
         if resid_path.exists():
-            st.image(str(resid_path), use_container_width=True)
+            st.image(str(resid_path), width='stretch')
         else:
             st.info("Figure not found: rq4_residual_diagnostics.png")
 
@@ -435,7 +435,7 @@ with tab1:
 
         target_path = FIGURES_RQ4 / "rq4_target_distribution.png"
         if target_path.exists():
-            st.image(str(target_path), use_container_width=True)
+            st.image(str(target_path), width='stretch')
             st.caption(
                 "Log transformation of total_profit_erosion. "
                 "Near-normal distribution validates OLS assumptions."
@@ -535,7 +535,7 @@ with tab1:
         else:
             coef_path = FIGURES_RQ4 / "rq4_coefficient_plot.png"
             if coef_path.exists():
-                st.image(str(coef_path), use_container_width=True)
+                st.image(str(coef_path), width='stretch')
                 st.caption(
                     "OLS coefficients with 95% CIs. Points to the right = positive association "
                     "(more erosion); left = negative (less erosion)."
@@ -579,7 +579,7 @@ with tab1:
             )
         resid_path = FIGURES_RQ4 / "rq4_residual_diagnostics.png"
         if resid_path.exists():
-            st.image(str(resid_path), use_container_width=True)
+            st.image(str(resid_path), width='stretch')
             st.caption("Residual plots validate OLS assumptions: linearity, homoscedasticity, normality.")
         else:
             st.warning("Residual diagnostics figure not found.")
@@ -610,7 +610,7 @@ with tab1:
             )
         qq_path = FIGURES_RQ4 / "rq4_qq_plot_comparison.png"
         if qq_path.exists():
-            st.image(str(qq_path), use_container_width=True)
+            st.image(str(qq_path), width='stretch')
             st.caption(
                 "QQ plot compares residual quantiles to the normal distribution. "
                 "Points on diagonal = normality assumption satisfied."
@@ -678,7 +678,7 @@ with tab2:
             )
         qq_path = FIGURES_RQ4 / "rq4_qq_plot_comparison.png"
         if qq_path.exists():
-            st.image(str(qq_path), use_container_width=True)
+            st.image(str(qq_path), width='stretch')
     
     with col_b:
         st.markdown("**Residual Patterns (Homoscedasticity)**")
@@ -694,7 +694,7 @@ with tab2:
             )
         resid_path = FIGURES_RQ4 / "rq4_residual_diagnostics.png"
         if resid_path.exists():
-            st.image(str(resid_path), use_container_width=True)
+            st.image(str(resid_path), width='stretch')
     
     st.divider()
 
@@ -958,7 +958,7 @@ with tab3:
             })
         
         transfer_df = pd.DataFrame(transfer_rows)
-        st.dataframe(transfer_df, use_container_width=True, hide_index=True)
+        st.dataframe(transfer_df, width='stretch', hide_index=True)
         
         st.markdown(
             """
@@ -1282,7 +1282,7 @@ across a structurally different dataset (B2B vs B2C, real vs synthetic).
                 display_align[col] = pd.to_numeric(_align_df[col], errors="coerce").map(
                     lambda x: f"{x:.4f}" if pd.notna(x) else ""
                 )
-        st.dataframe(display_align, use_container_width=True, hide_index=True)
+        st.dataframe(display_align, width='stretch', hide_index=True)
 
         # Interpretation — derived from alignment data
         st.divider()
@@ -1307,7 +1307,7 @@ across a structurally different dataset (B2B vs B2C, real vs synthetic).
                 "SSL coef. (pct effect)": f"{ssl_coef:+.3f} ({ssl_pct:+.1f}%, {ssl_sig_str})",
                 "Direction aligned": aligned_str,
             })
-        st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+        st.dataframe(pd.DataFrame(rows), width='stretch', hide_index=True)
     else:
         st.warning("SSL alignment CSV not found.")
 
@@ -1357,7 +1357,7 @@ across a structurally different dataset (B2B vs B2C, real vs synthetic).
             )
     forest_path = FIGURES_RQ4 / "rq4_ssl_forest_comparison.png"
     if forest_path.exists():
-        st.image(str(forest_path), use_container_width=True)
+        st.image(str(forest_path), width='stretch')
         st.caption(
             "Side-by-side forest plot comparing OLS coefficients for hypothesis predictors "
             "across TheLook (B2C) and SSL (B2B) datasets."
@@ -1659,7 +1659,7 @@ with tab5:
             display_coef["p_value"] = pd.to_numeric(_coef_df["p_value"], errors="coerce").map(
                 lambda x: f"{x:.2e}" if pd.notna(x) else ""
             )
-        st.dataframe(display_coef, use_container_width=True, hide_index=True)
+        st.dataframe(display_coef, width='stretch', hide_index=True)
         st.caption(
             "Coefficients = % change in profit erosion per unit increase in predictor "
             "(log-linear specification). Positive = more erosion; negative = less erosion."
@@ -1758,13 +1758,11 @@ with tab6:
 
         _pred_cols = st.columns(3)
         _pred_colors = [
-            ("#EDE7F6", "#4527A0", "#311B92"),
-            ("#E8EAF6", "#283593", "#1A237E"),
-            ("#E3F2FD", "#1565C0", "#0D47A1"),
+            "#4527A0",
+            "#283593",
+            "#1565C0",
         ]
-        for _i, (_col, (_bg, _header, _text)) in enumerate(
-            zip(_pred_cols, _pred_colors)
-        ):
+        for _i, (_col, _border) in enumerate(zip(_pred_cols, _pred_colors)):
             if _i < len(_behav_df):
                 _row = _behav_df.iloc[_i]
                 _feat = _row["feature"]
@@ -1781,10 +1779,10 @@ with tab6:
                 with _col:
                     st.markdown(
                         f"""
-<div style="background:{_bg};border-left:4px solid {_header};
-            padding:16px;border-radius:6px;">
-<h4 style="margin:0 0 8px 0;color:{_header};">#{_i + 1} — {_feat}</h4>
-<p style="margin:0;font-size:13px;color:{_text};">
+<div style="background:linear-gradient(135deg,{_border}55,{_border}33);
+            border-left:4px solid {_border}; border-radius:6px; padding:16px;">
+<h4 style="margin:0 0 8px 0;color:#ffffff;">#{_i + 1} — {_feat}</h4>
+<p style="margin:0;font-size:13px;color:#f0f0f0;">
 <b>Coefficient: {_coef_val:+.4f} ({_dir_icon}&nbsp;{abs(_pct_eff):.1f}%){_sig_mark}</b><br><br>
 On TheLook (synthetic dataset), a unit increase in this feature
 is associated with a {abs(_pct_eff):.1f}% change in profit erosion.

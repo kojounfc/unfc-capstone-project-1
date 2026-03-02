@@ -1,7 +1,8 @@
 """
-RQ1: Profit Erosion Differences Across Product Categories & Brands
+Streamlit App — RQ1 Dashboard (Presentation-First, Graduate Tone)
 
-Method: Descriptive Analysis + Kruskal-Wallis + Post-hoc Dunn
+RQ1: Profit Erosion Differences Across Product Categories & Brands
+Method: Descriptive Analysis + Kruskal-Wallis + Post-hoc Dunn + Bootstrap CIs
 """
 
 import streamlit as st
@@ -9,8 +10,10 @@ import pandas as pd
 import plotly.express as px
 from pathlib import Path
 
+
+# ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="RQ1 – Category Analysis",
+    page_title="RQ1 – Profit Erosion Dashboard",
     page_icon="📊",
     layout="wide",
 )
@@ -71,9 +74,6 @@ st.markdown(
         border-top-color: rgba(28, 28, 44, 0.97);
     }
     .rq1-tip:hover .rq1-tip-box { visibility: visible; opacity: 1; }
-    @media (max-width: 768px) {
-        .rq1-tip-box { width: 260px; font-size: 0.85rem; }
-    }
     </style>
     """,
     unsafe_allow_html=True,
@@ -86,32 +86,176 @@ FIGURES_RQ1 = ROOT / "figures" / "rq1"
 PROCESSED_RQ1 = ROOT / "data" / "processed" / "rq1"
 PROCESSED = ROOT / "data" / "processed"
 
-# ── Load data ─────────────────────────────────────────────────────────────────
+
+# ── Tooltips (aligned to rq1_technical_documentation_corrected_latest_results.md) ──
+_TOOLTIPS = {
+    # KPI cards
+    "kpi_total_erosion": (
+        "**Total Profit Erosion:** Total financial loss from all returned items in the dataset. "
+        "It combines lost margin and processing costs, and reflects the overall economic impact of returns."
+    ),
+    "kpi_returns": (
+        "**Total Returns Analyzed:** Number of returned order-items included in the analysis. "
+        "Only returned items are included when calculating profit erosion."
+    ),
+    "kpi_mean_erosion": (
+        "**Mean Erosion per Return:** Average financial loss per returned item. "
+        "This highlights categories where each return event is especially costly."
+    ),
+    "kpi_top_cat": (
+        "**Highest-Risk Category:** Category with the largest total profit erosion. "
+        "This shows where overall financial risk is most concentrated."
+    ),
+
+    # Statistical summaries (latest results)
+    "stat_category": (
+        "**Category Results:** This tests whether different product categories generate different levels "
+        "of profit loss when items are returned. A large effect size (ε² = 0.454) means the difference "
+        "is practically meaningful, not just statistically detectable."
+    ),
+    "stat_brand": (
+        "**Brand Results:** This tests whether different brands generate different levels of profit loss "
+        "on returns. The result is statistically significant with a large effect — brand identity matters "
+        "for how expensive a return is."
+    ),
+
+    # Post-hoc
+    "posthoc_cat": (
+        "**Which Categories Differ?** After finding overall differences, this table shows which specific "
+        "category pairs are significantly different from each other. Sorted by strongest difference first."
+    ),
+    "posthoc_brand": (
+        "**Which Brands Differ?** After finding overall brand differences, this table shows which specific "
+        "brand pairs are significantly different. Sorted by strongest difference first."
+    ),
+
+    # Key findings
+    "key_findings": (
+        "**Key Takeaway:** Profit erosion is not evenly distributed. "
+        "Category and brand both matter, and the differences are large enough to influence business decisions."
+    ),
+
+    # Figures
+    "fig_top_cat": (
+        "**Interpretation:** Total loss is concentrated in a small number of categories. "
+        "This suggests you get the biggest impact by focusing mitigation efforts on these categories first."
+    ),
+    "fig_top_brand": (
+        "**Interpretation:** Total loss is concentrated in a small number of brands. "
+        "This suggests supplier/brand differences play an important role in return-related financial risk."
+    ),
+    "fig_top_dept": (
+        "**Interpretation:** Some departments contribute more total loss than others. "
+        "This helps prioritize monitoring and mitigation at a higher organizational level (beyond categories/brands)."
+    ),
+    "fig_dist": (
+        "**Interpretation:** Most returns generate moderate losses, but a small number generate very large losses. "
+        "This heavy tail is why we use non-parametric tests instead of relying on normality."
+    ),
+    "fig_sev_vol": (
+        "**Interpretation:** Total loss comes from two sources: (1) how often returns happen (volume) "
+        "and (2) how costly each return is (severity). Different categories can be high-risk for different reasons."
+    ),
+    "fig_ci": (
+        "**Interpretation:** Bootstrap confidence intervals show the uncertainty around category averages. "
+        "Limited overlap increases confidence that category differences are reliable."
+    ),
+
+    # Validation
+    "ssl_validation": (
+        "**External Validation (SSL — Category only):** The RQ1 category-level workflow was "
+        "replicated on real-world SSL returns data. SSL category is constructed by concatenating "
+        "Pillar + Major Market Cat + Department (e.g., STEM-Science-Physics). "
+        "Brand and department are not validated independently. "
+        "The result supports the same conclusion: profit erosion differs significantly across "
+        "product categories, strengthening confidence that findings are not dataset-specific."
+    ),
+}
+
+
+def _tip_header(label: str, tooltip_key: str, level: int = 3) -> None:
+    """Render a section/figure header with an inline CSS hover tooltip."""
+    raw = _TOOLTIPS[tooltip_key]
+    parts = raw.split("**")
+    tip_html = "".join(
+        f"<strong>{p}</strong>" if i % 2 == 1 else p
+        for i, p in enumerate(parts)
+    )
+    st.markdown(
+        f'<div class="rq1-tip-title">'
+        f'<h{level}>{label}</h{level}>'
+        f'<span class="rq1-tip">'
+        f'<span class="rq1-tip-icon">ℹ️</span>'
+        f'<span class="rq1-tip-box">{tip_html}</span>'
+        f'</span>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
+
+
+def _safe_read_parquet(path: Path):
+    """Read parquet with a clean error if parquet engines are missing."""
+    try:
+        return pd.read_parquet(path)
+    except Exception as e:
+        st.error(
+            f"Could not read parquet file: {path.name}. "
+            "Make sure your environment has a parquet engine installed (pyarrow or fastparquet)."
+        )
+        st.caption(f"Details: {e}")
+        return None
+
+
+def _plain_tooltip(key: str) -> str:
+    """Plain-text tooltip for Streamlit help="" fields."""
+    return _TOOLTIPS[key].replace("**", "")
+
+
+# ── Load processed data ───────────────────────────────────────────────────────
 _cat_df = None
+_brand_df = None
+_dept_df = None
 _ci_df = None
+_stats_df = None
 
-_cat_path = PROCESSED / "us07_product_profit_erosion_by_category.parquet"
-if _cat_path.exists():
-    _cat_df = pd.read_parquet(_cat_path)
+cat_path = PROCESSED_RQ1 / "rq1_erosion_by_category.csv"
+brand_path = PROCESSED_RQ1 / "rq1_erosion_by_brand.csv"
+dept_path = PROCESSED_RQ1 / "rq1_erosion_by_department.csv"
+ci_path = PROCESSED_RQ1 / "rq1_bootstrap_ci_category_mean.parquet"
+stats_path = PROCESSED_RQ1 / "rq1_statistical_tests_summary.parquet"
 
-_ci_path = PROCESSED_RQ1 / "rq1_bootstrap_ci_category_mean.parquet"
-if _ci_path.exists():
-    _ci_df = pd.read_parquet(_ci_path)
+if cat_path.exists():
+    _cat_df = pd.read_csv(cat_path)
+
+if brand_path.exists():
+    _brand_df = pd.read_csv(brand_path)
+
+if dept_path.exists():
+    _dept_df = pd.read_csv(dept_path)
+
+if ci_path.exists():
+    _ci_df = _safe_read_parquet(ci_path)
+
+if stats_path.exists():
+    _stats_df = _safe_read_parquet(stats_path)
+
 
 # ── Header ────────────────────────────────────────────────────────────────────
 st.title("📊 RQ1: Profit Erosion by Category & Brand")
 st.markdown(
     """
-**Research Question**: Do profit erosion levels differ significantly across product categories and brands?
+<p><strong>Research Question (RQ1):</strong> Do returned items exhibit statistically significant differences in profit erosion across product categories and brands?</p>
+<div style="margin-left: 1.5rem;">
+<p><strong>Null Hypothesis (H₀):</strong> Mean profit erosion associated with returned items is equal across product categories and brands.</p>
+<p><strong>Alternative Hypothesis (H₁):</strong> Mean profit erosion associated with returned items differs significantly across product categories and/or brands.</p>
+</div>
 
-**Method**: Kruskal-Wallis H-test (non-parametric ANOVA) with post-hoc Dunn pairwise comparisons
-and bootstrap 95% confidence intervals on group means.
-"""
+**Method**: Kruskal–Wallis test with post-hoc Dunn comparisons and bootstrap confidence intervals.
+""",
+    unsafe_allow_html=True,
 )
 st.divider()
 
-# ── Statistical test summary ──────────────────────────────────────────────────
-st.header("Statistical Test Summary")
 
 # ── Executive Summary (always visible, above KPI cards) ──────────────────────
 st.markdown(
@@ -130,7 +274,7 @@ st.markdown(
             letter-spacing: 0.12em;
             text-transform: uppercase;
             margin: 0 0 10px 0;
-        ">Executive Summary — Key Findings &amp; Implications</p>
+        ">Pipeline Output — Distributional Summary (Synthetic Dataset)</p>
         <p style="color: #e8eaf0; font-size: 1.0rem; line-height: 1.75; margin: 0;">
             <strong style="color: #ffffff;">Pipeline Demonstration — Distributional Output (Synthetic Dataset)</strong><br>
             On TheLook, the analytical pipeline surfaces statistically significant differences in profit erosion
@@ -139,9 +283,8 @@ st.markdown(
             <em>return frequency</em> (volume) and <em>cost per return</em> (severity) —
             illustrating the pipeline's ability to decompose erosion by product grouping.
             <strong style="color: #f0c040;">Decision: Reject H₀.</strong>
-            Figures reflect the synthetic TheLook dataset; SSL directional validation confirms
-            that category- and brand-level differences in profit erosion generalise in direction
-            to real-world operational data.
+            Figures reflect the synthetic TheLook dataset; SSL directional validation confirms that
+            category-level differences in profit erosion generalise in direction to real-world operational data.
         </p>
     </div>
     """,
@@ -152,92 +295,28 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.divider()
 
-# ── Static figures (Fig 1, 2, 5, 6) ──────────────────────────────────────────
-st.header("Visualizations")
+# ── KPI Cards ────────────────────────────────────────────────────────────────
+kpi1, kpi2, kpi3, kpi4 = st.columns(4)
 
-static_figures = [
-    ("fig1_top_categories_total_erosion.png", "Fig 1: Top Categories — Total Profit Erosion"),
-    ("fig2_top_brands_total_erosion.png", "Fig 2: Top Brands — Total Profit Erosion"),
-    ("fig5_severity_vs_volume_category.png", "Fig 5: Severity vs Volume by Category"),
-    ("fig6_profit_erosion_distribution_log.png", "Fig 6: Profit Erosion Distribution (Log Scale)"),
-]
-
-for i in range(0, len(static_figures), 2):
-    cols = st.columns(2)
-    for j, col in enumerate(cols):
-        if i + j < len(static_figures):
-            fname, label = static_figures[i + j]
-            fig_path = FIGURES_RQ1 / fname
-            with col:
-                st.subheader(label)
-                if fig_path.exists():
-                    st.image(str(fig_path), use_container_width=True)
-                else:
-                    st.warning(f"Figure not found: {fname}")
-
-st.divider()
-
-# ── Fig 3: Interactive scatter — Return Rate vs Mean Erosion ──────────────────
-st.subheader("Fig 3: Return Rate vs Mean Erosion by Category (Interactive)")
-if _cat_df is not None:
-    size_col = next(
-        (c for c in ["returned_items", "returned_item_rows", "return_count"]
-         if c in _cat_df.columns),
-        None,
-    )
-    x_col = "return_rate" if "return_rate" in _cat_df.columns else None
-    y_col = next(
-        (c for c in ["mean_profit_erosion_per_return", "mean_profit_erosion"]
-         if c in _cat_df.columns),
-        None,
+if _cat_df is not None and "total_profit_erosion" in _cat_df.columns:
+    total_erosion = float(_cat_df["total_profit_erosion"].sum())
+    total_returns = int(_cat_df["returned_items"].sum()) if "returned_items" in _cat_df.columns else 0
+    mean_erosion = total_erosion / total_returns if total_returns > 0 else 0.0
+    top_cat = (
+        _cat_df.nlargest(1, "total_profit_erosion")["category"].iloc[0]
+        if "category" in _cat_df.columns else "N/A"
     )
 
-    if x_col and y_col and "category" in _cat_df.columns:
-        scatter_kwargs = dict(
-            data_frame=_cat_df,
-            x=x_col,
-            y=y_col,
-            hover_name="category",
-            color="total_profit_erosion",
-            color_continuous_scale="Reds",
-            title="Return Rate vs Mean Profit Erosion per Return — by Category",
-            labels={
-                x_col: "Return Rate",
-                y_col: "Mean Erosion per Return ($)",
-                "total_profit_erosion": "Total Erosion ($)",
-            },
-        )
-        if size_col:
-            scatter_kwargs["size"] = size_col
-            scatter_kwargs["size_max"] = 30
-        fig3 = px.scatter(**scatter_kwargs)
-        fig3.update_traces(
-            hovertemplate=(
-                "<b>%{hovertext}</b><br>"
-                "Return Rate: %{x:.1%}<br>"
-                "Mean Erosion: $%{y:,.2f}<br>"
-                "<extra></extra>"
-            )
-        )
-        st.plotly_chart(fig3, use_container_width=True)
-        st.caption(
-            "Bubble size = number of returned items. Color intensity = total profit erosion. "
-            "High-volume return categories do not always produce the highest per-return erosion."
-        )
-    else:
-        fig_path = FIGURES_RQ1 / "fig3_return_rate_vs_mean_erosion_category.png"
-        if fig_path.exists():
-            st.image(str(fig_path), use_container_width=True)
-        else:
-            st.warning("Category data columns not found.")
+    kpi1.metric("Total Profit Erosion", f"${total_erosion:,.0f}", help=_plain_tooltip("kpi_total_erosion"))
+    kpi2.metric("Total Returns Analyzed", f"{total_returns:,}", help=_plain_tooltip("kpi_returns"))
+    kpi3.metric("Mean Erosion per Return", f"${mean_erosion:,.2f}", help=_plain_tooltip("kpi_mean_erosion"))
+    kpi4.metric("Highest-Risk Category (by total profit erosion)", top_cat, help=_plain_tooltip("kpi_top_cat"))
 else:
-    fig_path = FIGURES_RQ1 / "fig3_return_rate_vs_mean_erosion_category.png"
-    if fig_path.exists():
-        st.image(str(fig_path), use_container_width=True)
-    else:
-        st.warning("Category parquet not found. Run the master notebook.")
+    kpi1.metric("Total Profit Erosion", "N/A")
+    kpi2.metric("Total Returns Analyzed", "N/A")
+    kpi3.metric("Mean Erosion per Return", "N/A")
+    kpi4.metric("Highest-Risk Category (by total)", "N/A")
 
 st.divider()
 
@@ -268,15 +347,26 @@ with tab_ov:
             "STEP 1 — WHY NON-PARAMETRIC?</span></div>",
             unsafe_allow_html=True,
         )
-        err_minus = (
-            (ci_plot["mean_profit_erosion"] - ci_plot["ci_low_95"]).tolist()
-            if "ci_low_95" in ci_plot.columns else None
+        _tip_header("Loss Shape (Heavy-Tail Distribution)", "fig_dist")
+        st.caption("Most returns are moderate losses — but a long tail of very large losses skews the data, making standard t-tests unreliable.")
+        fig6_path = FIGURES_RQ1 / "fig6_profit_erosion_distribution_log.png"
+        if fig6_path.exists():
+            st.image(str(fig6_path), width='stretch')
+        else:
+            st.info("Figure not found: fig6_profit_erosion_distribution_log.png")
+
+    with col_b:
+        st.markdown(
+            "<div style='background:#f0f4ff; border-radius:6px; padding:8px 14px; margin-bottom:8px;'>"
+            "<span style='font-size:0.75rem; font-weight:700; color:#2c5282; letter-spacing:0.08em;'>"
+            "STEP 2 — WHERE DOES LOSS CONCENTRATE?</span></div>",
+            unsafe_allow_html=True,
         )
         _tip_header("Top Categories by Total Erosion", "fig_top_cat")
         st.caption("A small number of categories drive the majority of total erosion — the 80/20 pattern applies here.")
         fig1_path = FIGURES_RQ1 / "fig1_top_categories_total_erosion.png"
         if fig1_path.exists():
-            st.image(str(fig1_path), use_container_width=True)
+            st.image(str(fig1_path), width='stretch')
         else:
             if _cat_df is not None and {"category", "total_profit_erosion"}.issubset(_cat_df.columns):
                 tmp = _cat_df.nlargest(10, "total_profit_erosion").copy()
@@ -290,7 +380,7 @@ with tab_ov:
                 )
                 st.plotly_chart(fig, use_container_width=True)
             else:
-                st.info("Category analysis results are not yet available.")
+                st.info("Category data not available yet. Run the master notebook.")
 
     with col_c:
         st.markdown(
@@ -299,13 +389,53 @@ with tab_ov:
             "STEP 3 — WHAT TO DO ABOUT IT?</span></div>",
             unsafe_allow_html=True,
         )
-        fig7.update_traces(
-            hovertemplate=(
-                "<b>%{y}</b><br>Mean Erosion: $%{x:,.2f}<extra></extra>"
-            )
+        _tip_header("Severity × Volume — Two Levers", "fig_sev_vol")
+        st.caption("Categories in the top-right quadrant are high on both dimensions — the priority targets. Others need different interventions.")
+        fig5_path = FIGURES_RQ1 / "fig5_severity_vs_volume_category.png"
+        if fig5_path.exists():
+            st.image(str(fig5_path), width='stretch')
+        else:
+            st.info("Figure not found: fig5_severity_vs_volume_category.png")
+
+    st.divider()
+
+    # Statistical headline
+    st.header("Statistical Evidence")
+    if _stats_df is not None and "factor" in _stats_df.columns:
+        cat_row = _stats_df[_stats_df["factor"] == "category"].iloc[0] if "category" in _stats_df["factor"].values else None
+        brand_row = _stats_df[_stats_df["factor"] == "brand"].iloc[0] if "brand" in _stats_df["factor"].values else None
+
+        _tip_header("Category-Level — Kruskal-Wallis", "stat_category")
+        c1, c2, c3, c4 = st.columns(4)
+        if cat_row is not None:
+            _p_cat = cat_row['p_value']
+            c1.metric("p-value", "< 0.001" if _p_cat < 0.001 else f"{_p_cat:.2e}",
+                      help=f"Exact: {_p_cat:.2e}")
+            c2.metric("Effect Size (ε²)", f"{cat_row['effect_size']:.3f}")
+            c3.metric("Groups Tested", str(int(cat_row["n_groups"])))
+            c4.metric("H₀ Decision", "✅ Rejected" if bool(cat_row["reject_h0"]) else "❌ Not Rejected")
+
+        st.divider()
+
+        _tip_header("Brand-Level — Kruskal-Wallis", "stat_brand")
+        b1, b2, b3, b4 = st.columns(4)
+        if brand_row is not None:
+            _p_brand = brand_row['p_value']
+            b1.metric("p-value", "< 0.001" if _p_brand < 0.001 else f"{_p_brand:.2e}",
+                      help=f"Exact: {_p_brand:.2e}")
+            b2.metric("Effect Size (ε²)", f"{brand_row['effect_size']:.3f}")
+            b3.metric("Groups Tested", str(int(brand_row["n_groups"])))
+            b4.metric("H₀ Decision", "✅ Rejected" if bool(brand_row["reject_h0"]) else "❌ Not Rejected")
+
+        st.markdown(
+            "<p style='color:#999; font-size:0.75rem; margin-top:4px;'>"
+            "Effect size: ε² ≥ 0.06 = medium; ≥ 0.14 = large (Tomczak &amp; Tomczak, 2014). "
+            "Both tests reject H₀."
+            "</p>",
+            unsafe_allow_html=True,
         )
     else:
-        st.warning("Statistical test results are not yet available.")
+        st.warning("Statistical tests summary not found. Run the master notebook first.")
 
     st.divider()
 
@@ -316,7 +446,7 @@ with tab_ov:
 
     fig_dept_path = FIGURES_RQ1 / "fig4_top_departments_total_erosion.png"
     if fig_dept_path.exists():
-        st.image(str(fig_dept_path), use_container_width=True)
+        st.image(str(fig_dept_path), width='stretch')
     else:
         if _dept_df is not None and "total_profit_erosion" in _dept_df.columns:
             dept_col = "department" if "department" in _dept_df.columns else ("Department" if "Department" in _dept_df.columns else None)
@@ -338,39 +468,13 @@ with tab_ov:
 
     st.divider()
 
-    # ── Top Post-Hoc Pairs (elevated — no expander needed) ────────────────────
-    _tip_header("Top 5 Most Significantly Different Category Pairs", "posthoc_cat", level=3)
-    st.caption(
-        "Dunn's test with Bonferroni correction — the five category pairs with the "
-        "largest statistically significant differences in mean profit erosion (p_adj < 0.05)."
-    )
-    _ph_cat_path_ov = PROCESSED_RQ1 / "rq1_posthoc_category.csv"
-    if _ph_cat_path_ov.exists():
-        _ph_top = pd.read_csv(_ph_cat_path_ov)
-        _ph_top = _ph_top.loc[:, ~_ph_top.columns.str.startswith("Unnamed")]
-        if "p_adj" in _ph_top.columns:
-            _ph_sig = _ph_top[_ph_top["p_adj"] < 0.05].sort_values("p_adj").head(5).copy()
-            _ph_sig["p_adj"] = _ph_sig["p_adj"].map(lambda x: f"{x:.2e}")
-            _ph_sig = _ph_sig.rename(columns={"group_a": "Category A", "group_b": "Category B", "p_adj": "p (Bonferroni)"})
-            st.dataframe(_ph_sig, use_container_width=True, hide_index=True)
-            st.caption(
-                f"{len(_ph_top[_ph_top['p_adj'] < 0.05])} of {len(_ph_top)} category pairs "
-                "are significantly different at α = 0.05 after Bonferroni correction."
-            )
-        else:
-            st.info("p_adj column not found in post-hoc file.")
-    else:
-        st.info("Post-hoc category results not yet available.")
-
-    st.divider()
-
     # Post-hoc and CI: keep but de-bloat via expanders
     st.header("Detailed Results (for review)")
 
     with st.expander("Post-hoc comparisons (Category & Brand)", expanded=False):
         st.caption(
-            "Error bars show 95% bootstrap confidence intervals around the group mean. "
-            "Non-overlapping CIs confirm that category mean differences are statistically stable."
+            "Dunn's test with Bonferroni correction. Showing the most significant pairs first. "
+            "Use the full tables only when you need detail."
         )
 
         ph_col_cat, ph_col_brand = st.columns(2)
@@ -384,14 +488,14 @@ with tab_ov:
                 if "p_adj" in ph_cat.columns:
                     top10 = ph_cat.sort_values("p_adj", ascending=True).head(10).copy()
                     top10["p_adj"] = top10["p_adj"].map(lambda x: f"{x:.4f}")
-                    st.dataframe(top10, use_container_width=True, hide_index=True)
+                    st.dataframe(top10, width='stretch', hide_index=True)
 
                     with st.expander("Show full category post-hoc table", expanded=False):
                         full = ph_cat.copy()
                         full["p_adj"] = full["p_adj"].map(lambda x: f"{x:.6f}")
-                        st.dataframe(full, use_container_width=True, hide_index=True)
+                        st.dataframe(full, width='stretch', hide_index=True)
                 else:
-                    st.dataframe(ph_cat, use_container_width=True, hide_index=True)
+                    st.dataframe(ph_cat, width='stretch', hide_index=True)
             else:
                 st.info("Post-hoc category file not found.")
 
@@ -404,14 +508,14 @@ with tab_ov:
                 if "p_adj" in ph_brand.columns:
                     top10 = ph_brand.sort_values("p_adj", ascending=True).head(10).copy()
                     top10["p_adj"] = top10["p_adj"].map(lambda x: f"{x:.4f}")
-                    st.dataframe(top10, use_container_width=True, hide_index=True)
+                    st.dataframe(top10, width='stretch', hide_index=True)
 
                     with st.expander("Show full brand post-hoc table", expanded=False):
                         full = ph_brand.copy()
                         full["p_adj"] = full["p_adj"].map(lambda x: f"{x:.6f}")
-                        st.dataframe(full, use_container_width=True, hide_index=True)
+                        st.dataframe(full, width='stretch', hide_index=True)
                 else:
-                    st.dataframe(ph_brand, use_container_width=True, hide_index=True)
+                    st.dataframe(ph_brand, width='stretch', hide_index=True)
             else:
                 st.info("Post-hoc brand file not found.")
 
@@ -452,13 +556,13 @@ with tab_ov:
                 for col in ["mean_profit_erosion", "ci_low_95", "ci_high_95", "ci_width"]:
                     if col in ci_display.columns:
                         ci_display[col] = ci_display[col].map(lambda x: f"${x:,.2f}")
-                st.dataframe(ci_display, use_container_width=True, hide_index=True)
+                st.dataframe(ci_display, width='stretch', hide_index=True)
         else:
             fig7_path = FIGURES_RQ1 / "fig7_bootstrap_ci_category_mean.png"
             if fig7_path.exists():
-                st.image(str(fig7_path), use_container_width=True)
+                st.image(str(fig7_path), width='stretch')
             else:
-                st.info("Bootstrap confidence interval data is not yet available.")
+                st.info("Bootstrap CI data not found. Run the master notebook first.")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -468,7 +572,7 @@ with tab_cat:
     _tip_header("Top Categories — Total Profit Erosion", "fig_top_cat", level=2)
     fig1_path = FIGURES_RQ1 / "fig1_top_categories_total_erosion.png"
     if fig1_path.exists():
-        st.image(str(fig1_path), use_container_width=True)
+        st.image(str(fig1_path), width='stretch')
 
     st.divider()
 
@@ -513,11 +617,11 @@ with tab_cat:
         else:
             fig3_path = FIGURES_RQ1 / "fig3_return_rate_vs_mean_erosion_category.png"
             if fig3_path.exists():
-                st.image(str(fig3_path), use_container_width=True)
+                st.image(str(fig3_path), width='stretch')
             else:
                 st.info("Required columns not found for interactive scatter.")
     else:
-        st.info("Category data is not yet available.")
+        st.info("Category data not found. Run the master notebook first.")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -527,68 +631,74 @@ with tab_brand:
     _tip_header("Top Brands — Total Profit Erosion", "fig_top_brand", level=2)
     fig2_path = FIGURES_RQ1 / "fig2_top_brands_total_erosion.png"
     if fig2_path.exists():
-        st.image(str(fig2_path), use_container_width=True)
+        st.image(str(fig2_path), width='stretch')
     else:
-        st.warning("Bootstrap CI parquet not found. Run the master notebook.")
+        if _brand_df is not None and {"brand", "total_profit_erosion"}.issubset(_brand_df.columns):
+            tmp = _brand_df.nlargest(10, "total_profit_erosion").copy()
+            fig = px.bar(
+                tmp.sort_values("total_profit_erosion", ascending=True),
+                x="total_profit_erosion",
+                y="brand",
+                orientation="h",
+                title="Top Brands by Total Profit Erosion",
+                labels={"total_profit_erosion": "Total Profit Erosion ($)", "brand": "Brand"},
+            )
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.info("Brand data not found yet.")
 
-st.divider()
 
-# ── Key findings (data-driven) ────────────────────────────────────────────────
-st.header("Key Findings")
+# ─────────────────────────────────────────────────────────────────────────────
+# TAB 4 — DECOMPOSITION
+# ─────────────────────────────────────────────────────────────────────────────
+with tab_decomp:
+    col_l, col_r = st.columns(2)
+    with col_l:
+        _tip_header("Severity vs Volume by Category", "fig_sev_vol")
+        fig5_path = FIGURES_RQ1 / "fig5_severity_vs_volume_category.png"
+        if fig5_path.exists():
+            st.image(str(fig5_path), width='stretch')
+        else:
+            st.info("Figure not found: fig5_severity_vs_volume_category.png")
 
-_stats_path = PROCESSED_RQ1 / "rq1_statistical_tests_summary.parquet"
+    with col_r:
+        _tip_header("Profit Erosion Distribution (Log Scale)", "fig_dist")
+        fig6_path = FIGURES_RQ1 / "fig6_profit_erosion_distribution_log.png"
+        if fig6_path.exists():
+            st.image(str(fig6_path), width='stretch')
+        else:
+            st.info("Figure not found: fig6_profit_erosion_distribution_log.png")
 
-if _cat_df is not None and _stats_path.exists():
-    _stats = pd.read_parquet(_stats_path)
 
-    _top5 = _cat_df.nlargest(5, "total_profit_erosion")["category"].tolist()
-    _top5_str = ", ".join(_top5)
-
-    _cat_row = (
-        _stats[_stats["factor"] == "category"].iloc[0]
-        if "category" in _stats["factor"].values else None
-    )
-    _brand_row = (
-        _stats[_stats["factor"] == "brand"].iloc[0]
-        if "brand" in _stats["factor"].values else None
-    )
-
-    _cat_p = f"{_cat_row['p_value']:.2e}" if _cat_row is not None else "N/A"
-    _cat_eff = (
-        f"{_cat_row['effect_size']:.3f} ({_cat_row['effect_metric']})"
-        if _cat_row is not None else "N/A"
-    )
-    _cat_h0 = "Rejected" if (_cat_row is not None and _cat_row["reject_h0"]) else "Not Rejected"
-
-    _brand_p = f"{_brand_row['p_value']:.2e}" if _brand_row is not None else "N/A"
-    _brand_eff = (
-        f"{_brand_row['effect_size']:.3f} ({_brand_row['effect_metric']})"
-        if _brand_row is not None else "N/A"
-    )
-    _brand_h0 = (
-        "Rejected" if (_brand_row is not None and _brand_row["reject_h0"]) else "Not Rejected"
-    )
-
+# ─────────────────────────────────────────────────────────────────────────────
+# TAB 5 — VALIDATION
+# ─────────────────────────────────────────────────────────────────────────────
+with tab_val:
+    _tip_header("External Validation — School Specialty LLC (SSL)", "ssl_validation", level=2)
     st.markdown(
         """
-TheLook is a synthetic dataset. To strengthen external validity, the RQ1 workflow was replicated on
-a real-world returns dataset (SSL — School Specialty, Inc., 2025).
+TheLook is a synthetic dataset. To strengthen external validity, the RQ1 category-level workflow was
+replicated on a real-world returns dataset (SSL — School Specialty, Inc., 2025).
 
-**Objective:** Confirm that profit erosion differs across product groupings under operational conditions.
-The same non-parametric workflow, grouping structure, and erosion definition were applied to the SSL dataset.
+**Objective:** Confirm that profit erosion differs across product categories under operational conditions.
 
-| Test | Dataset | p-value | Decision |
-|---|---|---|---|
-| Kruskal–Wallis (Category) | SSL | < 0.001 | ✅ Reject H₀ |
-| Kruskal–Wallis (Brand / Supplier) | SSL | < 0.001 | ✅ Reject H₀ |
+**SSL Category definition:**
+Category is constructed by concatenating three SSL fields:
+> `Pillar` + `-` + `Major Market Cat` + `-` + `Department`
+> Example: `STEM-Science-Physics`
 
-**Directional Validation:** The replication on SSL data confirms that the pipeline's core detection —
-profit erosion differs across product groupings — generalises in direction to real-world operational data.
-This is directional validation of framework utility, not parameter transferability.
-Specific coefficient magnitudes from TheLook reflect the synthetic dataset and should not be applied directly.
+The same non-parametric workflow and erosion definition were applied. Brand and department are
+**not** validated independently — only the composite category dimension is tested.
+
+| Test | Dataset | Groups | p-value | Decision |
+|---|---|---|---|---|
+| Kruskal–Wallis (Category) | SSL | Pillar-MajorMarketCat-Dept | < 0.001 | ✅ Reject H₀ |
+
+**Conclusion:** The replication on SSL data supports the RQ1 category-level finding — profit erosion
+differs significantly across product categories under operational conditions. This strengthens
+confidence that category-level differences are not artifacts of the synthetic dataset.
 """
     )
-
 
 # ═════════════════════════════════════════════════════════════════════════════
 # TAB 6 — CONCLUSION
@@ -596,7 +706,8 @@ Specific coefficient magnitudes from TheLook reflect the synthetic dataset and s
 with tab_conc:
     st.header("Conclusion — Pipeline Output")
 
-    # ── Dark-gradient callout ─────────────────────────────────────────────────
+    # ── Dark-gradient callout ─────────────────────────────────────────────────────────
+    _conc_top_cat = "N/A"
     if _cat_df is not None and "total_profit_erosion" in _cat_df.columns:
         _conc_total_erosion = float(_cat_df["total_profit_erosion"].sum())
         _conc_total_returns = (
@@ -642,21 +753,24 @@ with tab_conc:
 
     st.divider()
 
-    # ── Hypothesis Decision Table ─────────────────────────────────────────────
+    # ── Hypothesis Decision Table ──────────────────────────────────────────────────────────
     st.subheader("Hypothesis Decisions")
 
-    # Try to pull effect sizes dynamically from _stats_df
-    _cat_es = _brand_es = "0.454"
+    _cat_es = "0.454"
     _brand_es_val = "0.442"
     if _stats_df is not None and "effect_size" in _stats_df.columns:
         _factor_col = [c for c in _stats_df.columns if "factor" in c.lower()]
         if _factor_col:
-            _cat_row = _stats_df[_stats_df[_factor_col[0]].str.lower().str.contains("categ", na=False)]
-            _brd_row = _stats_df[_stats_df[_factor_col[0]].str.lower().str.contains("brand", na=False)]
-            if not _cat_row.empty:
-                _cat_es = f"{float(_cat_row['effect_size'].iloc[0]):.3f}"
-            if not _brd_row.empty:
-                _brand_es_val = f"{float(_brd_row['effect_size'].iloc[0]):.3f}"
+            _cat_row_c = _stats_df[
+                _stats_df[_factor_col[0]].str.lower().str.contains("categ", na=False)
+            ]
+            _brd_row_c = _stats_df[
+                _stats_df[_factor_col[0]].str.lower().str.contains("brand", na=False)
+            ]
+            if not _cat_row_c.empty:
+                _cat_es = f"{float(_cat_row_c['effect_size'].iloc[0]):.3f}"
+            if not _brd_row_c.empty:
+                _brand_es_val = f"{float(_brd_row_c['effect_size'].iloc[0]):.3f}"
 
     st.markdown(
         f"""
@@ -664,27 +778,29 @@ with tab_conc:
 |---|---|---|---|
 | **H₀₁**: Profit erosion equal across categories | TheLook | Kruskal–Wallis, ε² = {_cat_es}, p < 0.001 | ✅ **REJECT H₀** |
 | **H₀₁**: Profit erosion equal across brands | TheLook | Kruskal–Wallis, ε² = {_brand_es_val}, p < 0.001 | ✅ **REJECT H₀** |
-| Directional validation (categories) | SSL | Kruskal–Wallis, p < 0.001 | ✅ Pattern confirmed |
-| Directional validation (brands/suppliers) | SSL | Kruskal–Wallis, p < 0.001 | ✅ Pattern confirmed |
+| Directional validation (categories only) | SSL | Kruskal–Wallis, p < 0.001 | ✅ Pattern confirmed — category level |
 """
+    )
+    st.caption(
+        "SSL external validation covers category-level only "
+        "(composite Pillar + MajorMarketCat + Dept). "
+        "Brand and department are not independently validated on SSL data."
     )
 
     st.divider()
 
-    # ── Top-3 Category Pipeline Output Panel ─────────────────────────────────
+    # ── Top-3 Category Pipeline Output Panel ─────────────────────────────────────────────
     st.subheader("Top Categories Identified by the Pipeline")
 
     if _cat_df is not None and "category" in _cat_df.columns:
         _top3 = _cat_df.nlargest(3, "total_profit_erosion").reset_index(drop=True)
         _panel_cols = st.columns(3)
         _panel_colors = [
-            ("#FFEBEE", "#C62828", "#B71C1C"),
-            ("#FFF3E0", "#E65100", "#BF360C"),
-            ("#FCE4EC", "#AD1457", "#880E4F"),
+            ("#C62828", "#e57373"),
+            ("#E65100", "#ffb74d"),
+            ("#AD1457", "#f48fb1"),
         ]
-        for _i, (_col, (_bg, _header, _text)) in enumerate(
-            zip(_panel_cols, _panel_colors)
-        ):
+        for _i, (_col, (_border, _accent)) in enumerate(zip(_panel_cols, _panel_colors)):
             if _i < len(_top3):
                 _row = _top3.iloc[_i]
                 _cat_name = _row["category"]
@@ -701,10 +817,10 @@ with tab_conc:
                 with _col:
                     st.markdown(
                         f"""
-<div style="background:{_bg};border-left:4px solid {_header};
-            padding:16px;border-radius:6px;">
-<h4 style="margin:0 0 8px 0;color:{_header};">#{_i + 1} — {_cat_name}</h4>
-<p style="margin:0;font-size:13px;color:{_text};">
+<div style="background:linear-gradient(135deg,{_border}55,{_border}33);
+            border-left:4px solid {_border}; border-radius:6px; padding:16px;">
+<h4 style="margin:0 0 8px 0;color:#ffffff;">#{_i + 1} — {_cat_name}</h4>
+<p style="margin:0;font-size:13px;color:#f0f0f0;">
 <b>Total erosion: USD&nbsp;{_cat_erosion:,.2f}</b><br>
 Returns: {_cat_returns:,} | Mean: USD&nbsp;{_cat_mean:,.2f}/return<br><br>
 Highest-erosion category group identified by the pipeline on TheLook
@@ -724,8 +840,8 @@ Highest-erosion category group identified by the pipeline on TheLook
 | **H₀₁ (categories): Reject?** | ✅ Yes — Kruskal–Wallis ε² = {_cat_es}, p < 0.001 |
 | **H₀₁ (brands): Reject?** | ✅ Yes — Kruskal–Wallis ε² = {_brand_es_val}, p < 0.001 |
 | **Erosion decomposition** | Two independent drivers: return frequency (volume) and cost per return (severity) |
-| **Highest-risk category** | {_conc_top_cat if _cat_df is not None else "N/A"} (highest total modelled profit erosion) |
-| **External validation (SSL)** | ✅ Directional patterns confirmed — profit erosion differs across categories and brands |
+| **Highest-risk category** | {_conc_top_cat} (highest total modelled profit erosion) |
+| **External validation (SSL)** | ✅ Directional patterns confirmed — profit erosion differs across categories (category level only) |
 | **Framework contribution** | Pipeline decomposes erosion by product grouping; figures are from synthetic dataset |
 """
     )

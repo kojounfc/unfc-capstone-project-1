@@ -413,7 +413,7 @@ Use the **sidebar** to navigate to each RQ page.
         "Decision": ["✅ Reject H₀", "✅ Reject H₀₂", "✅ Reject H₀₃", "✅ Reject H₀₄"],
         "Key Result": [_rq1_result, _rq2_result, _rq3_result, _rq4_result],
     })
-    st.dataframe(rq_df, use_container_width=True, hide_index=True)
+    st.dataframe(rq_df, width='stretch', hide_index=True)
 
     st.divider()
 
@@ -457,7 +457,7 @@ with tab_cost:
                 "Amount": _base_str,
                 "Rationale": "Conservative mid-range ($10–$25 literature range)",
             })
-            st.dataframe(pd.DataFrame(_rows), use_container_width=True, hide_index=True)
+            st.dataframe(pd.DataFrame(_rows), width='stretch', hide_index=True)
         else:
             st.warning("Cost components unavailable. Using default values.")
 
@@ -473,7 +473,7 @@ with tab_cost:
                     "Effective Cost": f"${effective:.2f}" if effective else "N/A",
                     "Categories": ", ".join(cats),
                 })
-            st.dataframe(pd.DataFrame(_tier_rows), use_container_width=True, hide_index=True)
+            st.dataframe(pd.DataFrame(_tier_rows), width='stretch', hide_index=True)
             st.caption(
                 "Tier multipliers justified by Margin CV = 59.4% across categories "
                 "(exceeds 15% threshold for tiered treatment)."
@@ -498,7 +498,7 @@ with tab_team:
             "Student ID": ["NF1002499", "NF1007842", "NF1002706", "NF1001332"],
             "Primary RQ": ["RQ4", "RQ3 & RQ4", "RQ2", "RQ1"],
         }),
-        use_container_width=True,
+        width='stretch',
         hide_index=True,
     )
     st.caption(

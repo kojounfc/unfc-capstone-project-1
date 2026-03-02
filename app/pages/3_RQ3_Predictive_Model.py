@@ -429,12 +429,12 @@ Features that fail any gate are excluded. Only survivors are used to train and e
                 }
                 st.dataframe(
                     display_df,
-                    use_container_width=True,
+                    width='stretch',
                     hide_index=True,
                     column_config={k: v for k, v in col_cfg.items() if k in display_df.columns},
                 )
             else:
-                st.dataframe(_screen_df, use_container_width=True, hide_index=True)
+                st.dataframe(_screen_df, width='stretch', hide_index=True)
 
             if "univariate_pvalue" in _screen_df.columns and not _fail_df.empty:
                 fail_reasons = []
@@ -610,7 +610,7 @@ is chosen as champion.
         }
         st.dataframe(
             display_comp,
-            use_container_width=True,
+            width='stretch',
             hide_index=True,
             column_config={k: v for k, v in comp_col_cfg.items() if k in display_comp.columns},
         )
@@ -637,7 +637,7 @@ and the model will still rank customers correctly.
         )
     roc_path = REPORTS_RQ3 / "rq3_roc_curves.png"
     if roc_path.exists():
-        st.image(str(roc_path), use_container_width=True)
+        st.image(str(roc_path), width='stretch')
         if _comp_df is not None:
             _min_auc = float(_comp_df["test_auc"].min())
             st.caption(
@@ -652,7 +652,7 @@ and the model will still rank customers correctly.
             for _col in ["cv_auc", "test_auc", "f1", "precision", "recall"]:
                 if _col in _roc_fallback.columns:
                     _roc_fallback[_col] = _roc_fallback[_col].map(lambda x: f"{float(x):.4f}")
-            st.dataframe(_roc_fallback, use_container_width=True, hide_index=True)
+            st.dataframe(_roc_fallback, width='stretch', hide_index=True)
 
     st.divider()
 
@@ -678,7 +678,7 @@ customer is more costly than an occasional false alarm.
         )
     cm_path = REPORTS_RQ3 / "rq3_confusion_matrices.png"
     if cm_path.exists():
-        st.image(str(cm_path), use_container_width=True)
+        st.image(str(cm_path), width='stretch')
         if _comp_df is not None:
             _rf_recall = float(_champion_row["recall"]) if "recall" in _champion_row.index else None
             _recall_str = f" (recall = {_rf_recall:.4f})" if _rf_recall else ""
@@ -695,7 +695,7 @@ customer is more costly than an occasional false alarm.
                 for _col in ["precision", "recall", "f1"]:
                     if _col in _cm_fallback.columns:
                         _cm_fallback[_col] = _cm_fallback[_col].map(lambda x: f"{float(x):.4f}")
-                st.dataframe(_cm_fallback, use_container_width=True, hide_index=True)
+                st.dataframe(_cm_fallback, width='stretch', hide_index=True)
 
 # ════════════════════════════════════════════════════════════════════════════════
 # TAB 3 — WHAT MATTERS (Feature Importance)
@@ -724,7 +724,7 @@ Logistic Regression uses |coefficient| magnitude instead.
     if _fi_df is not None:
         fi_png = REPORTS_RQ3 / "rq3_feature_importance.png"
         if fi_png.exists():
-            st.image(str(fi_png), use_container_width=True)
+            st.image(str(fi_png), width='stretch')
 
         st.divider()
         st.subheader("Average Importance Ranking (across models)")
@@ -753,7 +753,7 @@ across all modeling approaches. These are your highest-confidence intervention l
             avg_imp["avg_importance"] = avg_imp["avg_importance"].map("{:.4f}".format)
             st.dataframe(
                 avg_imp,
-                use_container_width=True,
+                width='stretch',
                 hide_index=True,
                 column_config={
                     "rank": st.column_config.NumberColumn(
@@ -804,7 +804,7 @@ a model-specific interaction worth investigating.
                     fig.update_layout(yaxis={"categoryorder": "total ascending"}, height=400)
                     st.plotly_chart(fig, use_container_width=True)
         else:
-            st.dataframe(_fi_df, use_container_width=True, hide_index=True)
+            st.dataframe(_fi_df, width='stretch', hide_index=True)
 
     else:
         st.warning("Feature importance CSV not found.")
@@ -840,7 +840,7 @@ failed a statistical quality check:
             dropped_rows.append({"feature": feat, "dropped_at": gate, "detail": detail})
         st.dataframe(
             pd.DataFrame(dropped_rows),
-            use_container_width=True,
+            width='stretch',
             hide_index=True,
             column_config={
                 "feature": st.column_config.TextColumn(
@@ -1185,7 +1185,7 @@ The other metrics provide technical depth for auditing the validation methodolog
 """
             )
         _val_display = pd.read_csv(_val_path)
-        st.dataframe(_val_display, use_container_width=True, hide_index=True)
+        st.dataframe(_val_display, width='stretch', hide_index=True)
 
         st.divider()
         ssl_screen_path = REPORTS_RQ3 / "rq3_ssl_feature_screening.csv"
@@ -1659,21 +1659,21 @@ All three models independently exceed the threshold — **H₀₃ is rejected**.
         with _col:
             st.markdown(
                 f"""
-                <div style="background:linear-gradient(135deg,{_color}22,{_color}11);
-                            border:1px solid {_color}55; border-radius:10px;
+                <div style="background:linear-gradient(135deg,{_color}55,{_color}33);
+                            border:1px solid {_color}99; border-radius:10px;
                             padding:16px 18px; min-height:185px;">
-                    <p style="font-size:0.72rem;font-weight:700;color:{_color};
+                    <p style="font-size:0.72rem;font-weight:700;color:#ffffff;
                               text-transform:uppercase;letter-spacing:0.1em;margin:0 0 6px 0;">
                         {_badge}
                     </p>
-                    <p style="font-size:1.05rem;font-weight:700;color:#1a1a2e;margin:0 0 4px 0;">
+                    <p style="font-size:1.05rem;font-weight:700;color:#ffffff;margin:0 0 4px 0;">
                         {_feat_row['feature']}
                     </p>
-                    <p style="font-size:0.82rem;color:#555;font-style:italic;margin:0 0 8px 0;">
+                    <p style="font-size:0.82rem;color:#e0e0e0;font-style:italic;margin:0 0 8px 0;">
                         Avg importance: <strong>{_feat_row['importance']:.3f}</strong>
                         · consistent across all 3 models
                     </p>
-                    <p style="font-size:0.84rem;color:#333;line-height:1.5;margin:0;">
+                    <p style="font-size:0.84rem;color:#f0f0f0;line-height:1.5;margin:0;">
                         {_why}
                     </p>
                 </div>
@@ -1699,7 +1699,7 @@ All three models independently exceed the threshold — **H₀₃ is rejected**.
     ]
     st.dataframe(
         pd.DataFrame(_summary_rows, columns=["Dimension", "Result", "Detail"]),
-        use_container_width=True,
+        width='stretch',
         hide_index=True,
     )
 

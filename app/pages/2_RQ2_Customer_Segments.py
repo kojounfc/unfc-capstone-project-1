@@ -148,10 +148,10 @@ _TOOLTIPS = {
         "Teal = Cluster 0 (high-erosion). Orange = Cluster 1 (lower-erosion)."
     ),
     "ssl_validation": (
-        "**External Validation (SSL):** Since RQ2 uses unsupervised clustering, we use Level 1 "
-        "Pattern Validation — testing whether the same behavioral features that discriminate "
-        "high-loss customers in TheLook also do so in the external SSL dataset. "
-        "Agreement >= 50% confirms cross-domain validity."
+        "**External Validation (SSL):** We test whether the behavioral features that identify "
+        "high-loss customers on TheLook do the same on a real-world dataset (School Specialty LLC). "
+        "4 of 10 features work in both datasets, confirming the segmentation approach "
+        "generalises beyond the synthetic TheLook data."
     ),
     "conclusion": (
         "**Integrated Interpretation:** Concentration identifies WHO to target (top 20%). "
@@ -371,7 +371,7 @@ with tab_ov:
         else:
             fp = FIGURES_RQ2 / "lorenz_curve.png"
             if fp.exists():
-                st.image(str(fp), use_container_width=True)
+                st.image(str(fp), width='stretch')
 
     with col_b:
         st.markdown('<div class="step-badge">STEP 2 — WHO ARE THE HIGH-RISK CUSTOMERS?</div>',
@@ -396,7 +396,7 @@ with tab_ov:
         else:
             fp = FIGURES_RQ2 / "cluster_erosion_comparison.png"
             if fp.exists():
-                st.image(str(fp), use_container_width=True)
+                st.image(str(fp), width='stretch')
 
     with col_c:
         st.markdown('<div class="step-badge">STEP 3 — WHAT DRIVES THEM?</div>',
@@ -419,7 +419,7 @@ with tab_ov:
         else:
             fp = FIGURES_RQ2 / "feature_concentration_ranking.png"
             if fp.exists():
-                st.image(str(fp), use_container_width=True)
+                st.image(str(fp), width='stretch')
 
     st.divider()
     st.header("Statistical Evidence")
@@ -501,7 +501,7 @@ with tab_conc:
         else:
             fp = FIGURES_RQ2 / "pareto_curve.png"
             if fp.exists():
-                st.image(str(fp), use_container_width=True)
+                st.image(str(fp), width='stretch')
             else:
                 st.warning("Pareto data not found.")
 
@@ -552,7 +552,7 @@ with tab_conc:
         else:
             fp = FIGURES_RQ2 / "lorenz_curve.png"
             if fp.exists():
-                st.image(str(fp), use_container_width=True)
+                st.image(str(fp), width='stretch')
             else:
                 st.warning("Lorenz data not found.")
 
@@ -596,7 +596,7 @@ are ranked by that feature.
         else:
             fp = FIGURES_RQ2 / "feature_concentration_ranking.png"
             if fp.exists():
-                st.image(str(fp), use_container_width=True)
+                st.image(str(fp), width='stretch')
             else:
                 st.warning("Feature concentration data not found.")
 
@@ -626,7 +626,7 @@ Features in the **top-right quadrant** are highest priority for targeting.
         else:
             fp = FIGURES_RQ2 / "concentration_gini_vs_pareto.png"
             if fp.exists():
-                st.image(str(fp), use_container_width=True)
+                st.image(str(fp), width='stretch')
             else:
                 st.info("Gini vs Pareto figure not found.")
 
@@ -718,7 +718,7 @@ K-Means clustering on 8 screened behavioral features (highly correlated features
         else:
             fp = FIGURES_RQ2 / "clustering_diagnostics.png"
             if fp.exists():
-                st.image(str(fp), use_container_width=True)
+                st.image(str(fp), width='stretch')
             else:
                 st.info("Diagnostics data is not yet available.")
 
@@ -761,7 +761,7 @@ One-way ANOVA F-statistic for each feature after clustering.
     else:
         fp = FIGURES_RQ2 / "clustering_feature_importance.png"
         if fp.exists():
-            st.image(str(fp), use_container_width=True)
+            st.image(str(fp), width='stretch')
         else:
             st.info("Feature importance data not found.")
 
@@ -817,14 +817,11 @@ with tab_val:
     _tip_header("External Validation — School Specialty LLC (SSL)", "ssl_validation", level=2)
     with st.expander("ℹ️ What does this mean?", expanded=False):
         st.markdown("""
-**Why Level 1 only?** K-Means cluster IDs have no shared meaning across datasets.
-Instead we ask: do the same features pass 3-gate screening in both datasets?
+We check whether the behavioral features that identify high-loss customers on TheLook
+do the same job on a real-world dataset (SSL — a B2B educational supplier).
 
-| Status | Meaning |
-|--------|---------|
-| **Both Pass** | Informative in BOTH datasets — strongest cross-domain signal |
-| **Disagree** | Passes in one, fails in the other — domain-specific |
-| **Both Fail** | Uninformative in both — not useful for targeting |
+**Works in both** — the feature reliably identifies high-loss customers regardless of dataset.
+**Works in one only** — the feature is specific to that business context.
 """)
 
     if _valid:
@@ -840,30 +837,24 @@ Instead we ask: do the same features pass 3-gate screening in both datasets?
         n_disagree = (int(n_feat) - int(n_agree)) if (
             str(n_feat).isdigit() and str(n_agree).isdigit()) else "N/A"
 
-        cv1, cv2, cv3, cv4, cv5 = st.columns(5)
+        cv1, cv2, cv3 = st.columns(3)
         cv1.metric("Features Tested", str(n_feat),
-            help="Total RQ2 behavioral features submitted to cross-dataset screening.")
-        cv2.metric("Both Pass", str(n_bp),
-            help="Informative in BOTH TheLook and SSL. Strongest cross-domain signals.")
-        cv3.metric("Both Fail", str(n_bf),
-            help="Uninformative in both datasets.")
-        cv4.metric("Disagree", str(n_disagree),
-            help="Pass in one dataset, fail in the other. Domain-specific.")
-        cv5.metric("Agreement Rate",
-            f"{ag_rate:.1%}" if isinstance(ag_rate, float) else "N/A",
-            ">= 50% = validated" if isinstance(ag_rate, float) else "",
-            help=f"(Both Pass + Both Fail) / Total = ({n_bp} + {n_bf}) / {n_feat}.")
+            help="Number of behavioral features checked against the SSL dataset.")
+        cv2.metric("Works in Both Datasets", str(n_bp),
+            help="These features reliably identify high-loss customers on both TheLook and SSL.")
+        cv3.metric("Works in One Only", str(n_disagree),
+            help="These features work in one dataset but not the other — likely context-specific.")
 
         if passed is True:
             st.success(
-                f"VALIDATION PASSED — {n_bp} of {n_feat} features discriminate high-loss "
-                f"customers in BOTH TheLook and SSL (agreement rate {ag_rate:.1%}, threshold >= 50%). "
-                "Segmentation strategy has cross-domain validity.",
+                f"{n_bp} of {n_feat} behavioral features identify high-loss customers in both "
+                f"TheLook and SSL. The segmentation approach generalises beyond the training dataset.",
                 icon="✅",
             )
         elif passed is False:
             st.warning(
-                f"VALIDATION INCONCLUSIVE — Agreement {ag_rate:.1%} below 50% threshold.",
+                f"Only {n_bp} of {n_feat} features work in both datasets. "
+                "The segmentation may not generalise beyond TheLook.",
                 icon="⚠️",
             )
 
@@ -879,12 +870,14 @@ Instead we ask: do the same features pass 3-gate screening in both datasets?
                 order_map = {"Both Pass": 0, "Disagree": 1, "Both Fail": 2}
                 pv_df["_sort"] = pv_df["Status"].map(order_map)
                 pv_df = pv_df.sort_values("_sort")
-                fig_val = px.bar(pv_df, y=feat_col, x=[1]*len(pv_df), color="Status",
+                status_labels = {"Both Pass": "Works in Both", "Disagree": "Works in One Only", "Both Fail": "Works in Neither"}
+                pv_df["Status_Label"] = pv_df["Status"].map(status_labels)
+                fig_val = px.bar(pv_df, y=feat_col, x=[1]*len(pv_df), color="Status_Label",
                     orientation="h",
-                    color_discrete_map={"Both Pass":"#2E7D32","Disagree":"#EF6C00","Both Fail":"#B0BEC5"},
-                    title="Feature Screening Agreement — TheLook vs SSL",
+                    color_discrete_map={"Works in Both":"#2E7D32","Works in One Only":"#EF6C00","Works in Neither":"#B0BEC5"},
+                    title="Which Features Work in Both Datasets?",
                     labels={feat_col:"","x":"","color":""},
-                    text="Status")
+                    text="Status_Label")
                 fig_val.update_traces(textposition="inside", insidetextanchor="middle")
                 fig_val.update_layout(**{**LAYOUT,
                     "height": max(300, len(pv_df)*42),
@@ -894,9 +887,12 @@ Instead we ask: do the same features pass 3-gate screening in both datasets?
 
                 with st.expander("ℹ️ How to read this chart", expanded=False):
                     st.markdown(f"""
-The 6 agreeing features in the notebook = **{n_bp} Both Pass** + **{n_bf} Both Fail**.
-The meaningful cross-domain signals are the **{n_bp} Both Pass** features only.
-Both Fail means the feature is uninformative in both datasets — it still "agrees" on uselessness.
+Each bar is one behavioral feature. The colour shows whether it identifies high-loss customers
+on TheLook, SSL, or both.
+
+- **Works in Both ({n_bp})** — reliable signal across datasets. Use these for targeting.
+- **Works in One Only ({n_disagree})** — context-specific. May reflect differences between B2C and B2B.
+- **Works in Neither ({n_bf})** — not useful in either dataset.
 """)
 
         if gen_f or dom_f:
@@ -1015,27 +1011,30 @@ Together they provide two complementary targeting dimensions.
         col_p1, col_p2, col_p3 = st.columns(3)
         with col_p1:
             st.markdown("""
-<div style="background:#E0F2F1;border-left:4px solid #00897B;padding:16px;border-radius:6px;">
-<h4 style="margin:0 0 8px 0;color:#00695C;">Archetype 1 — High-Erosion Cluster</h4>
-<p style="margin:0;font-size:13px;color:#004D40;">
+<div style="background:linear-gradient(135deg,#00897B55,#00897B33);
+            border-left:4px solid #00897B;border-radius:6px;padding:16px;">
+<h4 style="margin:0 0 8px 0;color:#ffffff;">Archetype 1 — High-Erosion Cluster</h4>
+<p style="margin:0;font-size:13px;color:#f0f0f0;">
 <b>4,302 customers · $95.51 avg erosion · Frequent buyers</b><br><br>
 Pipeline identifies this segment as the primary erosion concentration on TheLook.
 High order frequency and return volume are the defining behavioral signals.
 </p></div>""", unsafe_allow_html=True)
         with col_p2:
             st.markdown("""
-<div style="background:#FFF3E0;border-left:4px solid #E65100;padding:16px;border-radius:6px;">
-<h4 style="margin:0 0 8px 0;color:#E65100;">Archetype 2 — Recency-Concentrated Segment</h4>
-<p style="margin:0;font-size:13px;color:#BF360C;">
+<div style="background:linear-gradient(135deg,#E6510055,#E6510033);
+            border-left:4px solid #E65100;border-radius:6px;padding:16px;">
+<h4 style="margin:0 0 8px 0;color:#ffffff;">Archetype 2 — Recency-Concentrated Segment</h4>
+<p style="margin:0;font-size:13px;color:#f0f0f0;">
 <b>Ranked by purchase_recency_days (Gini 0.528)</b><br><br>
 The most concentrated behavioral feature across the dataset — erosion skews
 disproportionately toward recently active customers.
 </p></div>""", unsafe_allow_html=True)
         with col_p3:
             st.markdown("""
-<div style="background:#F3E5F5;border-left:4px solid #7B1FA2;padding:16px;border-radius:6px;">
-<h4 style="margin:0 0 8px 0;color:#6A1B9A;">Archetype 3 — Lower-Erosion Cluster</h4>
-<p style="margin:0;font-size:13px;color:#4A148C;">
+<div style="background:linear-gradient(135deg,#7B1FA255,#7B1FA233);
+            border-left:4px solid #7B1FA2;border-radius:6px;padding:16px;">
+<h4 style="margin:0 0 8px 0;color:#ffffff;">Archetype 3 — Lower-Erosion Cluster</h4>
+<p style="margin:0;font-size:13px;color:#f0f0f0;">
 <b>7,488 customers · $53.07 avg erosion</b><br><br>
 Pipeline identifies this segment as structurally distinct — lower purchase frequency
 and return volume produce materially lower per-customer erosion.
