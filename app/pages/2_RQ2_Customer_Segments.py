@@ -101,8 +101,7 @@ _TOOLTIPS = {
     "kpi_h02": (
         "**H₀₂ Result (RQ2 primary hypothesis):** H₀₂ states that customer segments identified "
         "through clustering do not differ significantly in mean profit erosion. "
-        "Both ANOVA (F=1,479.64, p < 0.0001) and Kruskal-Wallis (H=893.49, p < 0.0001) reject H₀₂. "
-        "η² = 0.112 means cluster membership explains 11.2% of erosion variance — a medium effect."
+        "Both ANOVA and Kruskal-Wallis tests reject H₀₂ — see hypothesis test metrics below for exact values."
     ),
     "fig_pareto": (
         "**Pareto Curve:** Ranks customers highest to lowest by erosion and shows cumulative share "
@@ -240,6 +239,108 @@ _top20     = (_top20_raw * 100 if isinstance(_top20_raw, float) and _top20_raw <
 _boot      = _conc.get("bootstrap_test", {})
 _top50     = _conc.get("top_50_impact",  {})
 
+# ── Dynamic hypothesis test stats (always read from saved output files) ───────
+# These replace every hardcoded F / H / eta2 value in the page.
+# Falls back gracefully to "N/A" if the files are not yet generated.
+_anova_f = None
+_anova_p = None
+_kw_h    = None
+_kw_p    = None
+_eta2    = None
+
+_hyp_csv  = PROCESSED_RQ2 / "cluster_hypothesis_tests.csv"
+_hyp_json = PROCESSED_RQ2 / "cluster_hypothesis_tests.json"
+
+if _hyp_csv.exists():
+    try:
+        _hyp_df = pd.read_csv(_hyp_csv)
+        if "test" in _hyp_df.columns:
+            _ar = _hyp_df[_hyp_df["test"].str.lower().str.contains("anova",    na=False)]
+            _kr = _hyp_df[_hyp_df["test"].str.lower().str.contains("kruskal",  na=False)]
+            if not _ar.empty:
+                _anova_f = float(_ar["statistic"].iloc[0])   if "statistic"   in _ar.columns else None
+                _anova_p = float(_ar["p_value"].iloc[0])     if "p_value"     in _ar.columns else None
+                _eta2    = float(_ar["eta_squared"].iloc[0]) if "eta_squared" in _ar.columns else None
+            if not _kr.empty:
+                _kw_h = float(_kr["statistic"].iloc[0]) if "statistic" in _kr.columns else None
+                _kw_p = float(_kr["p_value"].iloc[0])   if "p_value"   in _kr.columns else None
+    except Exception:
+        pass
+
+if _anova_f is None and _hyp_json.exists():
+    try:
+        import json as _json2
+        with open(_hyp_json) as _jf:
+            _hj = _json2.load(_jf)
+        _anova_f = _hj.get("anova_f_statistic") or _hj.get("anova_f") or _hj.get("F")
+        _anova_p = _hj.get("anova_p_value")     or _hj.get("anova_p") or _hj.get("p_anova")
+        _kw_h    = _hj.get("kw_h_statistic")    or _hj.get("kw_h")    or _hj.get("H")
+        _kw_p    = _hj.get("kw_p_value")        or _hj.get("kw_p")    or _hj.get("p_kw")
+        _eta2    = _hj.get("eta_squared")        or _hj.get("eta2")
+    except Exception:
+        pass
+
+# Final fallback: compute live from the cluster dataframe already in memory.
+# This runs whenever no saved hypothesis file exists (e.g. first launch).
+if _anova_f is None and _cluster_df is not None:
+    try:
+        from scipy import stats as _stats
+        _id_col = next(
+            (c for c in ["cluster_id", "Cluster", "cluster"] if c in _cluster_df.columns),
+            None
+        )
+        _pe_col = next(
+            (c for c in ["total_profit_erosion", "profit_erosion", "erosion"]
+             if c in _cluster_df.columns),
+            None
+        )
+        if _id_col and _pe_col:
+            _groups = [
+                grp[_pe_col].dropna().values
+                for _, grp in _cluster_df.groupby(_id_col)
+            ]
+            if len(_groups) >= 2:
+                # ANOVA
+                _f_val, _fp = _stats.f_oneway(*_groups)
+                _anova_f, _anova_p = float(_f_val), float(_fp)
+                # eta-squared = SS_between / SS_total
+                _grand_mean = _cluster_df[_pe_col].dropna().mean()
+                _ss_between = sum(len(g) * (g.mean() - _grand_mean) ** 2 for g in _groups)
+                _ss_total   = sum((v - _grand_mean) ** 2 for g in _groups for v in g)
+                _eta2 = float(_ss_between / _ss_total) if _ss_total > 0 else None
+                # Kruskal-Wallis
+                _h_val, _hp = _stats.kruskal(*_groups)
+                _kw_h, _kw_p = float(_h_val), float(_hp)
+    except Exception:
+        pass
+
+def _fmt_f(v, d=2):
+    if v is None: return "N/A"
+    try: return f"{float(v):,.{d}f}"
+    except: return "N/A"
+
+def _fmt_p(v):
+    if v is None: return "N/A"
+    try:
+        fv = float(v)
+        return "< 0.0001" if fv < 0.0001 else f"{fv:.4f}"
+    except: return "N/A"
+
+def _fmt_eta(v):
+    if v is None: return "N/A"
+    try: return f"{float(v):.3f}"
+    except: return "N/A"
+
+def _eta_pct(v):
+    if v is None: return "N/A"
+    try: return f"{float(v)*100:.1f}%"
+    except: return "N/A"
+
+_s_anova_f = _fmt_f(_anova_f)
+_s_kw_h    = _fmt_f(_kw_h)
+_s_eta2    = _fmt_eta(_eta2)
+_s_eta_pct = _eta_pct(_eta2)
+
 # Shared chart theme
 CHART_H = 400
 LAYOUT  = dict(height=CHART_H, margin=dict(t=36, b=40, l=10, r=10),
@@ -263,7 +364,7 @@ st.markdown(
 st.divider()
 
 # ── Executive Summary Banner ──────────────────────────────────────────────────
-st.markdown("""
+st.markdown(f"""
 <div style="
     background: linear-gradient(135deg, #0f2440 0%, #1a3660 100%);
     border-left: 5px solid #00897B;
@@ -279,7 +380,7 @@ st.markdown("""
         <strong style="color:#ffffff;">Profit erosion is both concentrated and segmented.</strong>
         The top 20% of returning customers drive nearly half of all losses (Gini = 0.409, p &lt; 0.0001),
         and K-Means clustering reveals two statistically distinct archetypes
-        (ANOVA F = 1,479.64, p &lt; 0.0001, &eta;&sup2; = 0.112).
+        (ANOVA F = {_s_anova_f}, p &lt; 0.0001, &eta;&sup2; = {_s_eta2}).
         These two findings are complementary &mdash; concentration tells you
         <em>who</em> to target, segmentation tells you <em>how</em> to intervene differently.
         <strong style="color:#f0c040;">Pipeline finding:</strong>
@@ -289,7 +390,7 @@ st.markdown("""
         (Gini = 0.528). Figures reflect the synthetic dataset; SSL directional validation confirms
         the concentration pattern generalises in direction to real-world operational data.
         <strong style="color:#f0c040;">Decision: Reject H₀₂</strong> &mdash; customer segments differ
-        significantly in profit erosion (ANOVA F&nbsp;=&nbsp;1,479.64, p&nbsp;&lt;&nbsp;0.0001; &eta;&sup2;&nbsp;=&nbsp;0.112).
+        significantly in profit erosion (ANOVA F&nbsp;=&nbsp;{_s_anova_f}, p&nbsp;&lt;&nbsp;0.0001; &eta;&sup2;&nbsp;=&nbsp;{_s_eta2}).
     </p>
 </div>
 """, unsafe_allow_html=True)
@@ -446,12 +547,12 @@ with tab_ov:
         st.markdown("#### H₀₂ — Segments do not differ in mean profit erosion")
         st.caption("Primary RQ2 hypothesis test. Both parametric and non-parametric tests applied.")
         n1, n2, n3, n4 = st.columns(4)
-        n1.metric("ANOVA F-stat", "1,479.64",
+        n1.metric("ANOVA F-stat", _s_anova_f,
             help="One-way ANOVA F-statistic comparing mean erosion across clusters.")
-        n2.metric("KW H-stat", "893.49",
+        n2.metric("KW H-stat", _s_kw_h,
             help="Kruskal-Wallis H — non-parametric equivalent, robust to non-normality.")
-        n3.metric("η² effect size", "0.112",
-            help="11.2% of erosion variance explained by cluster membership (medium effect).")
+        n3.metric("η² effect size", _s_eta2,
+            help=f"{_s_eta_pct} of erosion variance explained by cluster membership (medium effect).")
         n4.metric("H₀₂ Decision", "Rejected", help=_plain_tip("kpi_h02"))
 
     st.markdown(
@@ -648,8 +749,8 @@ with tab_seg:
 K-Means clustering on 8 screened behavioral features (highly correlated features with r > 0.85 removed).
 """)
     st.success(
-        "H₀₂ REJECTED — ANOVA: F = 1,479.64, p < 0.0001 · "
-        "Kruskal-Wallis: H = 893.49, p < 0.0001 · η² = 0.112 (medium effect). "
+        f"H₀₂ REJECTED — ANOVA: F = {_s_anova_f}, p < 0.0001 · "
+        f"Kruskal-Wallis: H = {_s_kw_h}, p < 0.0001 · η² = {_s_eta2} (medium effect). "
         "Clusters differ significantly in mean profit erosion — H₁₂ is supported.",
         icon="✅",
     )
@@ -938,7 +1039,7 @@ Together they provide two complementary targeting dimensions.
 | **H₀₂ (Null)** | Customer segments identified through clustering algorithms do not differ significantly in mean profit erosion from returns. |
 | **H₁₂ (Alternative)** | Customer segments identified through clustering algorithms exhibit statistically significant differences in mean profit erosion from returns. |
 | **Test** | One-way ANOVA + Kruskal-Wallis (dual test for robustness) |
-| **Result** | **H₀₂ REJECTED** — ANOVA F = 1,479.64, p < 0.0001 · KW H = 893.49, p < 0.0001 · η² = 0.112 |
+| **Result** | **H₀₂ REJECTED** — ANOVA F = {_s_anova_f}, p < 0.0001 · KW H = {_s_kw_h}, p < 0.0001 · η² = {_s_eta2} |
 | **Conclusion** | H₁₂ supported — clusters differ significantly in mean profit erosion. Gini = {_gini:.3f} (concentration confirmed by bootstrap p < 0.0001). |
 """)
 
@@ -1050,7 +1151,7 @@ and return volume produce materially lower per-customer erosion.
         st.markdown(f"""
 | Finding | Result |
 |---|---|
-| **H₀₂: Segments do not differ in mean profit erosion?** | ✅ REJECTED — ANOVA F = 1,479.64, p < 0.0001, η² = 0.112 |
+| **H₀₂: Segments do not differ in mean profit erosion?** | ✅ REJECTED — ANOVA F = {_s_anova_f}, p < 0.0001, η² = {_s_eta2} |
 | **Concentration (Gini, bootstrap)** | Gini = {_gini:.3f}, p < 0.0001 — erosion significantly unequal |
 | **Top 20% customer erosion share** | {_top20:.1f}% |
 | **Top 50 customers** | {top50_str} of total erosion |
