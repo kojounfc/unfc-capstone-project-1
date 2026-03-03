@@ -109,66 +109,56 @@ _TOOLTIPS = {
 
     # Statistical summaries (latest results)
     "stat_category": (
-        "**Category Results:** This tests whether different product categories generate different levels "
-        "of profit loss when items are returned. A large effect size (ε² = 0.454) means the difference "
-        "is practically meaningful, not just statistically detectable."
+        "**What this test evaluates:** Whether profit erosion differs across product categories "
+        "using the Kruskal–Wallis non-parametric test. Effect size (ε²) indicates magnitude of difference."
     ),
     "stat_brand": (
-        "**Brand Results:** This tests whether different brands generate different levels of profit loss "
-        "on returns. The result is statistically significant with a large effect — brand identity matters "
-        "for how expensive a return is."
+         "**What this test evaluates:** Whether profit erosion differs across brands "
+         "using the Kruskal–Wallis non-parametric test. Effect size (ε²) indicates magnitude of difference."
     ),
 
     # Post-hoc
     "posthoc_cat": (
-        "**Which Categories Differ?** After finding overall differences, this table shows which specific "
-        "category pairs are significantly different from each other. Sorted by strongest difference first."
+         "**What this table shows:** Pairwise category comparisons following a significant "
+         "Kruskal–Wallis result, adjusted for multiple testing using Dunn's procedure."
     ),
     "posthoc_brand": (
-        "**Which Brands Differ?** After finding overall brand differences, this table shows which specific "
-        "brand pairs are significantly different. Sorted by strongest difference first."
-    ),
-
-    # Key findings
-    "key_findings": (
-        "**Key Takeaway:** Profit erosion is not evenly distributed. "
-        "Category and brand both matter, and the differences are large enough to influence business decisions."
+        "**What this table shows:** Pairwise brand comparisons following a significant "
+        "Kruskal–Wallis result, adjusted for multiple testing using Dunn's procedure."
     ),
 
     # Figures
     "fig_top_cat": (
-        "**Interpretation:** Total loss is concentrated in a small number of categories. "
-        "This suggests you get the biggest impact by focusing mitigation efforts on these categories first."
+        "**What this chart shows:** Total profit erosion aggregated by product category. "
+        "Bars are ordered by magnitude, highlighting which categories contribute most to overall financial loss."
     ),
     "fig_top_brand": (
-        "**Interpretation:** Total loss is concentrated in a small number of brands. "
-        "This suggests supplier/brand differences play an important role in return-related financial risk."
+        "**What this chart shows:** Total profit erosion aggregated by brand. "
+        "This visual compares the relative contribution of brands to overall return-related financial loss."
     ),
     "fig_top_dept": (
-        "**Interpretation:** Some departments contribute more total loss than others. "
-        "This helps prioritize monitoring and mitigation at a higher organizational level (beyond categories/brands)."
+        "**What this chart shows:** Total profit erosion aggregated at the department level. "
+        "This is a descriptive organizational view and is not part of the formal hypothesis testing."
     ),
     "fig_dist": (
-        "**Interpretation:** Most returns generate moderate losses, but a small number generate very large losses. "
-        "This heavy tail is why we use non-parametric tests instead of relying on normality."
+        "**What this chart shows:** Distribution of profit erosion per returned item on a log scale. "
+        "The long right tail indicates the presence of extreme loss values, motivating the use of non-parametric tests."
     ),
     "fig_sev_vol": (
-        "**Interpretation:** Total loss comes from two sources: (1) how often returns happen (volume) "
-        "and (2) how costly each return is (severity). Different categories can be high-risk for different reasons."
+        "**What this chart shows:** Each point represents a category positioned by return frequency (volume) "
+        "and average erosion per return (severity). Bubble size reflects total erosion. "
+        "This separates structural volume effects from per-unit loss effects."
     ),
     "fig_ci": (
-        "**Interpretation:** Bootstrap confidence intervals show the uncertainty around category averages. "
-        "Limited overlap increases confidence that category differences are reliable."
+        "**What this chart shows:** Bootstrap 95% confidence intervals for mean profit erosion per return "
+        "across categories. Error bars reflect sampling variability around the mean estimate."
     ),
 
     # Validation
     "ssl_validation": (
-        "**External Validation (SSL — Category only):** The RQ1 category-level workflow was "
-        "replicated on real-world SSL returns data. SSL category is constructed by concatenating "
-        "Pillar + Major Market Cat + Department (e.g., STEM-Science-Physics). "
-        "Brand and department are not validated independently. "
-        "The result supports the same conclusion: profit erosion differs significantly across "
-        "product categories, strengthening confidence that findings are not dataset-specific."
+        "**What this section shows:** Replication of the category-level non-parametric workflow "
+        "on real-world SSL returns data. Category is constructed as Pillar-MajorMarketCat-Department. "
+        "This evaluates whether the direction of category-level differences persists outside the synthetic dataset."
     ),
 }
 
@@ -576,7 +566,7 @@ with tab_cat:
 
     st.divider()
 
-    _tip_header("Return Rate vs Mean Erosion by Category (Interactive)", "key_findings", level=2)
+    _tip_header("Return Rate vs Mean Erosion by Category (Interactive)", "fig_sev_vol", level=2)
     if _cat_df is not None:
         size_col = next((c for c in ["returned_items", "returned_item_rows", "return_count"] if c in _cat_df.columns), None)
         x_col = "return_rate" if "return_rate" in _cat_df.columns else None
@@ -610,9 +600,8 @@ with tab_cat:
             )
             st.plotly_chart(fig, use_container_width=True)
             st.caption(
-                "Return frequency and loss per return represent distinct risk dimensions. "
-                "Categories in the upper-right quadrant are structurally high-risk, while others require "
-                "targeted interventions depending on whether risk is driven by severity or volume."
+                "Each point represents a category. The x-axis shows return rate, "
+                "the y-axis shows mean erosion per return, and bubble size reflects total erosion."
             )
         else:
             fig3_path = FIGURES_RQ1 / "fig3_return_rate_vs_mean_erosion_category.png"
