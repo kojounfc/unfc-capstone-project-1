@@ -393,11 +393,50 @@ with tab1:
         f"out of {_n_total} total" if _n_total is not None else "",
         help=_plain_tip("kpi_sig_feats"),
     )
+    st.divider()
 
+
+# ════════════════════════════════════════════════════════════════════════════════
+# TAB 2 — MODEL RESULTS
+# ════════════════════════════════════════════════════════════════════════════════
+with tab2:
+    st.header("Model Performance & Diagnostics")
+    
+    st.markdown(
+        """
+        This section evaluates the log-linear OLS regression model's fit, assumptions, and reliability.
+        """
+    )
+    
+    st.divider()
+    
+    # ── Model Fit Summary ──────────────────────────────────────────────────────────
+    st.subheader("1. Model Fit Summary")
+    
+    col1, col2, col3 = st.columns(3)
+    col1.metric(
+        "R² (TheLook Training)",
+        f"{_thelook_r2:.4f}" if not pd.isna(_thelook_r2) else "N/A",
+        f"Explains {_thelook_r2*100:.1f}% of log-erosion variance",
+        help="Proportion of variance in log(profit_erosion) explained by behavioral + category features",
+    )
+    col2.metric(
+        "Observations (TheLook)",
+        f"{_thelook_n:,}" if _thelook_n else "N/A",
+        "customers with ≥1 return",
+        help="Sample size used to estimate coefficients",
+    )
+    col3.metric(
+        "Features (Significant)",
+        f"{len(_coef_df[pd.to_numeric(_coef_df.get('p_value', 1), errors='coerce') < 0.05]) if _coef_df is not None else 'N/A'}",
+        f"out of {len(_coef_df) if _coef_df is not None else 'N/A'} total",
+        help="Number of coefficients with p < 0.05",
+    )
+    
     st.divider()
 
     # ── Detailed visualizations (interactive forest + diagnostics) ────────────
-    st.header("Detailed Visualizations")
+    st.subheader("2. OLS Assumptions Validation and Detailed Visualizations")
 
     col_a, col_b = st.columns(2)
 
@@ -618,83 +657,6 @@ with tab1:
         else:
             st.warning("QQ plot figure not found.")
 
-    st.divider()
-
-
-# ════════════════════════════════════════════════════════════════════════════════
-# TAB 2 — MODEL RESULTS
-# ════════════════════════════════════════════════════════════════════════════════
-with tab2:
-    st.header("Model Performance & Diagnostics")
-    
-    st.markdown(
-        """
-        This section evaluates the log-linear OLS regression model's fit, assumptions, and reliability.
-        """
-    )
-    
-    st.divider()
-    
-    # ── Model Fit Summary ──────────────────────────────────────────────────────────
-    st.subheader("1. Model Fit Summary")
-    
-    col1, col2, col3 = st.columns(3)
-    col1.metric(
-        "R² (TheLook Training)",
-        f"{_thelook_r2:.4f}" if not pd.isna(_thelook_r2) else "N/A",
-        f"Explains {_thelook_r2*100:.1f}% of log-erosion variance",
-        help="Proportion of variance in log(profit_erosion) explained by behavioral + category features",
-    )
-    col2.metric(
-        "Observations (TheLook)",
-        f"{_thelook_n:,}" if _thelook_n else "N/A",
-        "customers with ≥1 return",
-        help="Sample size used to estimate coefficients",
-    )
-    col3.metric(
-        "Features (Significant)",
-        f"{len(_coef_df[pd.to_numeric(_coef_df.get('p_value', 1), errors='coerce') < 0.05]) if _coef_df is not None else 'N/A'}",
-        f"out of {len(_coef_df) if _coef_df is not None else 'N/A'} total",
-        help="Number of coefficients with p < 0.05",
-    )
-    
-    st.divider()
-    
-    # ── OLS Assumptions ────────────────────────────────────────────────────────────
-    st.subheader("2. OLS Assumptions Validation")
-    
-    col_a, col_b = st.columns(2)
-    
-    with col_a:
-        st.markdown("**Normality (Q-Q Plot)**")
-        with st.expander("ℹ️ Details", expanded=False):
-            st.markdown(
-                """
-                Residuals should follow a normal distribution for valid p-values and confidence intervals.
-                
-                **Finding:** Log-transformed specification achieves near-normality 
-                (Jarque-Bera = 2,198, 281.8× improvement over linear).
-                """
-            )
-        qq_path = FIGURES_RQ4 / "rq4_qq_plot_comparison.png"
-        if qq_path.exists():
-            st.image(str(qq_path), width='stretch')
-    
-    with col_b:
-        st.markdown("**Residual Patterns (Homoscedasticity)**")
-        with st.expander("ℹ️ Details", expanded=False):
-            st.markdown(
-                """
-                Error variance should be constant across fitted values. 
-                
-                **Finding:** Heteroscedasticity detected — error spread increases with predicted erosion size.
-                - Low predictions (< $50): Reliable ✅
-                - High predictions (> $500): Wide confidence bands ⚠️
-                """
-            )
-        resid_path = FIGURES_RQ4 / "rq4_residual_diagnostics.png"
-        if resid_path.exists():
-            st.image(str(resid_path), width='stretch')
     
     st.divider()
 
