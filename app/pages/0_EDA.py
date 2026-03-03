@@ -73,6 +73,14 @@ st.markdown(
         border-top-color: rgba(28, 28, 44, 0.97);
     }
     .eda-tip:hover .eda-tip-box { visibility: visible; opacity: 1; }
+    .eda-step-badge {
+        background: #f0f4ff; border-radius: 6px; padding: 8px 14px; margin-bottom: 8px;
+        font-size: 0.75rem; font-weight: 700; color: #2c5282; letter-spacing: 0.08em;
+    }
+    @media (max-width: 768px) {
+        .eda-tip-box { width: 260px; font-size: 0.85rem; }
+        .eda-step-badge { font-size: 0.68rem; padding: 6px 10px; }
+    }
     </style>
     """,
     unsafe_allow_html=True,
@@ -121,14 +129,35 @@ _TOOLTIPS = {
     "data_quality": (
         "**Data Quality Checks:** The cleaning pipeline checks for duplicates, missing values, "
         "price inconsistencies, status logic errors, and temporal ordering violations. "
-        "Flagged rows are written to data/processed/data_to_review.csv for audit."
+        "Flagged rows are logged for audit and remediation."
     ),
     "feature_engineering": (
         "**Engineered Features:** Key derived columns support all four research questions. "
         "profit_erosion = margin_reversal + process_cost is the central outcome variable. "
         "is_high_erosion_customer flags customers at or above the 75th percentile of total erosion."
     ),
+    "step_data": (
+        "**What is TheLook?** A synthetic but realistic e-commerce dataset published by Google on "
+        "BigQuery. It covers ~125K customers, ~500K order items, 29 product categories, and 10 "
+        "countries — large enough to support statistical inference but clean enough to validate methods."
+    ),
+    "step_scope": (
+        "**Why returns only?** Only 10.1% of order-items are returned (18,208 / 180,908), but they account for 100% of "
+        "profit erosion in this study. The EDA scopes every chart and metric to this subset so that "
+        "the analytical story is consistent with the research questions downstream."
+    ),
+    "step_features": (
+        "**Why engineer features?** Raw transaction records do not contain return rates, margins, or "
+        "erosion amounts — those must be computed. Feature engineering translates raw prices and "
+        "statuses into the outcome measures (profit_erosion) and predictors (return_frequency, "
+        "avg_order_value, etc.) used by all four research questions."
+    ),
 }
+
+
+def _plain_tip(tooltip_key: str) -> str:
+    """Return raw tooltip text for use in st.metric(help=...)."""
+    return _TOOLTIPS[tooltip_key]
 
 
 def _tip_header(label: str, tooltip_key: str, level: int = 2) -> None:
@@ -153,24 +182,104 @@ def _tip_header(label: str, tooltip_key: str, level: int = 2) -> None:
 
 # ── Page header ───────────────────────────────────────────────────────────────
 st.title("🔍 Exploratory Data Analysis — TheLook E-Commerce")
+
+# ── Executive Summary Banner ───────────────────────────────────────────────
 st.markdown(
     """
-**Source**: `bigquery-public-data.thelook_ecommerce` (Google BigQuery)
-
-Four tables were merged at the **order-item grain** into a single analytical dataset:
-
-| Table | Key Columns |
-|---|---|
-| `order_items` | `order_item_id`, `order_id`, `product_id`, `sale_price`, `status` |
-| `orders` | `order_id`, `user_id`, `order_status`, timestamps |
-| `products` | `product_id`, `brand`, `category`, `department`, `retail_price`, `cost` |
-| `users` | `user_id`, `age`, `gender`, `country`, `traffic_source`, `created_at` |
-
-The pipeline in `src/data_processing.py` loads, merges, and standardizes types.
-Feature engineering (`src/feature_engineering.py`) adds return flags, margins, and
-profit erosion metrics.
-"""
+    <div style="
+        background: linear-gradient(135deg, #0f2440 0%, #1a3660 100%);
+        border-left: 5px solid #7B1FA2;
+        border-radius: 10px;
+        padding: 22px 28px;
+        margin-bottom: 8px;
+    ">
+        <p style="color:#f0c040; font-size:0.78rem; font-weight:700;
+                  letter-spacing:0.12em; text-transform:uppercase; margin:0 0 10px 0;">
+            Dataset Overview — Scope &amp; Structure
+        </p>
+        <p style="color:#e8eaf0; font-size:1.0rem; line-height:1.75; margin:0;">
+            <strong style="color:#ffffff;">TheLook is a synthetic e-commerce dataset
+            purpose-built for analytics.</strong>
+            Four BigQuery tables — <code>order_items</code>, <code>orders</code>,
+            <code>products</code>, and <code>users</code> — are merged at the
+            <strong>order-item grain</strong>: one analytical row per item purchased.
+            The dataset spans ~125K customers, 29 product categories, and 10 countries.
+            <strong style="color:#f0c040;">Only returned items drive profit erosion</strong>
+            — 10.1% of all order-items — making return behaviour the central
+            analytical lens for all four research questions.
+        </p>
+    </div>
+    """,
+    unsafe_allow_html=True,
 )
+
+st.divider()
+
+# ── 3-Panel Step-Badge Logic Chain ────────────────────────────────────────
+col_a, col_b, col_c = st.columns(3)
+
+with col_a:
+    st.markdown(
+        '<div class="eda-step-badge">STEP 1 — WHAT IS THE DATA?</div>',
+        unsafe_allow_html=True,
+    )
+    _tip_header("TheLook Dataset — 4 Tables, 1 Grain", "step_data", level=3)
+    st.caption(
+        "Four BigQuery tables merged at the order-item grain. "
+        "~125K customers · 29 categories · 10 countries."
+    )
+    st.markdown(
+        """
+| Table | Rows (approx) | Key columns |
+|-------|---------------|-------------|
+| `order_items` | 500K+ | `sale_price`, `status`, `product_id` |
+| `orders` | 125K+ | `user_id`, timestamps |
+| `products` | 30K+ | `cost`, `category`, `brand` |
+| `users` | 100K+ | `age`, `gender`, `country` |
+"""
+    )
+
+with col_b:
+    st.markdown(
+        '<div class="eda-step-badge">STEP 2 — WHAT IS IN SCOPE?</div>',
+        unsafe_allow_html=True,
+    )
+    _tip_header("Returns = 10.1% of Items, 100% of Erosion", "step_scope", level=3)
+    st.caption(
+        "Every profit erosion metric is scoped to returned items only. "
+        "Non-returned items serve as the baseline."
+    )
+    st.markdown(
+        """
+- **Returned items**: `item_status == 'Returned'`
+- **Return rate**: 10.1% of all order-item rows (18,208 / 180,908)
+- **Profit erosion**: `margin_reversal + process_cost`
+- **Processing cost**: USD 12 base × category multiplier (1.0–1.3×)
+- **Geographic tiers**: none — return rate CV = 3.58% < 10% threshold
+"""
+    )
+
+with col_c:
+    st.markdown(
+        '<div class="eda-step-badge">STEP 3 — WHAT IS ENGINEERED?</div>',
+        unsafe_allow_html=True,
+    )
+    _tip_header("9 Derived Features Feed All 4 RQs", "step_features", level=3)
+    st.caption(
+        "Feature engineering translates raw prices and statuses into outcome "
+        "measures and predictors used by RQ1–RQ4."
+    )
+    st.markdown(
+        """
+- `item_margin` = `sale_price − cost`
+- `margin_reversal` = item_margin (returned items only)
+- `process_cost` = USD 12 × tier multiplier
+- `profit_erosion` = `margin_reversal + process_cost`
+- `total_profit_erosion` — customer-level sum
+- `is_high_erosion_customer` — top 25% flag (RQ3 target)
+- `return_frequency`, `avg_order_value` etc. — RQ3/RQ4 predictors
+"""
+    )
 
 st.divider()
 
@@ -187,10 +296,7 @@ def _load():
 df = _load()
 
 if df is None:
-    st.warning(
-        "Processed dataset not found. Run the master notebook "
-        "(`notebooks/profit_erosion_analysis.ipynb`) to generate it."
-    )
+    st.warning("Processed dataset not available. Please ensure the analysis pipeline has been run.")
     st.stop()
 
 # ── Section 1: Dataset Overview ───────────────────────────────────────────────
@@ -222,7 +328,7 @@ with st.expander("View column list", expanded=False):
     schema_df = pd.DataFrame(
         {"column": df.columns, "dtype": df.dtypes.astype(str).values}
     )
-    st.dataframe(schema_df, use_container_width=True, hide_index=True)
+    st.dataframe(schema_df, width='stretch', hide_index=True)
 
 st.divider()
 
@@ -253,7 +359,7 @@ if "item_status" in df.columns:
         fig.update_layout(showlegend=False, height=400)
         st.plotly_chart(fig, use_container_width=True)
     with col_table:
-        st.dataframe(status_counts, use_container_width=True, hide_index=True)
+        st.dataframe(status_counts, width='stretch', hide_index=True)
 else:
     st.info("Column `item_status` not found in dataset.")
 
@@ -401,9 +507,8 @@ st.divider()
 # ── Section 7: Data Quality Summary ──────────────────────────────────────────
 _tip_header("7. Data Quality Summary", "data_quality")
 st.markdown(
-    "The cleaning pipeline in `src/data_cleaning.py` checks for duplicates, missing values, "
-    "price inconsistencies, status logic errors, and temporal ordering violations. "
-    "Flagged rows are written to `data/processed/data_to_review.csv` for review."
+    "The cleaning pipeline checks for duplicates, missing values, "
+    "price inconsistencies, status logic errors, and temporal ordering violations."
 )
 
 quality_checks = {
@@ -420,13 +525,13 @@ st.table(pd.DataFrame({"Check": quality_checks.keys(), "Action": quality_checks.
 review_path = PROCESSED / "data_to_review.csv"
 if review_path.exists():
     review_df = pd.read_csv(review_path)
-    st.caption(f"Flagged records for review: {len(review_df):,} rows → `data/processed/data_to_review.csv`")
+    st.caption(f"Flagged records for review: {len(review_df):,} rows")
 
 st.divider()
 
 # ── Section 8: Feature Engineering Overview ───────────────────────────────────
 _tip_header("8. Engineered Features — Quick Reference", "feature_engineering")
-st.markdown("Key derived columns added by `src/feature_engineering.py`:")
+st.markdown("Key derived columns computed from the raw transaction data:")
 
 features_table = pd.DataFrame(
     {
@@ -465,9 +570,73 @@ features_table = pd.DataFrame(
         ],
     }
 )
-st.dataframe(features_table, use_container_width=True, hide_index=True)
+st.dataframe(features_table, width='stretch', hide_index=True)
 
 st.caption(
-    "For the full data dictionary see `docs/DATA_DICTIONARY.md`. "
-    "For processing cost methodology see `docs/PROCESSING_COST_METHODOLOGY.md`."
+    "Full feature definitions and processing cost methodology are documented "
+    "in the project technical documentation."
 )
+
+# ── Section 9: Return Rate Trend (2019–2026) ──────────────────────────────────
+st.divider()
+_tip_header("9. Return Rate Trend — 2019 to 2026", "dataset_overview")
+st.caption(
+    "Monthly return rate (returned items ÷ total items) aggregated from the full dataset. "
+    "The 3-month rolling average smooths short-term noise to reveal the structural trend."
+)
+
+try:
+    import plotly.express as px
+    import plotly.graph_objects as go
+
+    _df_trend = pd.read_parquet(FEATURE_PARQUET, columns=["order_created_at", "is_returned_item"])
+    _df_trend["order_created_at"] = pd.to_datetime(_df_trend["order_created_at"], errors="coerce")
+    _df_trend = _df_trend.dropna(subset=["order_created_at"])
+    _df_trend["month"] = _df_trend["order_created_at"].dt.to_period("M").dt.to_timestamp()
+
+    _monthly = (
+        _df_trend.groupby("month")["is_returned_item"]
+        .agg(returned="sum", total="count")
+        .reset_index()
+    )
+    _monthly["return_rate"] = _monthly["returned"] / _monthly["total"] * 100
+    _monthly["rolling_avg"] = _monthly["return_rate"].rolling(3, min_periods=1).mean()
+    _monthly = _monthly.sort_values("month")
+
+    fig_trend = go.Figure()
+    fig_trend.add_trace(go.Scatter(
+        x=_monthly["month"], y=_monthly["return_rate"],
+        mode="lines",
+        name="Monthly Return Rate",
+        line=dict(color="#90caf9", width=1.2),
+        opacity=0.65,
+        hovertemplate="<b>%{x|%b %Y}</b><br>Return rate: %{y:.2f}%<extra></extra>",
+    ))
+    fig_trend.add_trace(go.Scatter(
+        x=_monthly["month"], y=_monthly["rolling_avg"],
+        mode="lines",
+        name="3-Month Rolling Average",
+        line=dict(color="#1565C0", width=2.5),
+        hovertemplate="<b>%{x|%b %Y}</b><br>3-mo avg: %{y:.2f}%<extra></extra>",
+    ))
+    fig_trend.update_layout(
+        height=340,
+        margin=dict(l=0, r=0, t=30, b=0),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        xaxis=dict(title="Month", showgrid=True, gridcolor="rgba(200,200,200,0.2)"),
+        yaxis=dict(title="Return Rate (%)", showgrid=True, gridcolor="rgba(200,200,200,0.2)"),
+    )
+    st.plotly_chart(fig_trend, use_container_width=True)
+    _n_months = len(_monthly)
+    _mean_rate = _monthly["return_rate"].mean()
+    _max_rate = _monthly["return_rate"].max()
+    _max_month = _monthly.loc[_monthly["return_rate"].idxmax(), "month"].strftime("%b %Y")
+    col_t1, col_t2, col_t3 = st.columns(3)
+    col_t1.metric("Months Observed", f"{_n_months}")
+    col_t2.metric("Mean Monthly Return Rate", f"{_mean_rate:.1f}%")
+    col_t3.metric("Peak Month", _max_month, f"{_max_rate:.1f}%")
+
+except Exception as _e:
+    st.info("Return rate trend chart unavailable — processed dataset not loaded.", icon="ℹ️")

@@ -1,5 +1,5 @@
 {
-  "analysis_date": "2026-02-23T00:54:56.477030",
+  "analysis_date": "2026-02-28T19:28:06.780629",
   "research_question": "To what extent is profit erosion concentrated among a small subset of customers, and can customers be meaningfully segmented?",
   "population": {
     "total_customers": 79944,
@@ -17,7 +17,7 @@
   "finding_2_erosion_concentration": {
     "gini_coefficient": 0.4092911746141102,
     "concentration_level": "Moderate",
-    "top_20_pct_share": 0.476310228016643,
+    "top_20_pct_share": 0.47631022801664313,
     "top_50_absolute": 23808.31,
     "top_50_percentage": 2.92,
     "bootstrap_p_value": 0.0
@@ -45,7 +45,7 @@
     "after_screening": 7,
     "dropped_correlation": 1,
     "top_discriminative_feature": "total_sales",
-    "top_feature_f_statistic": 13988.065358750482,
+    "top_feature_f_statistic": 13988.065358750488,
     "top_feature_p_value": 0.0
   },
   "hypothesis_test": {
@@ -57,8 +57,8 @@
     "evidence_strength": "Very Strong",
     "anova_p_value": 0.0,
     "kruskal_wallis_p_value": 1.5178496786739485e-212,
-    "effect_size_eta_squared": 0.13020325638611308,
-    "variance_explained_pct": 13.020325638611308,
+    "effect_size_eta_squared": 0.1302032563861132,
+    "variance_explained_pct": 13.020325638611318,
     "alpha": 0.05,
     "segmentation_valid": true
   },

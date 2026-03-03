@@ -524,25 +524,28 @@ class TestBuildValidationSummary:
 # ============================================================================
 
 
+_SSL_RAW_PATH = Path(__file__).parent.parent / "data" / "raw" / "SSL_Returns_df_yoy.csv"
+
 @pytest.mark.integration
+@pytest.mark.skipif(
+    not _SSL_RAW_PATH.exists(),
+    reason="SSL raw data not available in this environment",
+)
 class TestRQ4ValidationIntegration:
     """Integration tests using actual RQ4 data files."""
 
     @pytest.fixture(scope="class")
     def real_data_available(self):
-        """Check if real data files are available (including raw SSL, which is not tracked)."""
+        """Check if real data files are available."""
         from pathlib import Path
 
         project_root = Path(__file__).parent.parent
         data_dir = project_root / "data" / "processed"
-        raw_dir = project_root / "data" / "raw"
 
         ssl_file = data_dir / "returns_eda_v1.csv"
         customer_file = data_dir / "customer_profit_erosion_targets.csv"
-        # Raw SSL CSV is large and not tracked in the repo; skip when absent
-        ssl_raw_file = raw_dir / "SSL_Returns_df_yoy.csv"
 
-        return ssl_file.exists() and customer_file.exists() and ssl_raw_file.exists()
+        return ssl_file.exists() and customer_file.exists()
 
     def test_full_validation_pipeline(self, real_data_available):
         """Test complete validation pipeline if data available."""
