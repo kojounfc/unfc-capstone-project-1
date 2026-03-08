@@ -221,3 +221,11 @@ Concept.md
 /data/processed/*.csv
 /data/processed/**/*.csv
 *.zip
+
+# Dev scratch notebooks and local cache
+notebooks/data/
+notebooks/figures/
+
+# SSL validation local outputs (directional validation only — not production artifacts)
+data/processed/rq1_ssl/
+figures/rq1_ssl/

@@ -1072,7 +1072,9 @@ Together they provide two complementary targeting dimensions.
         st.divider()
 
         # ── Dollar Impact Callout ─────────────────────────────────────────────
-        _EROSION_PARQUET = ROOT / "data" / "processed" / "us07_customer_profit_erosion_summaries.parquet"
+        _EROSION_PARQUET = (
+            ROOT / "data" / "processed" / "rq2" / "customer_erosion.parquet"
+        )
         try:
             _df_erosion = pd.read_parquet(_EROSION_PARQUET)
             _high_e = _df_erosion[_df_erosion["is_high_erosion_customer"] == 1]

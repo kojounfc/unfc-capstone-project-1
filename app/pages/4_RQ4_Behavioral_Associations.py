@@ -146,28 +146,19 @@ _ssl_coef_df = None
 _align_df = None
 _val_dict = {}
 
-# v2 = log-linear OLS (primary specification per CLAUDE.md)
-_coef_path = REPORTS_RQ4 / "rq4v2_thelook_coefficients.csv"
-if not _coef_path.exists():
-    _coef_path = REPORTS_RQ4 / "rq4_thelook_coefficients.csv"   # v1 fallback
+_coef_path = REPORTS_RQ4 / "rq4_thelook_coefficients.csv"
 if _coef_path.exists():
     _coef_df = pd.read_csv(_coef_path)
 
-_ssl_coef_path = REPORTS_RQ4 / "rq4v2_ssl_coefficients.csv"
-if not _ssl_coef_path.exists():
-    _ssl_coef_path = REPORTS_RQ4 / "rq4_ssl_coefficients.csv"   # v1 fallback
+_ssl_coef_path = REPORTS_RQ4 / "rq4_ssl_coefficients.csv"
 if _ssl_coef_path.exists():
     _ssl_coef_df = pd.read_csv(_ssl_coef_path)
 
-_align_path = REPORTS_RQ4 / "rq4v2_ssl_coefficient_alignment.csv"
-if not _align_path.exists():
-    _align_path = REPORTS_RQ4 / "rq4_ssl_coefficient_alignment.csv"   # v1 fallback
+_align_path = REPORTS_RQ4 / "rq4_ssl_coefficient_alignment.csv"
 if _align_path.exists():
     _align_df = pd.read_csv(_align_path)
 
-_val_path = REPORTS_RQ4 / "rq4v2_validation_summary.csv"
-if not _val_path.exists():
-    _val_path = REPORTS_RQ4 / "rq4_validation_summary.csv"   # v1 fallback
+_val_path = REPORTS_RQ4 / "rq4_validation_summary.csv"
 if _val_path.exists():
     _val_raw = pd.read_csv(_val_path)
     if _val_raw.shape[1] == 2:
