@@ -65,56 +65,7 @@ ROOT = Path(__file__).parent.parent.parent
 REPORTS_RQ4 = ROOT / "reports" / "rq4"
 FIGURES_RQ4 = ROOT / "figures" / "rq4"
 
-# ── Tooltips ──────────────────────────────────────────────────────────────────
-_TOOLTIPS = {
-    "kpi_r2": (
-        "**R² (TheLook):** Proportion of variance in log(total_profit_erosion) explained by "
-        "behavioral + category + demographic features. R²=0.7765 means the model explains "
-        "77.65% of the variance in log-erosion — a strong fit for econometric work."
-    ),
-    "kpi_n": (
-        "**Observations:** Number of TheLook customers with at least one return included in the "
-        "OLS regression. The analysis population is restricted to returners because "
-        "profit erosion is zero for non-returning customers."
-    ),
-    "kpi_sig_feats": (
-        "**Significant Features:** Count of predictors with p < 0.05 in the log-linear OLS. "
-        "Behavioral and category features dominate; demographic features show no significant "
-        "marginal effect after controlling for behavior."
-    ),
-    "kpi_h0": (
-        "**Hypothesis Decision:** H₀₄ states that behavioral variables exhibit no statistically "
-        "significant marginal associations with profit erosion when controlling for product "
-        "attributes and demographics. "
-        "H₀₄ is rejected — joint F-test p < 0.0001; return_frequency and avg_basket_size "
-        "individually significant. purchase_recency_days does not independently reject H₀₄."
-    ),
-    "fig_target": (
-        "**Target Distribution:** Profit erosion is strongly right-skewed. "
-        "The log transformation achieves near-normality (Jarque-Bera 281.8× improvement), "
-        "validating the OLS normality assumption."
-    ),
-    "fig_forest": (
-        "**Coefficient Forest Plot:** Each point is an OLS coefficient. Points right of zero "
-        "increase erosion; left decrease it. Error bars are 95% CIs. "
-        "return_frequency (+0.445) is the strongest behavioral driver."
-    ),
-    "fig_residuals": (
-        "**Residual Diagnostics:** Four-panel OLS assumption check. "
-        "Heteroscedasticity (funnel pattern) is present and corrected with HC3 robust standard errors. "
-        "Durbin-Watson = 1.98 confirms no autocorrelation."
-    ),
-    "fig_qq": (
-        "**QQ Plot:** Compares residual quantiles to a normal distribution. "
-        "Log-linear residuals hug the diagonal (Jarque-Bera = 2,198) vs. linear model "
-        "(Jarque-Bera = 619,317) — a 281.8× improvement in normality."
-    ),
-    "ssl_validation": (
-        "**External Validation (SSL):** The same log-linear OLS specification was fitted on "
-        "School Specialty LLC (B2B). SSL R²=0.6185 (ratio=0.80), generalization score=0.33. "
-        "return_frequency direction aligns; avg_basket_size sign reverses (B2B vs B2C context)."
-    ),
-}
+
 
 
 def _tip_header(label: str, tooltip_key: str, level: int = 3) -> None:
@@ -146,28 +97,19 @@ _ssl_coef_df = None
 _align_df = None
 _val_dict = {}
 
-# v2 = log-linear OLS (primary specification per CLAUDE.md)
-_coef_path = REPORTS_RQ4 / "rq4v2_thelook_coefficients.csv"
-if not _coef_path.exists():
-    _coef_path = REPORTS_RQ4 / "rq4_thelook_coefficients.csv"   # v1 fallback
+_coef_path = REPORTS_RQ4 / "rq4_thelook_coefficients.csv"
 if _coef_path.exists():
     _coef_df = pd.read_csv(_coef_path)
 
-_ssl_coef_path = REPORTS_RQ4 / "rq4v2_ssl_coefficients.csv"
-if not _ssl_coef_path.exists():
-    _ssl_coef_path = REPORTS_RQ4 / "rq4_ssl_coefficients.csv"   # v1 fallback
+_ssl_coef_path = REPORTS_RQ4 / "rq4_ssl_coefficients.csv"
 if _ssl_coef_path.exists():
     _ssl_coef_df = pd.read_csv(_ssl_coef_path)
 
-_align_path = REPORTS_RQ4 / "rq4v2_ssl_coefficient_alignment.csv"
-if not _align_path.exists():
-    _align_path = REPORTS_RQ4 / "rq4_ssl_coefficient_alignment.csv"   # v1 fallback
+_align_path = REPORTS_RQ4 / "rq4_ssl_coefficient_alignment.csv"
 if _align_path.exists():
     _align_df = pd.read_csv(_align_path)
 
-_val_path = REPORTS_RQ4 / "rq4v2_validation_summary.csv"
-if not _val_path.exists():
-    _val_path = REPORTS_RQ4 / "rq4_validation_summary.csv"   # v1 fallback
+_val_path = REPORTS_RQ4 / "rq4_validation_summary.csv"
 if _val_path.exists():
     _val_raw = pd.read_csv(_val_path)
     if _val_raw.shape[1] == 2:
@@ -185,6 +127,108 @@ _dir_aligned = int(float(_val_dict.get("direction_aligned_count", 0))) if _val_d
 _dir_pct = float(_val_dict.get("direction_aligned_pct", float("nan")))
 _sig_agree = int(float(_val_dict.get("significance_agreement_count", 0))) if _val_dict.get("significance_agreement_count") else None
 
+# ── Jarque-Bera statistics for normality tests ──────────────────────────────────
+_jb_linear = float(_val_dict.get("jb_linear_model", float("nan")))
+_jb_log = float(_val_dict.get("jb_log_linear_model", float("nan")))
+_jb_multiplier = _jb_linear / _jb_log if not pd.isna(_jb_linear) and not pd.isna(_jb_log) and _jb_log != 0 else float("nan")
+
+# ── Durbin-Watson statistic for autocorrelation test ───────────────────────────────
+_dw_statistic = float(_val_dict.get("durbin_watson_statistic", float("nan")))
+def _build_tooltips():
+    """Build tooltip dictionary using loaded variables."""
+    r2_pct = _thelook_r2 * 100 if not pd.isna(_thelook_r2) else 0
+    ssl_r2_pct = _ssl_r2 * 100 if not pd.isna(_ssl_r2) else 0
+    r2_ratio_pct = (_r2_ratio * 100) if not pd.isna(_r2_ratio) else 0
+    gen_score_pct = int(_gen_score * 100) if not pd.isna(_gen_score) else 0
+    dir_pct_rounded = f"{_dir_pct:.0f}" if not pd.isna(_dir_pct) else "N/A"
+    
+    # Format Jarque-Bera values
+    jb_linear_fmt = f"{_jb_linear:,.0f}" if not pd.isna(_jb_linear) else "N/A"
+    jb_log_fmt = f"{_jb_log:,.0f}" if not pd.isna(_jb_log) else "N/A"
+    jb_mult_fmt = f"{_jb_multiplier:.1f}" if not pd.isna(_jb_multiplier) else "N/A"
+    
+    # Extract coefficient values from data
+    rf_coef = "N/A"
+    rf_pct = "N/A"
+    strongest_behav_name = "N/A"
+    strongest_behav_coef = "N/A"
+    
+    if _coef_df is not None and not _coef_df.empty:
+        # Find return_frequency coefficient
+        rf_rows = _coef_df[_coef_df["feature"] == "return_frequency"]
+        if not rf_rows.empty:
+            rf_coef = float(rf_rows.iloc[0]["coefficient"])
+            rf_pct = rf_coef * 100  # Convert to percentage
+            rf_coef = f"{rf_coef:+.3f}"
+            rf_pct = f"{rf_pct:+.1f}"
+        
+        # Find strongest behavioral predictor (exclude category dummies and const)
+        behav_df = _coef_df[
+            ~_coef_df["feature"].str.contains("dominant_return_category|const", regex=True, na=False)
+        ].copy()
+        if not behav_df.empty:
+            behav_df["abs_coef"] = behav_df["coefficient"].abs()
+            strongest_behav = behav_df.nlargest(1, "abs_coef")
+            if not strongest_behav.empty:
+                strongest_behav_name = strongest_behav.iloc[0]["feature"]
+                strongest_behav_coef = float(strongest_behav.iloc[0]["coefficient"])
+                strongest_behav_coef = f"{strongest_behav_coef:+.3f}"
+    
+    return {
+        "kpi_r2": (
+            f"**R² (TheLook):** Proportion of variance in log(total_profit_erosion) explained by "
+            f"behavioral + category + demographic features. R²={_thelook_r2:.4f} means the model explains "
+            f"{r2_pct:.2f}% of the variance in log-erosion — a strong fit for econometric work."
+        ),
+        "kpi_n": (
+            f"**Observations:** Number of TheLook customers with at least one return included in the "
+            f"OLS regression. The analysis population is restricted to returners because "
+            f"profit erosion is zero for non-returning customers. "
+            f"Sample size: {f'{_thelook_n:,}' if _thelook_n else 'N/A'} customers."
+        ),
+        "kpi_sig_feats": (
+            "**Significant Features:** Count of predictors with p < 0.05 in the log-linear OLS. "
+            "Behavioral and category features dominate; demographic features show no significant "
+            "marginal effect after controlling for behavior."
+        ),
+        "kpi_h0": (
+            "**Hypothesis Decision:** H₀₄ states that behavioral variables exhibit no statistically "
+            "significant marginal associations with profit erosion when controlling for product "
+            "attributes and demographics. "
+            "H₀₄ is rejected — joint F-test p < 0.0001; return_frequency and avg_basket_size "
+            "individually significant. purchase_recency_days does not independently reject H₀₄."
+        ),
+        "fig_target": (
+            f"**Target Distribution:** Profit erosion is strongly right-skewed. "
+            f"The log transformation achieves near-normality (Jarque-Bera {jb_mult_fmt}× improvement), "
+            f"validating the OLS normality assumption."
+        ),
+        "fig_forest": (
+            f"**Coefficient Forest Plot:** Each point is an OLS coefficient. Points right of zero "
+            f"increase erosion; left decrease it. Error bars are 95% CIs. "
+            f"{strongest_behav_name} ({strongest_behav_coef}) is the strongest behavioral driver."
+        ),
+        "fig_residuals": (
+            f"**Residual Diagnostics:** Four-panel OLS assumption check. "
+            f"Heteroscedasticity (funnel pattern) is present and corrected with HC3 robust standard errors. "
+            f"Durbin-Watson = {_dw_statistic:.2f} confirms no autocorrelation."
+        ),
+        "fig_qq": (
+            f"**QQ Plot:** Compares residual quantiles to a normal distribution. "
+            f"Log-linear residuals hug the diagonal (Jarque-Bera = {jb_log_fmt}) vs. linear model "
+            f"(Jarque-Bera = {jb_linear_fmt}) — a {jb_mult_fmt}× improvement in normality."
+        ),
+        "ssl_validation": (
+            f"**External Validation (SSL):** The same log-linear OLS specification was fitted on "
+            f"School Specialty LLC (B2B). SSL R²={_ssl_r2:.4f} ({ssl_r2_pct:.2f}%), ratio={_r2_ratio:.2f} ({r2_ratio_pct:.0f}%), "
+            f"generalization score={_gen_score:.2f} ({gen_score_pct}%). "
+            f"Validated on {f'{_ssl_n:,}' if _ssl_n else 'N/A'} accounts. "
+            f"return_frequency direction aligns; avg_basket_size sign reverses (B2B vs B2C context)."
+        ),
+    }
+
+_TOOLTIPS = _build_tooltips()
+
 # ── Header ────────────────────────────────────────────────────────────────────
 st.title("📐 RQ4: Behavioral Associations with Profit Erosion")
 st.markdown(
@@ -195,19 +239,14 @@ st.markdown(
 <p><strong>Alternative Hypothesis (H₁₄):</strong> Behavioral variables exhibit statistically significant marginal associations with profit erosion when controlling for product attributes and demographics.</p>
 </div>
 
-**Method**: Log-Linear OLS Regression — `log(total_profit_erosion) ~ behaviors + categories + demographics`
-
-Log-linear specification chosen because profit erosion is right-skewed; log transform achieves
-near-normality (281.8× Jarque-Bera improvement). Coefficients are interpreted as
-**% change in profit erosion** per unit change in predictor.
-""",
+**Method**: Log-Linear OLS Regression — `log(total_profit_erosion) ~ behaviors + categories + demographics`""",
     unsafe_allow_html=True,
 )
 st.divider()
 
 # ── Executive Summary Banner ───────────────────────────────────────────────────
 st.markdown(
-    """
+    f"""
     <div style="
         background: linear-gradient(135deg, #0f2440 0%, #1a3660 100%);
         border-left: 5px solid #7986CB;
@@ -224,13 +263,13 @@ st.markdown(
             margin: 0 0 10px 0;
         ">Executive Summary — Key Findings &amp; Implications</p>
         <p style="color: #e8eaf0; font-size: 1.0rem; line-height: 1.75; margin: 0;">
-            <strong style="color: #ffffff;">Customer behavior explains 77.6% of profit erosion variance.</strong>
-            The log-linear OLS model (R²&nbsp;=&nbsp;0.7765, n&nbsp;=&nbsp;11,694 TheLook customers) confirms
+            <strong style="color: #ffffff;">Customer behavior explains {_thelook_r2 * 100:.1f}% of profit erosion variance.</strong>
+            The log-linear OLS model (R²&nbsp;=&nbsp;{_thelook_r2:.4f}, n&nbsp;=&nbsp;{f'{_thelook_n:,}' if _thelook_n else 'N/A'} TheLook customers) confirms
             that <em>return frequency</em> is the dominant driver (+56% erosion per additional return),
             followed by high-cost return categories (Suits, Outerwear, Sweaters).
             Demographics show no significant marginal effect after controlling for behavior.
-            External validation on School Specialty LLC (B2B, 13,600 accounts) yields R²&nbsp;=&nbsp;0.6185
-            — an 80% R² retention rate. Return frequency direction aligns across datasets;
+            External validation on School Specialty LLC (B2B, {f'{_ssl_n:,}' if _ssl_n else 'N/A'} accounts) yields R²&nbsp;=&nbsp;{_ssl_r2:.4f}
+            — a {(_r2_ratio * 100):.0f}% R² retention rate. Return frequency direction aligns across datasets;
             basket-size effects reverse between B2C and B2B (product mix heterogeneity).
             <strong style="color: #f0c040;">Decision: Reject H₀₄</strong> — behavioral variables
             exhibit statistically significant marginal associations with profit erosion
@@ -298,8 +337,8 @@ with tab1:
         )
         _tip_header("Target Distribution (Raw vs Log)", "fig_target")
         st.caption(
-            "Profit erosion is strongly right-skewed. Log transformation achieves near-normality "
-            "(Jarque-Bera 281.8× improvement), validating OLS assumptions."
+            f"Profit erosion is strongly right-skewed. Log transformation achieves near-normality "
+            f"(Jarque-Bera {f'{_jb_multiplier:.1f}' if not pd.isna(_jb_multiplier) else 'N/A'}× improvement), validating OLS assumptions."
         )
         target_path = FIGURES_RQ4 / "rq4_target_distribution.png"
         if target_path.exists():
@@ -361,8 +400,8 @@ with tab1:
         )
         _tip_header("Residual Diagnostics", "fig_residuals")
         st.caption(
-            "Heteroscedasticity detected (Breusch-Pagan confirmed) and corrected with HC3 robust SEs. "
-            "Durbin-Watson = 1.98 — no autocorrelation. Results are reliable."
+            f"Heteroscedasticity detected (Breusch-Pagan confirmed) and corrected with HC3 robust SEs. "
+            f"Durbin-Watson = {f'{_dw_statistic:.2f}' if not pd.isna(_dw_statistic) else 'N/A'} — no autocorrelation. Results are reliable."
         )
         resid_path = FIGURES_RQ4 / "rq4_residual_diagnostics.png"
         if resid_path.exists():
@@ -626,15 +665,18 @@ with tab2:
     with col_d:
         st.subheader("QQ Plot — Normality Check")
         with st.expander("ℹ️ What does this mean?", expanded=False):
+            jb_lin_fmt = f"{_jb_linear:,.0f}" if not pd.isna(_jb_linear) else "N/A"
+            jb_log_fmt = f"{_jb_log:,.0f}" if not pd.isna(_jb_log) else "N/A"
+            jb_mult_fmt = f"{_jb_multiplier:.1f}" if not pd.isna(_jb_multiplier) else "N/A"
             st.markdown(
-                """
+                f"""
                 #### Why Log-Transform Works
 
-                **Linear Model (Left):** Jarque-Bera = 619,317 — Severe non-normality
+                **Linear Model (Left):** Jarque-Bera = {jb_lin_fmt} — Severe non-normality
                 - S-shaped deviation from diagonal = underestimation of extreme losses
                 - Linear model misses "profit killer" returns, risking budget shortfalls
 
-                **Log Model (Right):** Jarque-Bera = 2,198 — **281.8x improvement**
+                **Log Model (Right):** Jarque-Bera = {jb_log_fmt} — **{jb_mult_fmt}x improvement**
                 - Points hug diagonal = normally distributed (model assumptions satisfied)
                 - Captures multiplicative nature: shipping × restocking × seasonal loss × support time
 
@@ -694,7 +736,7 @@ with tab2:
     st.divider()
 
     st.markdown(
-        "**Key Takeaway:** Strong model fit on TheLook training data (R²=0.78). "
+        f"**Key Takeaway:** Strong model fit on TheLook training data (R²={_thelook_r2 * 100:.2f}). "
         "Heteroscedasticity present → use caution with high-erosion predictions. "
         "SSL validation shows moderate generalization → patterns real but context-dependent."
     )
@@ -753,15 +795,19 @@ with tab3:
         )
         st.plotly_chart(fig_importance, use_container_width=True)
         
+        # Extract return_frequency coefficient for dynamic example
+        rf_coef = float(_coef_df[_coef_df['feature'] == 'return_frequency']['coefficient'].values[0]) if (_coef_df is not None and 'return_frequency' in _coef_df['feature'].values) else 0.445
+        rf_pct = rf_coef * 100
+        
         st.markdown(
-            """
+            f"""
             **How to interpret:**
             - **Red bars (right):** Features that INCREASE profit erosion
             - **Blue bars (left):** Features that DECREASE erosion (protective factors)
             - **Length:** Strength of effect — longer bars = stronger impact
             
-            Example: `return_frequency` with coefficient 0.445 means: **for each additional return a customer makes, 
-            profit erosion increases by ~45%** (multiplicative, log-scale).
+            Example: `return_frequency` with coefficient {rf_coef:.3f} means: **for each additional return a customer makes, 
+            profit erosion increases by ~{rf_pct:.0f}%** (multiplicative, log-scale).
             """
         )
     
@@ -939,24 +985,45 @@ with tab3:
     if _coef_df is not None and _align_df is not None:
         
         with st.expander("🔍 Behavioral Features (Core Predictors)", expanded=True):
+            # Extract dynamic values from alignment DataFrame
+            rf_row = _align_df[_align_df["feature"] == "return_frequency"].iloc[0] if (_align_df is not None and "return_frequency" in _align_df["feature"].values) else None
+            bs_row = _align_df[_align_df["feature"] == "avg_basket_size"].iloc[0] if (_align_df is not None and "avg_basket_size" in _align_df["feature"].values) else None
+            pr_row = _align_df[_align_df["feature"] == "purchase_recency_days"].iloc[0] if (_align_df is not None and "purchase_recency_days" in _align_df["feature"].values) else None
+            
+            # Return Frequency values
+            rf_tl_coef = float(rf_row["thelook_coefficient"]) if rf_row is not None else 0.445
+            rf_tl_pct = float(rf_row["thelook_pct_effect"]) if rf_row is not None else 56.0
+            rf_ssl_coef = float(rf_row["ssl_coefficient"]) if rf_row is not None else 0.104
+            rf_ssl_pct = float(rf_row["ssl_pct_effect"]) if rf_row is not None else 11.0
+            
+            # Basket Size values
+            bs_tl_coef = float(bs_row["thelook_coefficient"]) if bs_row is not None else -0.156
+            bs_tl_pct = float(bs_row["thelook_pct_effect"]) if bs_row is not None else -14.4
+            bs_ssl_coef = float(bs_row["ssl_coefficient"]) if bs_row is not None else 0.320
+            bs_ssl_pct = float(bs_row["ssl_pct_effect"]) if bs_row is not None else 37.7
+            
+            # Purchase Recency values
+            pr_tl_p = float(pr_row["thelook_p_value"]) if pr_row is not None else 0.5
+            pr_ssl_p = float(pr_row["ssl_p_value"]) if pr_row is not None else 0.05
+            
             st.markdown(
-                """
+                f"""
                 **Return Frequency** ✅ → Transfers to SSL
-                - TheLook: +0.445 (+56% per return) — STRONG
-                - SSL: +0.104 (+11% per return) — WEAK but same direction
+                - TheLook: +{rf_tl_coef:.3f} (+{rf_tl_pct:.0f}% per return) — STRONG
+                - SSL: +{rf_ssl_coef:.3f} (+{rf_ssl_pct:.0f}% per return) — WEAK but same direction
                 - **Pipeline finding:** Return frequency is the most generalisable predictor — both datasets
                   flag it as significant in the same direction (B2B magnitude differs: context-dependent scale)
                 
                 **Basket Size/AOV** ❌ → REVERSES in SSL!
-                - TheLook: -0.156 (-14.4% per AOV unit) — larger orders = LESS erosion
-                - SSL: +0.320 (+37.7% per AOV unit) — larger orders = MORE erosion  
+                - TheLook: {bs_tl_coef:+.3f} ({bs_tl_pct:+.1f}% per AOV unit) — larger orders = LESS erosion
+                - SSL: +{bs_ssl_coef:.3f} (+{bs_ssl_pct:.1f}% per AOV unit) — larger orders = MORE erosion  
                 - **Critical finding:** Size-based economics flip between B2C and B2B!
                   - B2C: Premium customers (large baskets) return less
                   - B2B: Large orders have more returns (bulk shipping complexity?)
                 
                 **Purchase Recency** ❌ → Only significant in SSL
-                - TheLook: n.s. (not predictive)
-                - SSL: Significant (recency matters for B2B retention/erosion)
+                - TheLook: {'✅ Sig' if pr_tl_p < 0.05 else 'n.s. (not predictive)'}
+                - SSL: {'✅ Significant' if pr_ssl_p < 0.05 else 'n.s.'}
                 """
             )
         
