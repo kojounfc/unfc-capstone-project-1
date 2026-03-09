@@ -1703,7 +1703,7 @@ All three models independently exceed the threshold — **H₀₃ is rejected**.
         hide_index=True,
     )
 
-    st.caption(
-        "DAMO-699-4 · University of Niagara Falls, Canada · Winter 2026 · "
-        "RQ3 — Predicting High Profit Erosion Customers"
-    )
+st.caption(
+    "DAMO-699-4 · University of Niagara Falls, Canada · Winter 2026 · "
+    "RQ3 — Predicting High Profit Erosion Customers"
+)
