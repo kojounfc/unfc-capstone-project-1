@@ -11,10 +11,13 @@ from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 
 from src.rq3_modeling import (
+    RuleBasedClassifier,
     build_comparison_table,
     build_model_configs,
+    evaluate_rule_based,
     get_feature_importance,
     prepare_modeling_data,
+    run_ablation_study,
     screen_features,
     test_hypothesis as run_hypothesis_test,
     train_and_evaluate,
@@ -361,3 +364,140 @@ class TestHypothesisTest:
         result = run_hypothesis_test(results_above_threshold)
         assert isinstance(result["conclusion"], str)
         assert len(result["conclusion"]) > 0
+
+
+# ---------------------------------------------------------------------------
+# Fixtures shared by new test classes
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+def rbc_train_data():
+    """Small balanced training set with return_frequency feature."""
+    np.random.seed(42)
+    n = 100
+    X = pd.DataFrame({
+        "return_frequency": np.concatenate([
+            np.random.randint(1, 5, n // 2),   # low returners (negative class)
+            np.random.randint(5, 15, n // 2),  # high returners (positive class)
+        ]).astype(float),
+        "avg_order_value": np.random.uniform(50, 500, n),
+    })
+    y = pd.Series([0] * (n // 2) + [1] * (n // 2), name="is_high_erosion_customer")
+    return X, y
+
+
+@pytest.fixture
+def rbc_test_data():
+    """Small test set matching rbc_train_data schema."""
+    np.random.seed(99)
+    n = 40
+    X = pd.DataFrame({
+        "return_frequency": np.concatenate([
+            np.random.randint(1, 5, n // 2),
+            np.random.randint(5, 15, n // 2),
+        ]).astype(float),
+        "avg_order_value": np.random.uniform(50, 500, n),
+    })
+    y = pd.Series([0] * (n // 2) + [1] * (n // 2), name="is_high_erosion_customer")
+    return X, y
+
+
+class TestRuleBasedClassifier:
+    """Tests for RuleBasedClassifier."""
+
+    def test_fit_sets_threshold(self, rbc_train_data):
+        X, y = rbc_train_data
+        clf = RuleBasedClassifier()
+        clf.fit(X, y)
+        assert isinstance(clf.threshold_, float)
+
+    def test_predict_proba_shape(self, rbc_train_data, rbc_test_data):
+        X_train, y_train = rbc_train_data
+        X_test, _ = rbc_test_data
+        clf = RuleBasedClassifier().fit(X_train, y_train)
+        proba = clf.predict_proba(X_test)
+        assert proba.shape == (len(X_test), 2)
+        assert np.all(proba >= 0.0) and np.all(proba <= 1.0)
+
+    def test_predict_uses_threshold(self, rbc_train_data, rbc_test_data):
+        X_train, y_train = rbc_train_data
+        X_test, _ = rbc_test_data
+        clf = RuleBasedClassifier().fit(X_train, y_train)
+        preds = clf.predict(X_test)
+        expected = (X_test["return_frequency"].values >= clf.threshold_).astype(int)
+        np.testing.assert_array_equal(preds, expected)
+
+    def test_missing_feature_raises(self, rbc_train_data):
+        X, y = rbc_train_data
+        clf = RuleBasedClassifier().fit(X, y)
+        X_no_rf = X.drop(columns=["return_frequency"])
+        with pytest.raises((KeyError, Exception)):
+            clf.predict(X_no_rf)
+
+
+class TestEvaluateRuleBased:
+    """Tests for evaluate_rule_based()."""
+
+    REQUIRED_KEYS = {
+        "best_estimator", "best_params", "cv_auc", "test_auc",
+        "y_pred", "y_proba", "precision", "recall", "f1",
+        "accuracy", "confusion_matrix", "roc_curve",
+    }
+
+    def test_returns_required_keys(self, rbc_train_data, rbc_test_data):
+        X_train, y_train = rbc_train_data
+        X_test, y_test = rbc_test_data
+        result = evaluate_rule_based(X_train, X_test, y_train, y_test)
+        assert self.REQUIRED_KEYS.issubset(set(result.keys()))
+
+    def test_cv_auc_is_nan(self, rbc_train_data, rbc_test_data):
+        X_train, y_train = rbc_train_data
+        X_test, y_test = rbc_test_data
+        result = evaluate_rule_based(X_train, X_test, y_train, y_test)
+        assert isinstance(result["cv_auc"], float) and np.isnan(result["cv_auc"])
+
+    def test_metrics_are_float(self, rbc_train_data, rbc_test_data):
+        X_train, y_train = rbc_train_data
+        X_test, y_test = rbc_test_data
+        result = evaluate_rule_based(X_train, X_test, y_train, y_test)
+        for key in ("test_auc", "f1", "precision", "recall"):
+            assert isinstance(result[key], float), f"{key} is not float"
+            assert 0.0 <= result[key] <= 1.0, f"{key} out of [0,1]"
+
+
+class TestRunAblationStudy:
+    """Tests for run_ablation_study()."""
+
+    @pytest.fixture
+    def ablation_inputs(self, rbc_train_data, rbc_test_data):
+        """Minimal importance_df with 5 features for ablation tests."""
+        X_train, y_train = rbc_train_data
+        X_test, y_test = rbc_test_data
+        # Add extra features so ablation has room to remove
+        for col in ["total_margin", "avg_item_margin", "total_items"]:
+            X_train[col] = np.random.uniform(0, 100, len(X_train))
+            X_test[col] = np.random.uniform(0, 100, len(X_test))
+
+        importance_df = pd.DataFrame([
+            {"feature": "return_frequency", "model": "Random Forest", "importance": 0.40},
+            {"feature": "avg_order_value",  "model": "Random Forest", "importance": 0.25},
+            {"feature": "total_margin",     "model": "Random Forest", "importance": 0.20},
+            {"feature": "avg_item_margin",  "model": "Random Forest", "importance": 0.10},
+            {"feature": "total_items",      "model": "Random Forest", "importance": 0.05},
+        ])
+        return X_train, X_test, y_train, y_test, importance_df
+
+    def test_returns_required_keys(self, ablation_inputs):
+        X_train, X_test, y_train, y_test, imp_df = ablation_inputs
+        result = run_ablation_study(X_train, X_test, y_train, y_test, imp_df, n_top_features=2)
+        assert {"removed_features", "retained_features", "ablated_test_auc", "ablated_cv_auc", "best_params"}.issubset(set(result.keys()))
+
+    def test_removes_n_top_features(self, ablation_inputs):
+        X_train, X_test, y_train, y_test, imp_df = ablation_inputs
+        result = run_ablation_study(X_train, X_test, y_train, y_test, imp_df, n_top_features=2)
+        assert len(result["removed_features"]) == 2
+
+    def test_retained_features_disjoint(self, ablation_inputs):
+        X_train, X_test, y_train, y_test, imp_df = ablation_inputs
+        result = run_ablation_study(X_train, X_test, y_train, y_test, imp_df, n_top_features=2)
+        assert set(result["removed_features"]).isdisjoint(set(result["retained_features"]))
