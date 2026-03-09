@@ -95,13 +95,13 @@ _rq4_top_feat = None
 _rq4_top_pct = None
 _ssl_accounts_rq3 = None
 
-_cat_path = PROCESSED / "us07_product_profit_erosion_by_category.parquet"
+_cat_path = PROCESSED / "rq1" / "rq1_product_profit_erosion_by_category.parquet"
 if _cat_path.exists():
     _cat_df = pd.read_parquet(_cat_path)
     _rq1_top_cat = _cat_df.nlargest(1, "total_profit_erosion").iloc[0]["category"]
 
 _rq1_top_brand = None
-_brand_path = PROCESSED / "us07_product_profit_erosion_by_brand.parquet"
+_brand_path = PROCESSED / "rq1" / "rq1_product_profit_erosion_by_brand.parquet"
 if _brand_path.exists():
     _brand_df = pd.read_parquet(_brand_path)
     _rq1_top_brand = _brand_df.nlargest(1, "total_profit_erosion").iloc[0]["brand"]
@@ -124,9 +124,9 @@ if _val3_path.exists():
     _val3_dict = dict(zip(_val3["metric"], _val3["value"]))
     _ssl_accounts_rq3 = int(float(_val3_dict.get("ssl_accounts_evaluated", 0)))
 
-_val4_path = REPORTS_RQ4 / "rq4v2_validation_summary.csv"
-_align4_path = REPORTS_RQ4 / "rq4v2_ssl_coefficient_alignment.csv"
-_coef4_path = REPORTS_RQ4 / "rq4v2_thelook_coefficients.csv"
+_val4_path = REPORTS_RQ4 / "rq4_validation_summary.csv"
+_align4_path = REPORTS_RQ4 / "rq4_ssl_coefficient_alignment.csv"
+_coef4_path = REPORTS_RQ4 / "rq4_thelook_coefficients.csv"
 if _val4_path.exists():
     _val4 = pd.read_csv(_val4_path)
     _val4_dict = dict(zip(_val4.iloc[:, 0], _val4.iloc[:, 1]))
