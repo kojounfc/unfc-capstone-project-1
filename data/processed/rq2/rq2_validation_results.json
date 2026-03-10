@@ -1,5 +1,5 @@
 {
-  "validation_date": "2026-02-28T19:28:09.463328",
+  "validation_date": "2026-03-08T21:55:11.912728",
   "external_dataset": "School Specialty LLC (SSL)",
   "validation_type": "Pattern-based (Level 1 only)",
   "reason": "RQ2 uses unsupervised clustering, no trained model for directional validation",
