@@ -32,10 +32,10 @@ All hypothesis testing was conducted at significance level α = 0.05.
 
 - **Unit of analysis:** Customer (aggregated from order-item transactions)
 - **Dataset:** TheLook synthetic e-commerce dataset
-- **Total customers:** 79,935
-- **Analysis population (returners only):** 11,790 customers with at least one returned item (14.7% of total)
-- **Total profit erosion (analysis population):** $808,252.07
-- **Total returned items:** 18,026
+- **Total customers:** 79,944
+- **Analysis population (returners only):** 11,988 customers with at least one returned item (15.0% of total)
+- **Total profit erosion (analysis population):** $816,500.94
+- **Total returned items:** 18,208
 
 Only customers with at least one return are included. The restriction is intentional: the concentration and segmentation analysis targets the population that generates return-driven losses, not the full customer base.
 
@@ -47,17 +47,17 @@ Profit erosion was operationalized using the standardized US06 feature engineeri
 
 $$\text{Profit Erosion} = \text{Margin Reversal} + \text{Processing Cost}$$
 
-- **Margin Reversal:** Item-level contribution margin lost due to the return. Total across dataset: $558,911.87.
-- **Processing Cost:** Modeled reverse-logistics cost ($12 base × category-tiered multiplier: Premium 1.3× = $15.60, Moderate 1.15× = $13.80, Standard 1.0× = $12.00). Total: $249,340.20.
+- **Margin Reversal:** Item-level contribution margin lost due to the return. Total across dataset: $564,294.54.
+- **Processing Cost:** Modeled reverse-logistics cost ($12 base × category-tiered multiplier: Premium 1.3× = $15.60, Moderate 1.15× = $13.80, Standard 1.0× = $12.00). Total: $252,206.40.
 - **Average profit erosion per return:** $44.84
 
-Processing cost tier distribution across 18,026 returned items:
+Processing cost tier distribution across 18,208 returned items:
 
 | Tier | Rate | Items | Share |
 |------|------|-------|-------|
-| Standard | $12.00 | 5,124 | 28.4% |
-| Moderate | $13.80 | 7,455 | 41.4% |
-| Premium | $15.60 | 5,447 | 30.2% |
+| Standard | $12.00 | 5,042 | 27.7% |
+| Moderate | $13.80 | 7,604 | 41.8% |
+| Premium | $15.60 | 5,562 | 30.5% |
 
 ---
 
@@ -65,7 +65,7 @@ Processing cost tier distribution across 18,026 returned items:
 
 ### 5.1 Overview
 
-Concentration analysis measures how unevenly profit erosion is distributed across the 11,790 returning customers. Two primary tools are used: the Gini coefficient and Pareto / Lorenz curves. Both are descriptive and do not require a hypothesis test — they characterise the shape of the problem before segmentation.
+Concentration analysis measures how unevenly profit erosion is distributed across the 11,988 returning customers. Two primary tools are used: the Gini coefficient and Pareto / Lorenz curves. Both are descriptive and do not require a hypothesis test — they characterise the shape of the problem before segmentation.
 
 ### 5.2 Gini Coefficient
 
@@ -79,8 +79,8 @@ Cumulative erosion shares by customer rank:
 
 | Customer Group | Share of Total Erosion | Absolute Amount |
 |----------------|------------------------|-----------------|
-| Top 20% | 47.6% | ~$384,728 |
-| Top 50 customers | 3.2% | $25,828.85 |
+| Top 20% | 47.6% | ~$388,814 |
+| Top 50 customers | 2.9% | $23,808.31 |
 
 The top 20% of customers account for 47.6% of total profit erosion — an approximate 80/20 relationship consistent with Pareto concentration (Koch, 1997). Concentration is spread across the top quintile rather than localized in a handful of extreme outliers.
 
@@ -135,15 +135,15 @@ Two complementary indices were evaluated for k = 2 through k = 8:
 
 | k | Silhouette Score |
 |---|-----------------|
-| **2** | **0.2844** ← peak |
-| 3 | 0.2131 |
-| 4 | 0.2384 |
-| 5 | 0.2479 |
-| 6 | 0.2347 |
-| 7 | 0.2466 |
-| 8 | 0.2495 |
+| **2** | **0.2921** ← peak |
+| 3 | 0.2485 |
+| 4 | 0.2490 |
+| 5 | 0.2484 |
+| 6 | 0.2452 |
+| 7 | 0.2460 |
+| 8 | 0.2402 |
 
-The silhouette score peaks at k = 2 (0.2844) and is not exceeded at any higher k through k = 8. The inertia (elbow) curve shows an inflection at k ≈ 2. **k = 2 is the statistically optimal solution — not a simplification.**
+The silhouette score peaks at k = 2 (0.2921) and is not exceeded at any higher k through k = 8. The inertia (elbow) curve shows an inflection at k ≈ 2. **k = 2 is the statistically optimal solution — not a simplification.**
 
 ### 6.4 Pipeline Architecture
 
@@ -166,50 +166,50 @@ The silhouette score peaks at k = 2 (0.2844) and is not exceeded at any higher k
 
 | Cluster | Count | % of Population | Mean Erosion | Median Erosion | Total Erosion | % of Total |
 |---------|-------|-----------------|--------------|----------------|---------------|------------|
-| **Cluster 0** | 4,302 | 36.5% | $95.51 | $68.29 | $410,900.70 | 50.8% |
-| **Cluster 1** | 7,488 | 63.5% | $53.07 | $40.84 | $397,351.37 | 49.2% |
+| **Cluster 0** | 4,375 | 36.5% | $96.68 | $68.48 | $422,960.18 | 51.8% |
+| **Cluster 1** | 7,613 | 63.5% | $51.69 | $40.89 | $393,540.76 | 48.2% |
 
-Cluster 0 is the smaller, higher-erosion segment. Despite comprising only 36.5% of returners, it accounts for 50.8% of total profit erosion. The mean erosion difference between clusters is $42.45 (ratio: 1.80×).
+Cluster 0 is the smaller, higher-erosion segment. Despite comprising only 36.5% of returners, it accounts for 51.8% of total profit erosion. The mean erosion difference between clusters is $44.99 (ratio: 1.87×).
 
 ### 7.2 Cluster Profiles
 
 | Feature | Cluster 0 Mean | Cluster 1 Mean | Key Difference |
 |---------|---------------|---------------|----------------|
-| `order_frequency` | 2.99 | 1.42 | Cluster 0: frequent buyers |
-| `avg_order_value` | $125.70 | $63.97 | Cluster 0: higher spend per order |
+| `order_frequency` | 2.96 | 1.43 | Cluster 0: frequent buyers |
+| `avg_order_value` | $127.56 | $61.97 | Cluster 0: higher spend per order |
 | `total_sales` | $326.37 | $85.46 | Cluster 0: much higher lifetime spend |
-| `customer_return_rate` | 0.40 | 0.82 | Cluster 1: very high return rate |
+| `customer_return_rate` | 0.41 | 0.82 | Cluster 1: very high return rate |
 | `purchase_recency_days` | 317 | 558 | Cluster 0: more recently active |
-| `avg_basket_size` | 1.70 | 1.31 | Cluster 0: larger baskets |
-| `customer_tenure_days` | 1,232 | 1,264 | Negligible difference |
+| `avg_basket_size` | 1.72 | 1.28 | Cluster 0: larger baskets |
+| `customer_tenure_days` | 1,234 | 1,263 | Negligible difference |
 
-**Cluster 0 — High-Activity, Moderate Return Rate:** Frequent buyers ($95.51 avg erosion) who purchase often, spend more, and return a minority of what they buy. High absolute erosion driven by volume and spend, not return propensity.
+**Cluster 0 — High-Activity, Moderate Return Rate:** Frequent buyers ($96.68 avg erosion) who purchase often, spend more, and return a minority of what they buy. High absolute erosion driven by volume and spend, not return propensity.
 
-**Cluster 1 — Low-Activity, High Return Rate:** Predominantly single-order customers ($53.07 avg erosion) with very high return rates (median = 1.00 — they return everything they buy in this dataset). Lower absolute erosion per customer despite near-complete return behaviour.
+**Cluster 1 — Low-Activity, High Return Rate:** Predominantly single-order customers ($51.69 avg erosion) with very high return rates (median = 1.00 — they return everything they buy in this dataset). Lower absolute erosion per customer despite near-complete return behaviour.
 
 ### 7.3 Feature Importance (ANOVA F-Statistics)
 
 | Feature | F-Statistic | η² (Effect Size) |
 |---------|-------------|------------------|
-| `order_frequency` | 12,485.99 | 0.514 |
-| `total_sales` | 12,091.83 | 0.506 |
-| `total_margin` | 11,324.23 | 0.490 |
-| `customer_return_rate` | 8,270.09 | 0.412 |
-| `avg_order_value` | 2,253.97 | 0.161 |
-| `avg_basket_size` | 1,042.32 | 0.081 |
-| `purchase_recency_days` | 694.94 | 0.056 |
-| `customer_tenure_days` | 4.68 | 0.000 |
+| `order_frequency` | 11,549.10 | 0.491 |
+| `total_sales` | 13,988.07 | 0.539 |
+| `total_margin` | 13,033.80 | 0.521 |
+| `customer_return_rate` | 7,488.41 | 0.385 |
+| `avg_order_value` | 2,731.74 | 0.186 |
+| `avg_basket_size` | 1,410.94 | 0.105 |
+| `purchase_recency_days` | 621.85 | 0.049 |
+| `customer_tenure_days` | 4.04 | 0.000 |
 
-Order frequency dominates cluster separation (F = 12,486, η² = 0.514) — it alone explains 51.4% of between-cluster variance. Customer tenure is essentially uninformative (η² ≈ 0.000).
+Order frequency dominates cluster separation (F = 11,549, η² = 0.491) — it alone explains 49.1% of between-cluster variance. Customer tenure is essentially uninformative (η² ≈ 0.000).
 
 ### 7.4 Hypothesis Test Results
 
 | Test | Statistic | p-value | Decision |
 |------|-----------|---------|----------|
-| One-Way ANOVA | F = 1,479.64 | < 0.000001 | **Reject H₀₂** |
-| Kruskal-Wallis | H = 893.49 | < 0.000001 | **Reject H₀₂** |
+| One-Way ANOVA | F = 1,794.23 | < 0.000001 | **Reject H₀₂** |
+| Kruskal-Wallis | H = 968.13 | < 0.000001 | **Reject H₀₂** |
 
-**Effect size η² = 0.1115 (11.2% of variance explained) — medium practical effect.**
+**Effect size η² = 0.1302 (13.0% of variance explained) — medium practical effect.**
 
 Both parametric and non-parametric tests independently confirm H₀₂ is rejected. H₁₂ is supported: customer segments identified through clustering exhibit statistically significant differences in mean profit erosion from returns.
 
@@ -225,15 +225,15 @@ Both parametric and non-parametric tests independently confirm H₀₂ is reject
 
 ### 8.2 Segmentation (H₀₂ Test)
 
-- ANOVA F = 1,479.64, p < 0.0001
-- Kruskal-Wallis H = 893.49, p < 0.0001
-- η² = 0.112 (medium effect)
-- Silhouette score at k = 2: 0.2844 (highest across k = 2 to 8)
+- ANOVA F = 1,794.23, p < 0.0001
+- Kruskal-Wallis H = 968.13, p < 0.0001
+- η² = 0.130 (medium effect)
+- Silhouette score at k = 2: 0.2921 (highest across k = 2 to 8)
 - H₀₂ **Rejected** — H₁₂ **Supported**
 
 ### 8.3 Integrated Interpretation
 
-Concentration identifies **WHO** to target: the top 20% of returning customers, best identified via `purchase_recency_days`. Segmentation reveals **HOW** to intervene differently: Cluster 0 (frequent buyers, $95.51 avg) requires personalised retention strategies; Cluster 1 (single-order, high return rate, $53.07 avg) requires policy-level guardrails. The optimal targeting zone is the top 20% of Cluster 0 — smallest group, highest per-customer impact.
+Concentration identifies **WHO** to target: the top 20% of returning customers, best identified via `purchase_recency_days`. Segmentation reveals **HOW** to intervene differently: Cluster 0 (frequent buyers, $96.68 avg) requires personalised retention strategies; Cluster 1 (single-order, high return rate, $51.69 avg) requires policy-level guardrails. The optimal targeting zone is the top 20% of Cluster 0 — smallest group, highest per-customer impact.
 
 ---
 
@@ -253,18 +253,20 @@ Since RQ2 uses unsupervised clustering, direct model transfer is not possible. L
 | `customer_return_rate` | Pass | Pass | Both Pass | **Yes** |
 | `avg_basket_size` | Pass | Pass | Both Pass | **Yes** |
 | `total_margin` | Pass | Pass | Both Pass | **Yes** |
+| `avg_item_margin` | Pass | Pass | Both Pass | **Yes** |
 | `order_frequency` | Fail | Fail | Both Fail | **Yes** |
 | `total_sales` | Fail | Fail | Both Fail | **Yes** |
 | `return_frequency` | Pass | Fail | Disagree | No |
 | `total_items` | Pass | Fail | Disagree | No |
 | `customer_tenure_days` | Fail | Pass | Disagree | No |
 | `purchase_recency_days` | Fail | Pass | Disagree | No |
+| `avg_item_price` | Fail | Pass | Disagree | No |
 
-**Agreement: 6/10 features (60.0%) — validation threshold exceeded (≥ 50%).**
+**Agreement: 7/12 features (58.3%) — validation threshold exceeded (≥ 50%).**
 
-- **Both Pass (4):** `avg_order_value`, `customer_return_rate`, `avg_basket_size`, `total_margin` — discriminate high-loss accounts in both datasets. Use confidently for cross-domain targeting.
+- **Both Pass (5):** `avg_order_value`, `customer_return_rate`, `avg_basket_size`, `total_margin`, `avg_item_margin` — discriminate high-loss accounts in both datasets. Use confidently for cross-domain targeting.
 - **Both Fail (2):** `order_frequency`, `total_sales` — uninformative in both datasets. Agreement on uselessness still counts toward the threshold.
-- **Disagree (4):** `return_frequency`, `total_items` pass in TheLook but fail in SSL (returns-only scope collapses their independent signal); `customer_tenure_days`, `purchase_recency_days` pass in SSL (defined 2-year window) but fail in TheLook's longer time horizon.
+- **Disagree (5):** `return_frequency`, `total_items` pass in TheLook but fail in SSL (returns-only scope collapses their independent signal); `customer_tenure_days`, `purchase_recency_days`, `avg_item_price` pass in SSL (defined 2-year window) but fail in TheLook's longer time horizon.
 
 ---
 
@@ -288,7 +290,7 @@ Since RQ2 uses unsupervised clustering, direct model transfer is not possible. L
 ### Statistical Evidence (Overview)
 
 - Left panel: Concentration analysis — Gini = 0.409, bootstrap p < 0.0001.
-- Right panel: H₀₂ test — ANOVA F = 1,479.64, KW H = 893.49, η² = 0.112, Decision: **Rejected**.
+- Right panel: H₀₂ test — ANOVA F = 1,794.23, KW H = 968.13, η² = 0.130, Decision: **Rejected**.
 
 ### Concentration Tab
 
@@ -313,25 +315,25 @@ Full H₀₂ / H₁₂ hypothesis table, integrated WHO/HOW/Driver metrics, clus
 - The TheLook dataset is synthetic and may not fully capture behavioral complexity present in real-world e-commerce data. Findings should be validated against production customer data before operational deployment.
 - Return processing costs are modeled using literature-based estimates rather than directly observed operational costs.
 - Recovery or resale value of returned items is not incorporated, which may overstate net profit erosion.
-- K-Means assumes spherical cluster geometry. The moderate silhouette score (0.2844) reflects a behavioral continuum rather than clearly separated populations — the two-cluster assignment is a useful operational approximation.
+- K-Means assumes spherical cluster geometry. The moderate silhouette score (0.2921) reflects a behavioral continuum rather than clearly separated populations — the two-cluster assignment is a useful operational approximation.
 - External validation uses a returns-only SSL dataset, limiting interpretability of return-rate features whose denominators reflect return activity rather than total purchasing behavior.
 
 ---
 
 ## 12. Conclusion (RQ2)
 
-**H₀₂ is rejected.** Customer segments identified through K-Means clustering exhibit statistically significant differences in mean profit erosion from returns (ANOVA F = 1,479.64, p < 0.0001; Kruskal-Wallis H = 893.49, p < 0.0001; η² = 0.112 — medium effect). H₁₂ is supported.
+**H₀₂ is rejected.** Customer segments identified through K-Means clustering exhibit statistically significant differences in mean profit erosion from returns (ANOVA F = 1,794.23, p < 0.0001; Kruskal-Wallis H = 968.13, p < 0.0001; η² = 0.130 — medium effect). H₁₂ is supported.
 
-Concentration analysis provides the descriptive context: Gini = 0.409 (bootstrap p < 0.0001), with the top 20% of returning customers accounting for 47.6% of $808,252.07 in total profit erosion across 11,790 returners.
+Concentration analysis provides the descriptive context: Gini = 0.409 (bootstrap p < 0.0001), with the top 20% of returning customers accounting for 47.6% of $816,500.94 in total profit erosion across 11,988 returners.
 
 The two-cluster solution identifies:
 
-- **Cluster 0** (n = 4,302, 36.5%): High-frequency buyers, mean erosion $95.51, 50.8% of total erosion. Primary driver: order frequency (F = 12,486, η² = 0.514).
-- **Cluster 1** (n = 7,488, 63.5%): Single-order, high return rate customers, mean erosion $53.07, 49.2% of total erosion.
+- **Cluster 0** (n = 4,375, 36.5%): High-frequency buyers, mean erosion $96.68, 51.8% of total erosion. Primary driver: order frequency (F = 11,549, η² = 0.491).
+- **Cluster 1** (n = 7,613, 63.5%): Single-order, high return rate customers, mean erosion $51.69, 48.2% of total erosion.
 
-External pattern validation (SSL) shows 60.0% agreement (6/10 features) — exceeding the 50% cross-domain validity threshold. Four features pass in both datasets (`customer_return_rate`, `avg_order_value`, `avg_basket_size`, `total_margin`); two fail in both (`order_frequency`, `total_sales`). The core behavioral dimensions generalise across datasets.
+External pattern validation (SSL) shows 58.3% agreement (7/12 features) — exceeding the 50% cross-domain validity threshold. Five features pass in both datasets (`customer_return_rate`, `avg_order_value`, `avg_basket_size`, `total_margin`, `avg_item_margin`); two fail in both (`order_frequency`, `total_sales`). The core behavioral dimensions generalise across datasets.
 
-**Strategic implication:** Focus Cluster 0 (frequent buyers) on personalised fit guidance and loyalty retention. Apply policy-level guardrails to Cluster 1 (high return rate). Use `purchase_recency_days` (Gini = 0.528) as the highest-precision alerting signal for both segments.
+**Strategic implication:** Focus Cluster 0 (frequent buyers) on personalised fit guidance and loyalty retention. Apply policy-level guardrails to Cluster 1 (high return rate). Use `purchase_recency_days` (Gini = 0.530) as the highest-precision alerting signal for both segments.
 
 These findings extend RQ1's product-level descriptive analysis into a customer-level targeting framework, and directly motivate the predictive modeling approach in RQ3.
 

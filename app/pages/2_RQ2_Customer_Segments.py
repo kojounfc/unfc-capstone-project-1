@@ -93,7 +93,7 @@ _TOOLTIPS = {
         "The Pareto principle in action — a small subset drives a disproportionate share of losses."
     ),
     "kpi_h01": (
-        "**Concentration Finding (descriptive):** Gini coefficient = 0.409 with bootstrap "
+        "**Concentration Finding (descriptive):** Gini coefficient with bootstrap "
         "p < 0.0001 confirms that profit erosion is significantly unequal across customers. "
         "This is the foundation that motivates the segmentation in H₀₂ — if erosion were uniform, "
         "segmentation would have no practical value."
@@ -117,7 +117,7 @@ _TOOLTIPS = {
     "fig_feat_conc": (
         "**Feature Concentration Ranking:** Each behavioral feature is scored by its own Gini "
         "coefficient — how unequally erosion is distributed when customers are ranked by that feature. "
-        "purchase_recency_days tops the list (Gini=0.528), making recency-based alerting the most "
+        "The top-ranked feature has the highest Gini, making recency-based alerting the most "
         "precise early-warning signal available."
     ),
     "fig_gini_pareto": (
@@ -128,7 +128,7 @@ _TOOLTIPS = {
     ),
     "fig_cluster_erosion": (
         "**Cluster Erosion Comparison:** Side-by-side comparison of mean and median profit erosion "
-        "for each K-Means cluster. Cluster 0 (avg $95.51) is 1.80x higher than Cluster 1 ($53.07). "
+        "for each K-Means cluster. The high-erosion cluster avg is materially higher than the low-erosion cluster. "
         "Despite smaller headcount, it drives nearly equal total dollars."
     ),
     "fig_diagnostics": (
@@ -139,7 +139,7 @@ _TOOLTIPS = {
     "fig_feat_imp": (
         "**Feature Importance (ANOVA F-statistic):** After clustering, one-way ANOVA on each "
         "feature measures how strongly it discriminates between the two clusters. "
-        "order_frequency dominates (F=12,486, eta squared=0.514) — frequent buyers return more and cost more."
+        "The top-ranked feature by F-statistic dominates — frequent buyers return more and cost more."
     ),
     "fig_explorer": (
         "**Cluster Explorer:** Each point is one customer coloured by cluster assignment. "
@@ -341,6 +341,49 @@ _s_kw_h    = _fmt_f(_kw_h)
 _s_eta2    = _fmt_eta(_eta2)
 _s_eta_pct = _eta_pct(_eta2)
 
+# ── Dynamic cluster profile scalars ──────────────────────────────────────────
+# Derived from cluster_summary.parquet — never hardcoded.
+_dyn_high_cluster   = 0          # cluster id with highest mean erosion
+_dyn_low_cluster    = 1          # cluster id with lowest mean erosion
+_dyn_high_mean      = 95.51      # fallback only
+_dyn_low_mean       = 53.07      # fallback only
+_dyn_high_count     = None
+_dyn_low_count      = None
+_dyn_high_label     = "Cluster 0"
+_dyn_low_label      = "Cluster 1"
+_dyn_ratio          = None
+_dyn_feat_top_name  = "purchase_recency_days"
+_dyn_feat_top_gini  = 0.528
+
+if _cs_df is not None and "Mean_Erosion" in _cs_df.columns:
+    _id_c = next((c for c in ["cluster_id", "Cluster", "cluster"] if c in _cs_df.columns), None)
+    if _id_c:
+        _cs_sorted = _cs_df.sort_values("Mean_Erosion", ascending=False).reset_index(drop=True)
+        _dyn_high_cluster = int(_cs_sorted[_id_c].iloc[0])
+        _dyn_low_cluster  = int(_cs_sorted[_id_c].iloc[-1])
+        _dyn_high_mean    = float(_cs_sorted["Mean_Erosion"].iloc[0])
+        _dyn_low_mean     = float(_cs_sorted["Mean_Erosion"].iloc[-1])
+        _dyn_high_label   = f"Cluster {_dyn_high_cluster}"
+        _dyn_low_label    = f"Cluster {_dyn_low_cluster}"
+        _dyn_ratio        = _dyn_high_mean / _dyn_low_mean if _dyn_low_mean > 0 else None
+        if "Count" in _cs_df.columns:
+            _dyn_high_count = int(_cs_sorted["Count"].iloc[0])
+            _dyn_low_count  = int(_cs_sorted["Count"].iloc[-1])
+
+if _feat_conc is not None:
+    _gini_col = next((c for c in ["gini_coefficient","gini","Gini"] if c in _feat_conc.columns), None)
+    _feat_col = next((c for c in ["feature","Feature"] if c in _feat_conc.columns), None)
+    if _gini_col and _feat_col:
+        _fc_top = _feat_conc.sort_values(_gini_col, ascending=False).iloc[0]
+        _dyn_feat_top_name = str(_fc_top[_feat_col])
+        _dyn_feat_top_gini = float(_fc_top[_gini_col])
+
+_dyn_ratio_str      = f"{_dyn_ratio:.2f}x" if _dyn_ratio else "N/A"
+_dyn_high_mean_str  = f"${_dyn_high_mean:,.2f}"
+_dyn_low_mean_str   = f"${_dyn_low_mean:,.2f}"
+_dyn_high_count_str = f"{_dyn_high_count:,}" if _dyn_high_count else "N/A"
+_dyn_low_count_str  = f"{_dyn_low_count:,}"  if _dyn_low_count  else "N/A"
+
 # Shared chart theme
 CHART_H = 400
 LAYOUT  = dict(height=CHART_H, margin=dict(t=36, b=40, l=10, r=10),
@@ -384,10 +427,10 @@ st.markdown(f"""
         These two findings are complementary &mdash; concentration tells you
         <em>who</em> to target, segmentation tells you <em>how</em> to intervene differently.
         <strong style="color:#f0c040;">Pipeline finding:</strong>
-        On TheLook, Cluster 0 (frequent buyers, avg $95.51 loss) concentrates the highest erosion;
-        Cluster 1 (avg $53.07) represents the lower-erosion archetype.
-        The highest-concentration behavioral feature is <strong style="color:#80cbc4;">purchase_recency_days</strong>
-        (Gini = 0.528). Figures reflect the synthetic dataset; SSL directional validation confirms
+        On TheLook, {_dyn_high_label} (frequent buyers, avg {_dyn_high_mean_str} loss) concentrates the highest erosion;
+        {_dyn_low_label} (avg {_dyn_low_mean_str}) represents the lower-erosion archetype.
+        The highest-concentration behavioral feature is <strong style="color:#80cbc4;">{_dyn_feat_top_name}</strong>
+        (Gini = {_dyn_feat_top_gini:.3f}). Figures reflect the synthetic dataset; SSL directional validation confirms
         the concentration pattern generalises in direction to real-world operational data.
         <strong style="color:#f0c040;">Decision: Reject H₀₂</strong> &mdash; customer segments differ
         significantly in profit erosion (ANOVA F&nbsp;=&nbsp;{_s_anova_f}, p&nbsp;&lt;&nbsp;0.0001; &eta;&sup2;&nbsp;=&nbsp;{_s_eta2}).
@@ -478,7 +521,8 @@ with tab_ov:
         st.markdown('<div class="step-badge">STEP 2 — WHO ARE THE HIGH-RISK CUSTOMERS?</div>',
                     unsafe_allow_html=True)
         _tip_header("Two Customer Archetypes (k=2)", "fig_cluster_erosion")
-        st.caption("K-Means reveals two distinct groups. Cluster 0 costs 1.80x more per customer "
+        _ratio_caption = f"{_dyn_ratio:.2f}x" if _dyn_ratio else "materially"
+        st.caption(f"K-Means reveals two distinct groups. {_dyn_high_label} costs {_ratio_caption} more per customer "
                    "— a clear priority target.")
         if _cs_df is not None:
             id_col = next((c for c in ["cluster_id","Cluster","cluster"] if c in _cs_df.columns), None)
@@ -503,7 +547,7 @@ with tab_ov:
         st.markdown('<div class="step-badge">STEP 3 — WHAT DRIVES THEM?</div>',
                     unsafe_allow_html=True)
         _tip_header("Top Concentrated Features", "fig_feat_conc")
-        st.caption("purchase_recency_days (Gini=0.528) is the most concentrated signal — "
+        st.caption(f"{_dyn_feat_top_name} (Gini={_dyn_feat_top_gini:.3f}) is the most concentrated signal — "
                    "recently active customers drive a disproportionate share of losses.")
         if _feat_conc is not None:
             fc_top = _feat_conc.sort_values("gini_coefficient", ascending=False).head(8)
@@ -674,7 +718,7 @@ are ranked by that feature.
 | Moderate | 0.3 – 0.6 |
 | High | > 0.6 |
 
-**purchase_recency_days tops the list (Gini=0.528)**
+**{_dyn_feat_top_name} tops the list (Gini={_dyn_feat_top_gini:.3f})**
 """)
         if _feat_conc is not None:
             fc = _feat_conc.sort_values("gini_coefficient", ascending=True).copy()
@@ -760,11 +804,24 @@ K-Means clustering on 8 screened behavioral features (highly correlated features
     with col_l:
         _tip_header("Cluster Erosion Comparison", "fig_cluster_erosion")
         with st.expander("ℹ️ What does this mean?", expanded=False):
-            st.markdown("""
-| Cluster | Size | Avg Erosion | Insight |
+            if _cs_df is not None and "Mean_Erosion" in _cs_df.columns:
+                _id_c2 = next((c for c in ["cluster_id","Cluster","cluster"] if c in _cs_df.columns), None)
+                _tbl_rows = ""
+                if _id_c2:
+                    for _, _row in _cs_df.sort_values("Mean_Erosion", ascending=False).iterrows():
+                        _cid   = int(_row[_id_c2])
+                        _cmean = float(_row["Mean_Erosion"])
+                        _cnt   = f"n ≈ {int(_row['Count']):,}" if "Count" in _row else "n/a"
+                        _tag   = "priority intervention target" if _cid == _dyn_high_cluster else "Manageable with lighter-touch responses"
+                        _tbl_rows += f"| **Cluster {_cid}** | {_cnt} | ${_cmean:,.2f} | {_tag} |\n"
+                st.markdown(f"""| Cluster | Size | Avg Erosion | Insight |
 |---------|------|-------------|---------|
-| **Cluster 0** | n ≈ 4,302 | $95.51 | 1.80x higher — priority intervention target |
-| **Cluster 1** | n ≈ 7,488 | $53.07 | Manageable with lighter-touch responses |
+{_tbl_rows}""")
+            else:
+                st.markdown(f"""| Cluster | Size | Avg Erosion | Insight |
+|---------|------|-------------|---------|
+| **{_dyn_high_label}** | n/a | {_dyn_high_mean_str} | priority intervention target |
+| **{_dyn_low_label}** | n/a | {_dyn_low_mean_str} | Manageable with lighter-touch responses |
 """)
         if _cs_df is not None:
             id_col = next((c for c in ["cluster_id","Cluster","cluster"] if c in _cs_df.columns), None)
@@ -827,7 +884,18 @@ K-Means clustering on 8 screened behavioral features (highly correlated features
 
     _tip_header("Feature Importance — What Drives Cluster Separation?", "fig_feat_imp")
     with st.expander("ℹ️ What does this mean?", expanded=False):
-        st.markdown("""
+        _fi_driver = "N/A"
+        _fi_eta    = "N/A"
+        if _feat_imp is not None:
+            _f_c  = next((c for c in ["f_statistic","F_statistic","f_stat"] if c in _feat_imp.columns), None)
+            _ft_c = next((c for c in ["feature","Feature"] if c in _feat_imp.columns), None)
+            _e_c  = next((c for c in ["eta_squared","eta2","effect_size"] if c in _feat_imp.columns), None)
+            if _f_c and _ft_c:
+                _top_fi = _feat_imp.sort_values(_f_c, ascending=False).iloc[0]
+                _fi_driver = f"{_top_fi[_ft_c]} (F={_top_fi[_f_c]:,.0f}"
+                if _e_c: _fi_driver += f", eta squared={_top_fi[_e_c]:.3f}"
+                _fi_driver += ")"
+        st.markdown(f"""
 One-way ANOVA F-statistic for each feature after clustering.
 
 | Metric | Meaning |
@@ -835,7 +903,7 @@ One-way ANOVA F-statistic for each feature after clustering.
 | **F-statistic** | Between-cluster / within-cluster variance. Higher = stronger discriminator. |
 | **eta squared** | Proportion of variance explained by cluster membership. |
 
-**order_frequency dominates (F=12,486, eta squared=0.514)**
+**{_fi_driver} dominates**
 """)
     if _feat_imp is not None:
         fi = _feat_imp.copy()
@@ -870,12 +938,12 @@ One-way ANOVA F-statistic for each feature after clustering.
 
     _tip_header("Customer Cluster Explorer", "fig_explorer")
     with st.expander("ℹ️ What does this mean?", expanded=False):
-        st.markdown("""
+        st.markdown(f"""
 Each point is one customer coloured by K-Means cluster assignment.
 Clear separation confirms the two archetypes are behaviorally distinct.
 
-- **Teal = Cluster 0** — high-erosion, frequent buyers ($95.51 avg)
-- **Orange = Cluster 1** — lower-erosion, occasional buyers ($53.07 avg)
+- **Teal = {_dyn_high_label}** — high-erosion, frequent buyers ({_dyn_high_mean_str} avg)
+- **Orange = {_dyn_low_label}** — lower-erosion, occasional buyers ({_dyn_low_mean_str} avg)
 """)
     if _cluster_df is not None:
         x_opts = [c for c in ["return_frequency","customer_return_rate","avg_order_value",
@@ -1048,11 +1116,22 @@ Together they provide two complementary targeting dimensions.
         col_i1, col_i2, col_i3 = st.columns(3)
         col_i1.metric("WHO to Target", "Top 20% of customers",
             f"-> {_top20:.1f}% of total erosion" if isinstance(_top20, float) else "",
-            help="Ranked by purchase_recency_days (Gini=0.528) — highest-concentration feature.")
-        col_i2.metric("HOW — Priority Segment", "Cluster 0",
-            f"${_high_mean:,.2f} avg vs ${_low_mean:,.2f}",
-            help=f"Cluster 0 is {_ratio:.2f}x higher erosion per customer than Cluster 1.")
-        col_i3.metric("Primary Driver", "order_frequency", "F = 12,486, eta squared = 0.514",
+            help=f"Ranked by {_dyn_feat_top_name} (Gini={_dyn_feat_top_gini:.3f}) — highest-concentration feature.")
+        col_i2.metric("HOW — Priority Segment", _dyn_high_label,
+            f"{_dyn_high_mean_str} avg vs {_dyn_low_mean_str}",
+            help=f"{_dyn_high_label} is {_dyn_ratio_str} higher erosion per customer than {_dyn_low_label}.")
+        _pd_name = "N/A"
+        _pd_delta = ""
+        if _feat_imp is not None:
+            _f_c2  = next((c for c in ["f_statistic","F_statistic","f_stat"] if c in _feat_imp.columns), None)
+            _ft_c2 = next((c for c in ["feature","Feature"] if c in _feat_imp.columns), None)
+            _e_c2  = next((c for c in ["eta_squared","eta2","effect_size"] if c in _feat_imp.columns), None)
+            if _f_c2 and _ft_c2:
+                _top_fi2 = _feat_imp.sort_values(_f_c2, ascending=False).iloc[0]
+                _pd_name  = str(_top_fi2[_ft_c2])
+                _pd_delta = f"F = {_top_fi2[_f_c2]:,.0f}"
+                if _e_c2: _pd_delta += f", eta squared = {_top_fi2[_e_c2]:.3f}"
+        col_i3.metric("Primary Driver", _pd_name, _pd_delta,
             help="Single feature most strongly separating the two clusters.")
 
         id_col = next((c for c in ["cluster_id","Cluster","cluster"] if c in _cs_df.columns), None)
@@ -1113,32 +1192,34 @@ Together they provide two complementary targeting dimensions.
         st.subheader("Pipeline Output — Segmentation Archetypes (Synthetic Dataset)")
         col_p1, col_p2, col_p3 = st.columns(3)
         with col_p1:
-            st.markdown("""
+            _high_count_display = f"{_dyn_high_count_str} customers · " if _dyn_high_count else ""
+            st.markdown(f"""
 <div style="background:linear-gradient(135deg,#00897B55,#00897B33);
             border-left:4px solid #00897B;border-radius:6px;padding:16px;">
 <h4 style="margin:0 0 8px 0;color:#ffffff;">Archetype 1 — High-Erosion Cluster</h4>
 <p style="margin:0;font-size:13px;color:#f0f0f0;">
-<b>4,302 customers · $95.51 avg erosion · Frequent buyers</b><br><br>
+<b>{_high_count_display}{_dyn_high_mean_str} avg erosion · Frequent buyers</b><br><br>
 Pipeline identifies this segment as the primary erosion concentration on TheLook.
 High order frequency and return volume are the defining behavioral signals.
 </p></div>""", unsafe_allow_html=True)
         with col_p2:
-            st.markdown("""
+            st.markdown(f"""
 <div style="background:linear-gradient(135deg,#E6510055,#E6510033);
             border-left:4px solid #E65100;border-radius:6px;padding:16px;">
 <h4 style="margin:0 0 8px 0;color:#ffffff;">Archetype 2 — Recency-Concentrated Segment</h4>
 <p style="margin:0;font-size:13px;color:#f0f0f0;">
-<b>Ranked by purchase_recency_days (Gini 0.528)</b><br><br>
+<b>Ranked by {_dyn_feat_top_name} (Gini {_dyn_feat_top_gini:.3f})</b><br><br>
 The most concentrated behavioral feature across the dataset — erosion skews
 disproportionately toward recently active customers.
 </p></div>""", unsafe_allow_html=True)
         with col_p3:
-            st.markdown("""
+            _low_count_display = f"{_dyn_low_count_str} customers · " if _dyn_low_count else ""
+            st.markdown(f"""
 <div style="background:linear-gradient(135deg,#7B1FA255,#7B1FA233);
             border-left:4px solid #7B1FA2;border-radius:6px;padding:16px;">
 <h4 style="margin:0 0 8px 0;color:#ffffff;">Archetype 3 — Lower-Erosion Cluster</h4>
 <p style="margin:0;font-size:13px;color:#f0f0f0;">
-<b>7,488 customers · $53.07 avg erosion</b><br><br>
+<b>{_low_count_display}{_dyn_low_mean_str} avg erosion</b><br><br>
 Pipeline identifies this segment as structurally distinct — lower purchase frequency
 and return volume produce materially lower per-customer erosion.
 </p></div>""", unsafe_allow_html=True)
@@ -1150,6 +1231,7 @@ and return volume produce materially lower per-customer erosion.
         val_str   = ("Passed — patterns generalise to SSL"
                      if _valid.get("pattern_validation", {}).get("validation_passed")
                      else "Not available or inconclusive")
+        _summary_ratio_str = f"{_dyn_ratio:.2f}×" if _dyn_ratio else "N/A"
         st.markdown(f"""
 | Finding | Result |
 |---|---|
@@ -1157,9 +1239,9 @@ and return volume produce materially lower per-customer erosion.
 | **Concentration (Gini, bootstrap)** | Gini = {_gini:.3f}, p < 0.0001 — erosion significantly unequal |
 | **Top 20% customer erosion share** | {_top20:.1f}% |
 | **Top 50 customers** | {top50_str} of total erosion |
-| **High- vs low-erosion cluster ratio** | {_ratio:.2f}× (${_high_mean:,.2f} vs ${_low_mean:,.2f} avg) |
-| **Primary cluster driver** | order_frequency (F = 12,486, η² = 0.514) |
-| **Highest-concentration feature** | purchase_recency_days (Gini = 0.528) |
+| **High- vs low-erosion cluster ratio** | {_summary_ratio_str} ({_dyn_high_mean_str} vs {_dyn_low_mean_str} avg) |
+| **Primary cluster driver** | {_pd_name} ({_pd_delta}) |
+| **Highest-concentration feature** | {_dyn_feat_top_name} (Gini = {_dyn_feat_top_gini:.3f}) |
 | **External validation (SSL)** | {val_str} |
 | **Dataset qualifier** | Figures from TheLook (synthetic). SSL = directional validation of framework utility only — not parameter transferability. |
 """)
