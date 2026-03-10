@@ -1,3 +1,0 @@
-factor,test_used,p_value,effect_size,effect_metric,reject_h0,meets_effect_threshold,success_criteria_met,n_groups,n_rows
-category,kruskal,0.0,0.4017625170109316,epsilon_squared,True,True,True,26,18208
-brand,kruskal,0.0,0.6230764042255386,epsilon_squared,True,True,True,725,15654
