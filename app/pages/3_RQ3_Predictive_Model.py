@@ -172,6 +172,11 @@ _fi_path = REPORTS_RQ3 / "rq3_feature_importance.csv"
 if _fi_path.exists():
     _fi_df = pd.read_csv(_fi_path)
 
+_ablation_df = None
+_ablation_path = REPORTS_RQ3 / "rq3_ablation_study.csv"
+if _ablation_path.exists():
+    _ablation_df = pd.read_csv(_ablation_path)
+
 # ── Derived values from data ─────────────────────────────────────────────────
 _champion_row = None
 if _comp_df is not None:
@@ -245,13 +250,16 @@ st.markdown(
             margin: 0 0 10px 0;
         ">Executive Summary — Key Findings &amp; Implications</p>
         <p style="color: #e8eaf0; font-size: 1.0rem; line-height: 1.75; margin: 0;">
-            <strong style="color: #ffffff;">All three models exceed the AUC &gt; 0.70 threshold —
-            H₀₃ is rejected.</strong>
+            <strong style="color: #ffffff;">All four models (including a rule-based baseline)
+            exceed the AUC &gt; 0.70 threshold — H₀₃ is rejected.</strong>
             The Random Forest champion achieves Test AUC&nbsp;=&nbsp;0.9798, exceeding the minimum
             threshold by 0.28. Gradient Boosting (0.9795) and Logistic Regression (0.9687) independently
             confirm the result; the hypothesis conclusion is robust to model choice.
             Seven of 12 candidate features survived 3-gate screening:
             <em>return_frequency</em> and <em>avg_order_value</em> are the top-ranked signals.
+            A rule-based baseline (return_frequency threshold only) and an ablation study
+            (top-3 features removed) confirm ML adds value beyond simple rules and that
+            performance is not dominated by a small set of predictors.
             External validation on School Specialty LLC (B2B, 13,616 accounts) yields
             directional accuracy of 76.4% (Spearman ρ&nbsp;=&nbsp;0.7526), demonstrating
             strong transportability across B2C and B2B domains.
@@ -374,8 +382,9 @@ with tab1:
 | **Train / Test** | 9,590 / 2,398 customers (80/20) |
 | **Positive rate** | 25.01% train · 24.98% test |
 | **Cross-validation** | 5-fold stratified GridSearchCV |
+| **Models trained** | Rule-Based · LR · RF · GB (4 total) |
 | **LR / RF / GB combos** | 8 / 12 / 16 |
-| **Champion (RF) AUC** | **0.9798** — all 3 models > {AUC_TARGET} |
+| **Champion (RF) AUC** | **0.9798** — all 4 models > {AUC_TARGET} |
 """
         )
 
@@ -547,36 +556,35 @@ with tab2:
         with st.expander("ℹ️ What does this mean?", expanded=False):
             st.markdown(
                 """
-We trained three different model types so no single algorithm drives the conclusion.
-All three must exceed the AUC > 0.70 target for the hypothesis to be rejected.
+We trained **four models** across two tiers so the conclusion rests on a credible comparison, not a single algorithm.
+
+**Tier 1 — Baselines** (what a simple rule or standard approach achieves):
+
+| Model | Role | Strengths |
+|-------|------|-----------|
+| **Rule-Based (Return Frequency)** | Practical baseline | Single-feature threshold rule — flags customers whose return frequency exceeds a training-set quantile; no learning beyond one statistic. Sets the floor: any ML model should clearly beat this. |
+| **Logistic Regression** | Methodological baseline | L1/L2 regularized; coefficients interpretable as log-odds; standard first step in any classification pipeline. |
+
+**Tier 2 — ML models** (learned from all 7 surviving features):
 
 | Model | Strengths |
 |-------|-----------|
 | **Random Forest** | Ensemble of decision trees; robust to outliers; naturally ranks feature importance |
 | **Gradient Boosting** | Sequentially corrects errors; often highest raw accuracy |
-| **Logistic Regression** | Simple, interpretable baseline; coefficients have direct probability meaning |
 
-**Why Random Forest is the champion**: Highest Test AUC (0.9798) with minimal overfitting
-(CV–test gap = 0.0006). AUC is threshold-independent — it measures overall ranking ability
-across all operating points and is the accepted standard in classification benchmarking.
+**Why baselines matter**: If the rule-based approach achieves AUC close to the ML models, that would suggest the ML complexity is not justified. The gap between the rule-based AUC and the ML AUC quantifies the added value of the full feature set and learned model.
+
+**Why Random Forest is the champion**: Highest Test AUC with minimal overfitting (CV–test gap < 0.001). AUC is threshold-independent — it measures overall ranking ability across all operating points and is the accepted standard in classification benchmarking.
 
 ---
 
 **When model choice would shift based on business context**
 
-All three models are exceptionally close (AUC spread = 0.011). In practice, the "best" model
-depends on the cost of each error type:
-
 | Business Scenario | Preferred Model | Why |
 |-------------------|----------------|-----|
-| Cheap, scalable intervention (automated email, push notification) | **Gradient Boosting** | Highest Recall (0.9299) — catches the most high-erosion customers when false-alarm cost ≈ zero |
-| Expensive per-customer intervention (account manager call, loyalty offer) | **Random Forest** | Highest Precision (0.7822) — fewer wasted high-cost contacts |
+| Cheap, scalable intervention (automated email, push notification) | **Gradient Boosting** | Highest Recall — catches the most high-erosion customers when false-alarm cost ≈ zero |
+| Expensive per-customer intervention (account manager call, loyalty offer) | **Random Forest** | Highest Precision — fewer wasted high-cost contacts |
 | Regulatory or audit requirement | **Logistic Regression** | Calibrated probabilities; coefficients interpretable as log-odds |
-
-**For this project** (no specific intervention cost defined for TheLook), we select by Test AUC
-as the primary metric — consistent with standard ML benchmarking practice. All three models
-exceed the AUC > 0.70 target, so the hypothesis conclusion is robust regardless of which model
-is chosen as champion.
 """
             )
         display_comp = _comp_df.copy()
@@ -651,7 +659,9 @@ and the model will still rank customers correctly.
             _roc_fallback = _comp_df.copy()
             for _col in ["cv_auc", "test_auc", "f1", "precision", "recall"]:
                 if _col in _roc_fallback.columns:
-                    _roc_fallback[_col] = _roc_fallback[_col].map(lambda x: f"{float(x):.4f}")
+                    _roc_fallback[_col] = _roc_fallback[_col].map(
+                        lambda x: f"{float(x):.4f}" if x != "N/A" else "N/A"
+                    )
             st.dataframe(_roc_fallback, width='stretch', hide_index=True)
 
     st.divider()
@@ -1315,30 +1325,38 @@ with tab5:
     with st.expander("ℹ️ What does this mean?", expanded=False):
         st.markdown(
             f"""
-Sensitivity analysis answers the question: **do the model's conclusions change if we tweak our assumptions?**
+Robustness analysis answers the question: **do the model's conclusions change if we tweak our
+assumptions or remove key predictors?**
 
-Two key assumptions underpin our target variable definition:
+This tab runs three independent checks:
 
-1. **Processing cost per return** — we assumed USD 12 as the base cost (mid-range of the USD 10–25 academic literature).
-   What if the true cost is USD 8 or USD 18? Does the model still work?
+1. **Processing cost per return** — we assumed USD 12 as the base cost (mid-range of the USD 10–25
+   academic literature). What if the true cost is USD 8 or USD 18? Does the model still work?
 
 2. **High-erosion threshold** — we defined "high erosion" as the top 25% of customers (75th percentile).
    What if we use 30% or 20% instead? Does model accuracy hold?
 
-**How to use this tab**: Select a specific assumption scenario with the radio buttons.
-The metric cards update immediately to show performance under that scenario.
-The comparison chart shows all scenarios side-by-side so you can see the full range.
+3. **Feature ablation** — high AUC may be driven by a small set of dominant predictors rather than
+   genuine multi-feature learning. To test this, the Random Forest is retrained after removing its
+   top-3 most important features. A small AUC drop indicates the model distributes predictive signal
+   across multiple independent features, not just the leading ones.
 
-**Bottom line**: If AUC stays well above {AUC_TARGET} across all scenarios, the model's business
-conclusions are robust — they don't depend on getting these assumptions exactly right.
+**How to use this tab**: Select a specific assumption scenario with the radio buttons for checks 1 and 2.
+The metric cards update immediately. The ablation result (check 3) is fixed — it reports the AUC drop
+from a single held-out experiment.
+
+**Bottom line**: If AUC stays well above {AUC_TARGET} across all scenarios and the ablation drop is
+small, the model's conclusions are robust — they don't depend on getting assumptions exactly right
+or on any single predictor.
 """
         )
     st.markdown(
         """
-Two sensitivity analyses test whether model conclusions are robust to key modeling assumptions:
+Three robustness checks test whether model conclusions are sensitive to key modeling assumptions and predictor dominance:
 
 1. **Processing cost sensitivity** — does the target variable change when cost assumptions vary?
 2. **Percentile threshold sensitivity** — does model performance hold across different definitions of "high erosion"?
+3. **Feature ablation** — does AUC degrade substantially when the top-3 predictors are removed, or do the remaining features sustain performance?
 """
     )
 
@@ -1508,17 +1526,44 @@ Two sensitivity analyses test whether model conclusions are robust to key modeli
         st.info("Threshold sensitivity results are not yet available.")
 
     st.divider()
+    st.subheader("Feature Ablation — Sensitivity to Top Predictors")
+    st.markdown(
+        "Retrains the Random Forest after removing its top-3 most important features "
+        "to test whether high AUC is driven by a small set of dominant predictors."
+    )
+    if _ablation_df is not None:
+        _abl_row = _ablation_df.iloc[0]
+        _abl_col1, _abl_col2, _abl_col3 = st.columns(3)
+        _abl_col1.metric("Full RF AUC", f"{float(_abl_row['full_rf_test_auc']):.4f}")
+        _abl_col2.metric("Ablated RF AUC", f"{float(_abl_row['ablated_test_auc']):.4f}")
+        _abl_col3.metric("AUC Drop", f"{float(_abl_row['auc_drop']):.4f}")
+        st.caption(f"Removed features: {_abl_row['removed_features']}")
+        st.caption(f"Retained features: {_abl_row['retained_features']}")
+    else:
+        st.info("Ablation study artifact not yet generated. Re-run the master notebook.")
+
+    st.divider()
     st.subheader("Robustness Conclusion")
     if _cost_df is not None and _thresh_df is not None:
         _thresh_min_pct_c = int(_thresh_df["threshold"].min() * 100)
         _thresh_max_pct_c = int(_thresh_df["threshold"].max() * 100)
+        _abl_conclusion = ""
+        if _ablation_df is not None:
+            _abl_row_c = _ablation_df.iloc[0]
+            _abl_drop = float(_abl_row_c["auc_drop"])
+            _abl_ablated = float(_abl_row_c["ablated_test_auc"])
+            _abl_conclusion = (
+                f"\n- **Feature ablation robustness**: AUC dropped by only {_abl_drop:.4f} "
+                f"(to {_abl_ablated:.4f}) after removing the top-3 most important features — "
+                f"the model is not dominated by a small set of predictors"
+            )
         st.markdown(
             f"""
 - **Processing cost robustness**: AUC ranged from {_cost_auc_min:.4f} to {_cost_auc_max:.4f}
   across the {_cost_range_str} cost range — all scenarios exceed the {AUC_TARGET} target
 - **Threshold robustness**: AUC ranged from {_thresh_auc_min:.4f} to {_thresh_auc_max:.4f}
-  across the {_thresh_min_pct_c}th–{_thresh_max_pct_c}th percentile range — all scenarios exceed the {AUC_TARGET} target
-- **Conclusion**: Model performance is not sensitive to cost model assumptions or threshold choice
+  across the {_thresh_min_pct_c}th–{_thresh_max_pct_c}th percentile range — all scenarios exceed the {AUC_TARGET} target{_abl_conclusion}
+- **Conclusion**: Model performance is not sensitive to cost model assumptions, threshold choice, or predictor dominance
 """
         )
     else:

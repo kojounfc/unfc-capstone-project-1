@@ -46,11 +46,11 @@ class OutputPaths:
 
     @property
     def rq3_dir(self) -> Path:
-        return self.base_processed_dir
+        return self.base_processed_dir / "rq3"
 
     @property
     def rq4_dir(self) -> Path:
-        return self.base_processed_dir
+        return self.base_processed_dir / "rq4"
 
     @property
     def rq2_customer_base(self) -> Path:
@@ -67,12 +67,10 @@ class OutputPaths:
 
 def default_processed_dir() -> Path:
     """
-    Resolve default processed directory.
-
-    Repo convention:
-      data/processed/
+    Resolve default processed directory using the canonical config path.
     """
-    return Path("data") / "processed"
+    from src.config import PROCESSED_DATA_DIR
+    return PROCESSED_DATA_DIR
 
 
 # -----------------------------

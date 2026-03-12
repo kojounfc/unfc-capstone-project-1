@@ -13,8 +13,13 @@ Pipeline order:
     5. Feature screening on training set only (variance -> correlation -> univariate)
     6. Apply surviving features to both sets
     7. Train models (GridSearchCV on training set)
+       - Rule-based classifier (return frequency threshold) -- practical baseline
+       - Logistic Regression (L1/L2 regularized) -- methodological baseline
+       - Random Forest -- primary model
+       - Gradient Boosting -- secondary ML model
     8. Evaluate on test set
     9. Extract feature importance (post-hoc, from trained models)
+   10. Ablation study -- retrain RF after removing top-N predictors to stress-test AUC
 """
 
 import logging
@@ -441,6 +446,250 @@ def get_feature_importance(
     return pd.DataFrame(rows)
 
 
+class RuleBasedClassifier:
+    """
+    Practical baseline classifier: flags customers as high-erosion if their
+    return frequency exceeds a threshold learned from the training set.
+
+    The threshold is set at the (1 - prevalence) quantile of return_frequency
+    in the training set, where prevalence is the proportion of positive cases.
+    This ensures the rule produces the same positive rate as the observed class
+    balance, making it a fair and non-trivial comparator.
+
+    Implements a predict_proba-compatible interface so it integrates cleanly
+    with roc_auc_score and the existing evaluation pipeline.
+    """
+
+    RETURN_FREQ_FEATURE = "return_frequency"
+
+    def __init__(self) -> None:
+        self.threshold_: Optional[float] = None
+        self.feature_index_: Optional[int] = None
+
+    def fit(self, X: pd.DataFrame, y: pd.Series) -> "RuleBasedClassifier":
+        """
+        Learn threshold from training data.
+
+        Args:
+            X: Training features (must contain 'return_frequency').
+            y: Training target (binary).
+
+        Returns:
+            self
+        """
+        if self.RETURN_FREQ_FEATURE not in X.columns:
+            raise ValueError(
+                f"RuleBasedClassifier requires '{self.RETURN_FREQ_FEATURE}' "
+                f"in feature set. Available: {list(X.columns)}"
+            )
+
+        prevalence = y.mean()
+        self.threshold_ = float(
+            X[self.RETURN_FREQ_FEATURE].quantile(1.0 - prevalence)
+        )
+        self.feature_index_ = list(X.columns).index(self.RETURN_FREQ_FEATURE)
+
+        logger.info(
+            "RuleBasedClassifier fitted: threshold=%.4f (prevalence=%.3f)",
+            self.threshold_, prevalence,
+        )
+        return self
+
+    def predict_proba(self, X: pd.DataFrame) -> np.ndarray:
+        """
+        Return probability scores: normalised return_frequency clipped to [0, 1].
+
+        Args:
+            X: Feature DataFrame.
+
+        Returns:
+            Array of shape (n_samples, 2) with [P(negative), P(positive)].
+        """
+        if self.threshold_ is None:
+            raise RuntimeError("Classifier must be fitted before calling predict_proba.")
+
+        scores = X[self.RETURN_FREQ_FEATURE].values.astype(float)
+        # Normalise by max observed value so scores sit in [0, 1]
+        max_val = scores.max() if scores.max() > 0 else 1.0
+        pos_prob = np.clip(scores / max_val, 0.0, 1.0)
+        return np.column_stack([1.0 - pos_prob, pos_prob])
+
+    def predict(self, X: pd.DataFrame) -> np.ndarray:
+        """
+        Hard predictions using the learned threshold.
+
+        Args:
+            X: Feature DataFrame.
+
+        Returns:
+            Binary array of predictions.
+        """
+        if self.threshold_ is None:
+            raise RuntimeError("Classifier must be fitted before calling predict.")
+
+        return (X[self.RETURN_FREQ_FEATURE].values >= self.threshold_).astype(int)
+
+
+def evaluate_rule_based(
+    X_train: pd.DataFrame,
+    X_test: pd.DataFrame,
+    y_train: pd.Series,
+    y_test: pd.Series,
+) -> Dict[str, Any]:
+    """
+    Fit and evaluate the RuleBasedClassifier on the test set.
+
+    Uses the same metrics as train_and_evaluate() so results slot directly
+    into build_comparison_table().
+
+    Args:
+        X_train: Training features (must contain 'return_frequency').
+        X_test: Test features.
+        y_train: Training target.
+        y_test: Test target.
+
+    Returns:
+        Results dict compatible with the train_and_evaluate() output schema.
+    """
+    clf = RuleBasedClassifier()
+    clf.fit(X_train, y_train)
+
+    y_pred = clf.predict(X_test)
+    y_proba = clf.predict_proba(X_test)[:, 1]
+
+    test_auc = roc_auc_score(y_test, y_proba)
+    fpr, tpr, thresholds = roc_curve(y_test, y_proba)
+
+    result = {
+        "best_estimator": clf,
+        "best_params": {"threshold": clf.threshold_},
+        "cv_auc": float("nan"),          # No CV for rule-based
+        "test_auc": test_auc,
+        "y_pred": y_pred,
+        "y_proba": y_proba,
+        "precision": precision_score(y_test, y_pred, zero_division=0),
+        "recall": recall_score(y_test, y_pred, zero_division=0),
+        "f1": f1_score(y_test, y_pred, zero_division=0),
+        "accuracy": accuracy_score(y_test, y_pred),
+        "confusion_matrix": confusion_matrix(y_test, y_pred),
+        "roc_curve": (fpr, tpr, thresholds),
+    }
+
+    logger.info(
+        "Rule-Based Classifier -- Test AUC: %.4f, F1: %.4f (threshold=%.4f)",
+        test_auc, result["f1"], clf.threshold_,
+    )
+    return result
+
+
+def run_ablation_study(
+    X_train: pd.DataFrame,
+    X_test: pd.DataFrame,
+    y_train: pd.Series,
+    y_test: pd.Series,
+    importance_df: pd.DataFrame,
+    n_top_features: int = 3,
+    cv_folds: int = CV_FOLDS,
+    random_state: int = RANDOM_STATE,
+) -> Dict[str, Any]:
+    """
+    Ablation study: retrain the best Random Forest after removing the top-N
+    most important predictors, then report AUC degradation.
+
+    This directly addresses reviewer concern that the high AUC (0.9798) may
+    reflect a small number of dominant predictors rather than a genuinely
+    informative feature set. If AUC degrades substantially, that confirms the
+    strong predictors are doing the heavy lifting. If it remains high, the
+    feature set is broadly informative.
+
+    Args:
+        X_train: Training features used in the primary RF model.
+        X_test: Test features.
+        y_train: Training target.
+        y_test: Test target.
+        importance_df: Output of get_feature_importance() filtered to RF.
+        n_top_features: Number of top features to remove (default 3).
+        cv_folds: CV folds for GridSearchCV.
+        random_state: Random seed.
+
+    Returns:
+        Dict with:
+        - removed_features: List of features dropped
+        - retained_features: List of features kept
+        - ablated_cv_auc: CV AUC after ablation
+        - ablated_test_auc: Test AUC after ablation
+        - best_params: Best hyperparameters from ablated GridSearchCV
+    """
+    # Identify top-N features from RF importance
+    rf_importance = (
+        importance_df[importance_df["model"] == "Random Forest"]
+        .sort_values("importance", ascending=False)
+    )
+
+    if len(rf_importance) == 0:
+        raise ValueError(
+            "No Random Forest importance data found. "
+            "Run get_feature_importance() before ablation."
+        )
+
+    n_top_features = min(n_top_features, len(rf_importance) - 1)
+    removed_features = rf_importance["feature"].iloc[:n_top_features].tolist()
+    retained_features = [f for f in X_train.columns if f not in removed_features]
+
+    if not retained_features:
+        raise ValueError("Ablation removed all features. Reduce n_top_features.")
+
+    logger.info(
+        "Ablation study: removing top-%d features: %s",
+        n_top_features, removed_features,
+    )
+    logger.info("Retained features: %s", retained_features)
+
+    # Retrain RF on retained features with same hyperparameter grid
+    X_train_abl = X_train[retained_features]
+    X_test_abl = X_test[retained_features]
+
+    param_grid = {
+        "n_estimators": [100, 200],
+        "max_depth": [5, 10, None],
+        "min_samples_leaf": [5, 10],
+    }
+
+    rf_abl = RandomForestClassifier(
+        class_weight="balanced",
+        random_state=random_state,
+    )
+
+    cv = StratifiedKFold(n_splits=cv_folds, shuffle=True, random_state=random_state)
+    grid = GridSearchCV(
+        estimator=rf_abl,
+        param_grid=param_grid,
+        scoring="roc_auc",
+        cv=cv,
+        n_jobs=-1,
+        refit=True,
+    )
+    grid.fit(X_train_abl, y_train)
+
+    best_abl = grid.best_estimator_
+    y_proba_abl = best_abl.predict_proba(X_test_abl)[:, 1]
+    ablated_test_auc = roc_auc_score(y_test, y_proba_abl)
+    ablated_cv_auc = grid.best_score_
+
+    logger.info(
+        "Ablation result -- CV AUC: %.4f, Test AUC: %.4f",
+        ablated_cv_auc, ablated_test_auc,
+    )
+
+    return {
+        "removed_features": removed_features,
+        "retained_features": retained_features,
+        "ablated_cv_auc": round(ablated_cv_auc, 4),
+        "ablated_test_auc": round(ablated_test_auc, 4),
+        "best_params": grid.best_params_,
+    }
+
+
 def build_comparison_table(
     results: Dict[str, Dict[str, Any]],
     auc_threshold: float = AUC_THRESHOLD,
@@ -458,9 +707,10 @@ def build_comparison_table(
     """
     rows = []
     for name, res in results.items():
+        cv_auc = res["cv_auc"]
         rows.append({
             "model": name,
-            "cv_auc": round(res["cv_auc"], 4),
+            "cv_auc": round(cv_auc, 4) if not (isinstance(cv_auc, float) and np.isnan(cv_auc)) else "N/A",
             "test_auc": round(res["test_auc"], 4),
             "precision": round(res["precision"], 4),
             "recall": round(res["recall"], 4),
@@ -540,8 +790,13 @@ def main() -> None:
     screening_report.to_csv(reports_dir / "rq3_feature_screening.csv", index=False)
     logger.info("Feature screening report saved")
 
-    # 7-8. Train models and evaluate on test set
+    # 7-8. Train ML models and evaluate on test set
     results = train_and_evaluate(X_train, X_test, y_train, y_test)
+
+    # Add rule-based baseline (practical comparator)
+    results["Rule-Based (Return Frequency)"] = evaluate_rule_based(
+        X_train, X_test, y_train, y_test
+    )
 
     # 9. Extract feature importance (post-hoc, from trained models)
     importance_df = get_feature_importance(results, surviving_features)
@@ -555,6 +810,30 @@ def main() -> None:
     # Hypothesis test
     hypothesis = test_hypothesis(results)
     logger.info("\nHypothesis Test Result:\n%s", hypothesis["conclusion"])
+
+    # 10. Ablation study: remove top-3 RF predictors, report AUC degradation
+    full_rf_auc = results["Random Forest"]["test_auc"]
+    ablation = run_ablation_study(
+        X_train, X_test, y_train, y_test,
+        importance_df=importance_df,
+        n_top_features=3,
+    )
+    ablation_summary = pd.DataFrame([{
+        "removed_features": ", ".join(ablation["removed_features"]),
+        "retained_features": ", ".join(ablation["retained_features"]),
+        "full_rf_test_auc": round(full_rf_auc, 4),
+        "ablated_test_auc": ablation["ablated_test_auc"],
+        "ablated_cv_auc": ablation["ablated_cv_auc"],
+        "auc_drop": round(full_rf_auc - ablation["ablated_test_auc"], 4),
+    }])
+    ablation_summary.to_csv(reports_dir / "rq3_ablation_study.csv", index=False)
+    logger.info(
+        "\nAblation Study:\n  Removed: %s\n  Full AUC: %.4f -> Ablated AUC: %.4f (drop: %.4f)",
+        ablation["removed_features"],
+        full_rf_auc,
+        ablation["ablated_test_auc"],
+        ablation_summary["auc_drop"].iloc[0],
+    )
 
     # Visualizations
     from src.rq3_visuals import (

@@ -1,0 +1,2 @@
+removed_features,retained_features,full_rf_test_auc,ablated_test_auc,ablated_cv_auc,auc_drop
+"total_margin, avg_order_value, return_frequency","customer_return_rate, avg_basket_size, total_items, avg_item_margin",0.9798,0.9788,0.9771,0.001
