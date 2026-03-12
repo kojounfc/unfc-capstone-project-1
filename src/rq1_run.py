@@ -22,24 +22,21 @@ import pandas as pd
 
 
 def _default_processed_dir() -> Path:
-    """
-    Resolve the default RQ1 processed output directory.
-
-    Uses `src.config.PROCESSED_DATA_DIR` when available; otherwise falls back to
-    `data/processed` relative to the current working directory.
-
-    Returns
-    -------
-    Path
-        Directory path where RQ1 processed artifacts should be written.
-    """
     try:
-        # Expected to exist in the project repo (used in rq2 as well)
         from src.config import PROCESSED_DATA_DIR  # type: ignore
 
         return Path(PROCESSED_DATA_DIR) / "rq1"
     except Exception:
         return Path("data") / "processed" / "rq1"
+
+
+def _default_reports_dir() -> Path:
+    try:
+        from src.config import REPORTS_DIR  # type: ignore
+
+        return Path(REPORTS_DIR) / "rq1"
+    except Exception:
+        return Path("reports") / "rq1"
 
 
 @dataclass(frozen=True)
@@ -61,6 +58,7 @@ class RQ1Artifacts:
 def run_rq1(
     *,
     out_dir: Optional[Path] = None,
+    reports_dir: Optional[Path] = None,
     min_rows: int = 200,
     use_category_tiers: bool = True,
     build_analysis_dataset_fn: Optional[Callable[[], pd.DataFrame]] = None,
@@ -92,6 +90,8 @@ def run_rq1(
     """
     out_dir = Path(out_dir) if out_dir is not None else _default_processed_dir()
     out_dir.mkdir(parents=True, exist_ok=True)
+    reports_dir = Path(reports_dir) if reports_dir is not None else _default_reports_dir()
+    reports_dir.mkdir(parents=True, exist_ok=True)
 
     # Resolve dependencies (default to project implementations)
     if build_analysis_dataset_fn is None:
@@ -146,12 +146,12 @@ def run_rq1(
     )
     return_views = build_product_return_behavior_metrics_fn(df, min_rows=min_rows)
 
-    # Export reporting tables (CSV)
-    erosion_by_category_csv = out_dir / "rq1_erosion_by_category.csv"
-    erosion_by_brand_csv = out_dir / "rq1_erosion_by_brand.csv"
-    erosion_by_department_csv = out_dir / "rq1_erosion_by_department.csv"
-    return_rates_by_category_csv = out_dir / "rq1_return_rates_by_category.csv"
-    return_rates_by_brand_csv = out_dir / "rq1_return_rates_by_brand.csv"
+    # Export reporting tables (CSV) to reports/rq1/
+    erosion_by_category_csv = reports_dir / "rq1_erosion_by_category.csv"
+    erosion_by_brand_csv = reports_dir / "rq1_erosion_by_brand.csv"
+    erosion_by_department_csv = reports_dir / "rq1_erosion_by_department.csv"
+    return_rates_by_category_csv = reports_dir / "rq1_return_rates_by_category.csv"
+    return_rates_by_brand_csv = reports_dir / "rq1_return_rates_by_brand.csv"
 
     erosion_views["by_category"].to_csv(erosion_by_category_csv, index=False)
     erosion_views["by_brand"].to_csv(erosion_by_brand_csv, index=False)
@@ -161,7 +161,7 @@ def run_rq1(
     return_views["by_brand"].to_csv(return_rates_by_brand_csv, index=False)
 
     # Create an artifacts manifest path for downstream (stats/visuals) tooling
-    stats_summary_csv = out_dir / "rq1_statistical_tests_summary.csv"  # produced by rq1_stats
+    stats_summary_csv = reports_dir / "rq1_statistical_tests_summary.csv"  # produced by rq1_stats
 
     artifacts = RQ1Artifacts(
         out_dir=out_dir,
@@ -189,9 +189,12 @@ def main() -> None:
 
     Notes
     -----
-    This writes artifacts to the default processed directory:
+    This writes parquet artifacts to:
     - data/processed/rq1/ (fallback)
     - or src.config.PROCESSED_DATA_DIR / rq1 (preferred)
+
+    It also writes CSV report artifacts to:
+    - reports/rq1/
 
     Examples
     --------

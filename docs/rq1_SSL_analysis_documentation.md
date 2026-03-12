@@ -1,177 +1,150 @@
-# RQ1 SSL Analysis Documentation (External Validation)
-**Capstone Project – Master of Data Analytics**
-**Research Question 1 (RQ1) – External Validation Using SSL Dataset**
+# RQ1 SSL Analysis Documentation
+**Capstone Project - Master of Data Analytics**  
+**Research Question 1 (RQ1) - External Validation Using SSL Dataset**  
 **Validation scope: Category level only**
 
 ---
 
 ## 1. Objective
 
-This document validates the **RQ1 profit erosion analysis** on a **real-world SSL returns dataset**.
-The intent is to confirm that the RQ1 category-level conclusion holds when applying the pipeline
-to operational returns data:
+This document validates the RQ1 profit erosion analysis on a real-world SSL returns dataset.
 
-**RQ1:** *Do returned items exhibit statistically significant differences in profit erosion across
-product categories?*
+**RQ1:** *Do returned items exhibit statistically significant differences in profit erosion across product categories?*
 
 Validation checks two things:
 
-1. **Metric compatibility:** We can construct a line-level `profit_erosion` measure from SSL data
-   that represents economic impact per return.
-2. **Structural consistency:** Profit erosion differs across product categories in SSL, consistent
-   with TheLook results.
+1. Metric compatibility: a line-level `profit_erosion` measure can be constructed from SSL data.
+2. Structural consistency: profit erosion differs across SSL categories in the same direction as the TheLook findings.
 
-**Note:** Brand and department are **not** validated independently. Only the composite category
-dimension is used for hypothesis testing.
+Brand and department are not validated independently. SSL validation is category-only.
 
 ---
 
 ## 2. Dataset Scope and Unit of Analysis
 
 **Primary engineered artifact:** `data/processed/rq1_ssl/rq1_ssl_engineered.parquet`
-(optional CSV also saved for audit).
 
-- **Dataset:** `SSL_Returns_df_yoy.csv` (cleaned + feature engineered prior to validation)
-- **Rows (engineered):** 133,800
-- **Columns:** 82
-- **Unit of analysis:** Returned order line (returned item)
+- Dataset: `data/raw/SSL_Returns_df_yoy.csv`
+- Unit of analysis: returned order line
+- Canonical outputs: `rq1_ssl_engineered.parquet`, `rq1_ssl_returned_items.parquet`, `rq1_ssl_base_canonical.parquet`
 
-**Important:** SSL extract is returns-only. Therefore, return-frequency metrics (e.g., return rate)
-are not directly comparable to TheLook without additional non-return data.
+Because SSL is a returns-focused operational extract, return-frequency metrics are not directly comparable to TheLook without a full non-return population.
 
 ---
 
 ## 3. SSL Category Construction
 
-SSL does not have a single field equivalent to TheLook's `category`. The category dimension is
-constructed by concatenating three SSL fields:
+SSL does not expose a single TheLook-style category field. The category used for validation is:
 
-```
+```text
 category = Pillar + "-" + Major Market Cat + "-" + Department
 ```
 
-**Example labels:** `STEM-Science-Physics`, `Art-Visual Arts-Ceramics/Sculpture`
-
-Missing values in any component are filled with `"Unknown"` before concatenation. This composite
-label captures the full SSL product hierarchy and is the sole grouping dimension for all
-statistical tests and visuals.
+Missing values are filled with `"Unknown"` before concatenation.
 
 ---
 
 ## 4. Field Mapping and Canonical Schema
 
-Field alignment between datasets is defined in `rq1_ssl_validation_reference.md`.
+Field alignment between datasets is documented in `docs/rq1_ssl_validation_reference.md`.
 
-At a minimum, SSL provides:
+Core mappings:
 
-- `Pillar` + `Major Market Cat` + `Department` → composite `category` (concatenated with `-`)
-- `total_loss` → economic loss per return-line (mapped to `profit_erosion`)
-- `Returns` → return indicator
+- `Pillar + Major Market Cat + Department -> category`
+- `total_loss -> profit_erosion` using absolute value
+- `Returns -> is_returned_item`
 
 ---
 
 ## 5. Profit Erosion Definition (SSL)
 
-Unlike TheLook (where profit erosion is modeled), SSL contains realized loss accounting.
-For validation we define:
+Unlike TheLook, SSL contains realized loss accounting. For validation:
 
-- **`profit_erosion` (SSL) = abs(`total_loss`)**
+- `profit_erosion = abs(total_loss)`
 
-This preserves the core RQ1 intent: compare **economic impact per returned item** across
-categories.
+This preserves the RQ1 objective of comparing economic impact per returned item across categories.
 
 ---
 
 ## 6. Visual Diagnostics (SSL)
 
-The SSL validation notebook reproduces **5 category-focused RQ1 visuals** with SSL-specific titles.
+The validation workflow reproduces the core category-level RQ1 visuals:
 
 ### 6.1 Top Categories by Total Profit Erosion
 
-The SSL distribution shows large cumulative loss concentrated in specific product groupings.
-Category labels reflect the composite `Pillar-Major Market Cat-Department` hierarchy.
+Shows the categories contributing the largest cumulative losses.
 
-### 6.2 Return Rate vs Mean Profit Erosion per Return (Category)
+### 6.2 Return Composition vs Mean Profit Erosion
 
-**Interpret cautiously:** SSL is a returns-only extract, so return_rate values may be uniformly
-close to 1.0. This visual is retained for structural parity with TheLook but should not be
-used to draw return-frequency conclusions.
+Retained for structural parity, but interpreted cautiously because SSL is not a full purchase-and-return population.
 
-### 6.3 Severity vs Volume Decomposition (Category)
+### 6.3 Severity vs Volume Decomposition
 
-The SSL severity-volume bubble plot illustrates the same RQ1 decomposition:
+Decomposes total loss into:
 
-- **Volume (x):** Returned line count per category
-- **Severity (y):** Mean profit erosion per return
-- **Total loss:** Proportional to volume × severity
+- Volume: returned line count per category
+- Severity: mean profit erosion per return
 
-This provides the business interpretation layer for RQ1: high total loss can result from
-**many moderate losses** or **few extreme losses**.
+### 6.4 Profit Erosion Distribution (Log Scale)
 
-### 6.4 Distribution of Profit Erosion (Log Scale)
+Confirms right-skew and heavy-tailed loss behavior.
 
-The SSL distribution is strongly right-skewed with a heavy tail, consistent with returns-loss
-behaviour in the synthetic dataset. This supports non-parametric hypothesis testing.
+### 6.5 Bootstrap 95% CI for Mean Profit Erosion
 
-### 6.5 Bootstrap 95% CI for Mean Profit Erosion (Category)
-
-Bootstrap confidence intervals around category means show estimate stability and uncertainty.
-Limited overlap across categories increases confidence that differences are reliable.
+Shows uncertainty around category-level mean erosion estimates.
 
 ---
 
 ## 7. Hypothesis Testing Results (SSL)
 
-Because the profit erosion distribution is non-normal and group counts differ substantially,
-the SSL notebook uses non-parametric testing consistent with RQ1 methodology.
+The SSL workflow applies the same non-parametric logic as the main RQ1 notebook.
 
-### 7.1 Category-level Differences
+### 7.1 Category-Level Differences
 
-- **Test used:** Kruskal-Wallis
-- **Grouping:** `Pillar-Major Market Cat-Department`
-- **p-value:** 0.0000e+00
-- **Conclusion:** Reject H₀. Mean/median profit erosion differs across categories.
+- Test: Kruskal-Wallis
+- Grouping: `Pillar-Major Market Cat-Department`
+- Conclusion: reject the null hypothesis; profit erosion differs across categories
 
-**Interpretation (plain language):** Not all product categories cost the same when returned.
-Some composite category groups consistently show higher loss per return, which supports targeted
-mitigation strategies (policy, vendor accountability, product quality improvements).
+Operationally, this means some SSL category groups are consistently more expensive when returned.
 
 ---
 
 ## 8. Cross-Dataset Validation Summary (TheLook vs SSL)
 
-### 8.1 What matches (strong validation)
+### 8.1 What matches
 
-1. **Distribution shape:** Both datasets show heavy-tailed profit erosion distributions.
-2. **Statistical conclusion:** Both reject "no category differences" at p < 0.001.
-3. **Business structure:** High total erosion is explained by a combination of volume and severity.
+1. Both datasets show heavy-tailed profit erosion distributions.
+2. Both workflows reject the null hypothesis of no category differences.
+3. In both datasets, high total erosion is explained by a combination of volume and severity.
 
-### 8.2 What differs (expected differences)
+### 8.2 What differs
 
-1. **Magnitude:** SSL losses are larger in absolute terms because they reflect real accounting
-   rather than modeled reverse-logistics assumptions.
-2. **Category granularity:** SSL composite category (`Pillar-Major Market Cat-Department`) is
-   more granular than TheLook categories; more groups increases sensitivity.
-3. **Return rate:** SSL extract is returns-only; return rate is not directly comparable without
-   non-return transactions.
-4. **Brand not compared:** TheLook validates both category and brand; SSL validates category only.
+1. SSL magnitudes are larger because they reflect realized accounting losses.
+2. SSL categories are more granular because they use a composite hierarchy.
+3. SSL return-composition metrics are not directly comparable to TheLook return rates.
+4. SSL validation does not reproduce a separate brand-level hypothesis test.
 
 ---
 
 ## 9. Validation Artifacts Produced (SSL)
 
-The SSL validation workflow produces the following reproducible artifacts:
+The SSL validation workflow writes artifacts using the same folder discipline as the main notebook:
 
-**Data (under `data/processed/rq1_ssl/`):**
-- `rq1_ssl_engineered.parquet` (+ optional `.csv`)
+**Processed data (`data/processed/rq1_ssl/`):**
+
+- `rq1_ssl_engineered.parquet`
 - `rq1_ssl_returned_items.parquet`
 - `rq1_ssl_base_canonical.parquet`
-- `rq1_ssl_by_category.csv` / `.parquet`
-- `rq1_ssl_test_summary_category.csv`
-- `rq1_ssl_posthoc_category.csv` (optional)
-- `rq1_ssl_bootstrap_ci_category_mean.csv` / `.parquet`
 
-**Figures (under `figures/rq1_ssl/`):**
+**Report CSVs (`reports/rq1_ssl/`):**
+
+- `rq1_ssl_by_category.csv`
+- `rq1_ssl_test_summary_category.csv`
+- `rq1_ssl_posthoc_category.csv`
+- `rq1_ssl_bootstrap_ci_category_mean.csv`
+
+**Figures (`figures/rq1_ssl/`):**
+
 - `fig1_top_categories_total_erosion.png`
 - `fig2_return_rate_vs_mean_erosion_category.png`
 - `fig3_severity_vs_volume_category.png`
@@ -180,9 +153,9 @@ The SSL validation workflow produces the following reproducible artifacts:
 
 ---
 
-## References (APA)
+## References
 
-- Looker. (n.d.). *TheLook eCommerce dataset* [Demo dataset]. Looker.
-- School Specialty, Inc. (2025). *SSL_Returns_df_yoy* [Unpublished internal dataset].
-- Conover, W. J. (1999). *Practical nonparametric statistics* (3rd ed.). Wiley.
-- Efron, B., & Tibshirani, R. J. (1993). *An introduction to the bootstrap*. Chapman & Hall/CRC.
+- Looker. *TheLook eCommerce dataset*.
+- School Specialty, Inc. *SSL_Returns_df_yoy*.
+- Conover, W. J. *Practical Nonparametric Statistics*.
+- Efron, B., and Tibshirani, R. J. *An Introduction to the Bootstrap*.

@@ -9,6 +9,8 @@ from typing import Dict, Optional, Tuple
 import numpy as np
 import pandas as pd
 
+from src.config import RAW_DATA_DIR, RQ1_SSL_PROCESSED_DIR, RQ1_SSL_REPORTS_DIR
+
 
 @dataclass
 class RQ1SSLPreprocessConfig:
@@ -20,7 +22,7 @@ class RQ1SSLPreprocessConfig:
 
     Output:
       data/processed/rq1_ssl/rq1_ssl_engineered.parquet
-      (optional) data/processed/rq1_ssl/rq1_ssl_engineered.csv
+      (optional) reports/rq1_ssl/rq1_ssl_engineered.csv
 
     This preprocessing is intentionally minimal. It only ensures the raw SSL export
     has the required fields for the RQ1 validation pipeline:
@@ -38,8 +40,9 @@ class RQ1SSLPreprocessConfig:
     """
 
     # IO
-    raw_path: Path = Path("data/raw/SSL_Returns_df_yoy.csv")
-    out_dir: Path = Path("data/processed/rq1_ssl")
+    raw_path: Path = RAW_DATA_DIR / "SSL_Returns_df_yoy.csv"
+    out_dir: Path = RQ1_SSL_PROCESSED_DIR
+    csv_dir: Path = RQ1_SSL_REPORTS_DIR
     out_stem: str = "rq1_ssl_engineered"
 
     # If present in raw, we will coerce. If missing, infer.
@@ -183,7 +186,9 @@ def build_and_save_rq1_ssl_engineered(
     meta["saved_parquet"] = str(out_parquet)
 
     if save_csv:
-        out_csv = out_dir / f"{cfg.out_stem}.csv"
+        csv_dir = project_root / cfg.csv_dir
+        csv_dir.mkdir(parents=True, exist_ok=True)
+        out_csv = csv_dir / f"{cfg.out_stem}.csv"
         engineered_df.to_csv(out_csv, index=False)
         meta["saved_csv"] = str(out_csv)
 

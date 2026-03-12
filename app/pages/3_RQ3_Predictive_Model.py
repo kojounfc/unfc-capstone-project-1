@@ -62,6 +62,7 @@ st.markdown(
 
 ROOT = Path(__file__).parent.parent.parent
 REPORTS_RQ3 = ROOT / "reports" / "rq3"
+FIGURES_RQ3 = ROOT / "figures" / "rq3"
 AUC_TARGET = 0.70
 
 # ── Tooltips ──────────────────────────────────────────────────────────────────
@@ -643,7 +644,7 @@ aggressive (flag more, intervene more) or conservative (flag only the clearest c
 and the model will still rank customers correctly.
 """
         )
-    roc_path = REPORTS_RQ3 / "rq3_roc_curves.png"
+    roc_path = FIGURES_RQ3 / "rq3_roc_curves.png"
     if roc_path.exists():
         st.image(str(roc_path), width='stretch')
         if _comp_df is not None:
@@ -686,7 +687,7 @@ Our models prioritize **Recall** (minimizing False Negatives) because missing a 
 customer is more costly than an occasional false alarm.
 """
         )
-    cm_path = REPORTS_RQ3 / "rq3_confusion_matrices.png"
+    cm_path = FIGURES_RQ3 / "rq3_confusion_matrices.png"
     if cm_path.exists():
         st.image(str(cm_path), width='stretch')
         if _comp_df is not None:
@@ -732,7 +733,7 @@ Logistic Regression uses |coefficient| magnitude instead.
         )
 
     if _fi_df is not None:
-        fi_png = REPORTS_RQ3 / "rq3_feature_importance.png"
+        fi_png = FIGURES_RQ3 / "rq3_feature_importance.png"
         if fi_png.exists():
             st.image(str(fi_png), width='stretch')
 

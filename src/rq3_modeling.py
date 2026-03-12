@@ -47,6 +47,7 @@ from src.config import (
     AUC_THRESHOLD,
     CUSTOMER_TARGETS_CSV,
     CV_FOLDS,
+    FIGURES_DIR,
     RANDOM_STATE,
     REPORTS_DIR,
     RQ3_CANDIDATE_FEATURES,
@@ -842,11 +843,13 @@ def main() -> None:
         plot_roc_curves,
     )
 
-    plot_roc_curves(results, save_path=reports_dir / "rq3_roc_curves.png")
-    plot_confusion_matrices(results, save_path=reports_dir / "rq3_confusion_matrices.png")
-    plot_feature_importance(importance_df, save_path=reports_dir / "rq3_feature_importance.png")
+    figures_dir = FIGURES_DIR / "rq3"
+    figures_dir.mkdir(parents=True, exist_ok=True)
+    plot_roc_curves(results, save_path=figures_dir / "rq3_roc_curves.png")
+    plot_confusion_matrices(results, save_path=figures_dir / "rq3_confusion_matrices.png")
+    plot_feature_importance(importance_df, save_path=figures_dir / "rq3_feature_importance.png")
 
-    logger.info("All RQ3 artifacts saved to %s", reports_dir)
+    logger.info("All RQ3 artifacts saved. Reports: %s | Figures: %s", reports_dir, figures_dir)
 
 
 if __name__ == "__main__":

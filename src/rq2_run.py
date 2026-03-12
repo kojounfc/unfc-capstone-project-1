@@ -27,10 +27,10 @@ PERFORMANCE OPTIMIZATIONS:
 - Sampling for silhouette computation on large datasets (>10k samples)
 - Progress indicators for long-running operations
 
-Outputs (CI-safe) written to:
-- data/processed/rq2/
-and optional plots to:
-- figures/rq2/
+Outputs are split by artifact type:
+- data/processed/rq2/ for parquet and JSON pipeline artifacts
+- reports/rq2/ for CSV report artifacts
+- figures/rq2/ for optional plots
 
 Usage:
   python -m src.rq2_run
@@ -55,7 +55,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from src.config import FIGURES_DIR, PROCESSED_DATA_DIR
+from src.config import FIGURES_DIR, PROCESSED_DATA_DIR, REPORTS_DIR
 from src.data_processing import load_processed_data
 from src.descriptive_transformations import _require_columns
 from src.feature_engineering import (
@@ -87,6 +87,7 @@ from src.visualization import _safe_tight_layout, set_plot_style
 
 RQ2_OUT_DIR = PROCESSED_DATA_DIR / "rq2"
 RQ2_FIG_DIR = FIGURES_DIR / "rq2"
+RQ2_REPORTS_DIR = REPORTS_DIR / "rq2"
 
 
 @dataclass(frozen=True)
@@ -224,6 +225,7 @@ def build_customer_erosion(item_df: pd.DataFrame) -> pd.DataFrame:
 def run_rq2(
     input_parquet: Optional[Path] = None,
     out_dir: Path = RQ2_OUT_DIR,
+    reports_dir: Path = RQ2_REPORTS_DIR,
     k: Optional[int] = None,
     k_min: int = 2,
     k_max: int = 8,  # OPTIMIZED: Reduced from 10 to 8
@@ -240,7 +242,7 @@ def run_rq2(
 
     Args:
         input_parquet: Optional path to processed input parquet dataset.
-        out_dir: Output directory for generated RQ2 artifacts.
+        out_dir: Output directory for processed RQ2 artifacts.
         k: Optional fixed number of clusters; when None, auto-selected by silhouette.
         k_min: Minimum k considered during automatic selection.
         k_max: Maximum k considered during diagnostics.
@@ -251,6 +253,7 @@ def run_rq2(
         Structured summary containing core concentration and clustering outputs.
     """
     out_dir.mkdir(parents=True, exist_ok=True)
+    reports_dir.mkdir(parents=True, exist_ok=True)
 
     # 1) Load processed item-level dataset
     print("Loading processed data...", file=sys.stderr)
@@ -291,6 +294,13 @@ def run_rq2(
         filename="customer_erosion",
         output_dir=out_dir,
         save_parquet=True,
+        save_csv=False,
+    )
+    save_feature_engineered_dataset(
+        customer_erosion,
+        filename="customer_erosion",
+        output_dir=reports_dir,
+        save_parquet=False,
         save_csv=True,
     )
 
@@ -312,6 +322,13 @@ def run_rq2(
         filename="pareto_table",
         output_dir=out_dir,
         save_parquet=True,
+        save_csv=False,
+    )
+    save_feature_engineered_dataset(
+        pareto,
+        filename="pareto_table",
+        output_dir=reports_dir,
+        save_parquet=False,
         save_csv=True,
     )
     save_feature_engineered_dataset(
@@ -319,6 +336,13 @@ def run_rq2(
         filename="lorenz_points",
         output_dir=out_dir,
         save_parquet=True,
+        save_csv=False,
+    )
+    save_feature_engineered_dataset(
+        lorenz,
+        filename="lorenz_points",
+        output_dir=reports_dir,
+        save_parquet=False,
         save_csv=True,
     )
 
@@ -382,6 +406,13 @@ def run_rq2(
         filename="clustered_customers",
         output_dir=out_dir,
         save_parquet=True,
+        save_csv=False,
+    )
+    save_feature_engineered_dataset(
+        clustered,
+        filename="clustered_customers",
+        output_dir=reports_dir,
+        save_parquet=False,
         save_csv=True,
     )
 
@@ -397,6 +428,13 @@ def run_rq2(
         filename="cluster_summary",
         output_dir=out_dir,
         save_parquet=True,
+        save_csv=False,
+    )
+    save_feature_engineered_dataset(
+        cluster_summary,
+        filename="cluster_summary",
+        output_dir=reports_dir,
+        save_parquet=False,
         save_csv=True,
     )
 
@@ -415,6 +453,13 @@ def run_rq2(
         filename="elbow_inertia",
         output_dir=out_dir,
         save_parquet=True,
+        save_csv=False,
+    )
+    save_feature_engineered_dataset(
+        elbow_df,
+        filename="elbow_inertia",
+        output_dir=reports_dir,
+        save_parquet=False,
         save_csv=True,
     )
     save_feature_engineered_dataset(
@@ -422,6 +467,13 @@ def run_rq2(
         filename="silhouette_scores",
         output_dir=out_dir,
         save_parquet=True,
+        save_csv=False,
+    )
+    save_feature_engineered_dataset(
+        silhouette_df,
+        filename="silhouette_scores",
+        output_dir=reports_dir,
+        save_parquet=False,
         save_csv=True,
     )
 
@@ -466,9 +518,9 @@ def run_rq2(
     if concentration_comparison_metrics:
         meta["concentration_comparison"] = concentration_comparison_metrics
 
-    (out_dir / "rq2_metadata.json").write_text(
-        json.dumps(meta, indent=2), encoding="utf-8"
-    )
+    metadata_json = json.dumps(meta, indent=2)
+    (out_dir / "rq2_metadata.json").write_text(metadata_json, encoding="utf-8")
+    (reports_dir / "rq2_metadata.json").write_text(metadata_json, encoding="utf-8")
 
     # Optional plots
     if make_plots:
@@ -529,9 +581,9 @@ def run_rq2(
         k_used=int(selected_k),
     )
 
-    (out_dir / "rq2_summary.json").write_text(
-        json.dumps(asdict(summary), indent=2), encoding="utf-8"
-    )
+    summary_json = json.dumps(asdict(summary), indent=2)
+    (out_dir / "rq2_summary.json").write_text(summary_json, encoding="utf-8")
+    (reports_dir / "rq2_summary.json").write_text(summary_json, encoding="utf-8")
 
     print("✓ RQ2 analysis complete", file=sys.stderr)
     return summary
@@ -560,7 +612,7 @@ def _parse_args() -> argparse.Namespace:
         "--out-dir",
         type=str,
         default=str(RQ2_OUT_DIR),
-        help="Output directory (default: data/processed/rq2).",
+        help="Processed-output directory (default: data/processed/rq2).",
     )
     p.add_argument(
         "--k",

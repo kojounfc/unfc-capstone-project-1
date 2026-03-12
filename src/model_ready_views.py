@@ -42,7 +42,7 @@ class OutputPaths:
 
     @property
     def rq2_dir(self) -> Path:
-        return self.base_processed_dir 
+        return self.base_processed_dir / "rq2"
 
     @property
     def rq3_dir(self) -> Path:
