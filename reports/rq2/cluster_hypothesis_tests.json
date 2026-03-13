@@ -1,0 +1,30 @@
+{
+  "decision": "REJECT NULL HYPOTHESIS (H0)",
+  "conclusion": "Segments differ significantly in profit erosion",
+  "evidence_strength": "Very Strong",
+  "alpha": 0.05,
+  "anova_f_statistic": 1794.2309424611126,
+  "anova_p_value": 0.0,
+  "kruskal_wallis_h": 968.1324779671621,
+  "kruskal_wallis_p_value": 1.5178496786739485e-212,
+  "reject_null": true,
+  "eta_squared": 0.13020325638611308,
+  "effect_label": "MEDIUM practical effect - segmentation is actionable",
+  "n_clusters": 2,
+  "cluster_ids": [
+    0,
+    1
+  ],
+  "pairwise_comparisons": [
+    {
+      "cluster_i": 0,
+      "cluster_j": 1,
+      "pair_label": "Cluster 0 vs 1",
+      "mean_diff": 44.983355197482425,
+      "t_statistic": 42.35836331187872,
+      "p_value": 0.0,
+      "bonferroni_alpha": 0.05,
+      "significant": true
+    }
+  ]
+}

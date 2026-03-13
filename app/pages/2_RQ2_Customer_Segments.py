@@ -297,8 +297,18 @@ if _anova_f is None and _hyp_json.exists():
             _hj = _json2.load(_jf)
         _anova_f = _hj.get("anova_f_statistic") or _hj.get("anova_f") or _hj.get("F")
         _anova_p = _hj.get("anova_p_value")     or _hj.get("anova_p") or _hj.get("p_anova")
-        _kw_h    = _hj.get("kw_h_statistic")    or _hj.get("kw_h")    or _hj.get("H")
-        _kw_p    = _hj.get("kw_p_value")        or _hj.get("kw_p")    or _hj.get("p_kw")
+        _kw_h    = (
+            _hj.get("kruskal_wallis_h")
+            or _hj.get("kw_h_statistic")
+            or _hj.get("kw_h")
+            or _hj.get("H")
+        )
+        _kw_p    = (
+            _hj.get("kruskal_wallis_p_value")
+            or _hj.get("kw_p_value")
+            or _hj.get("kw_p")
+            or _hj.get("p_kw")
+        )
         _eta2    = _hj.get("eta_squared")        or _hj.get("eta2")
     except Exception:
         pass
@@ -1064,7 +1074,8 @@ do the same job on a real-world dataset (SSL — a B2B educational supplier).
                 pv_df = pv_df.sort_values("_sort")
                 status_labels = {"Both Pass": "Works in Both", "Disagree": "Works in One Only", "Both Fail": "Works in Neither"}
                 pv_df["Status_Label"] = pv_df["Status"].map(status_labels)
-                fig_val = px.bar(pv_df, y=feat_col, x=[1]*len(pv_df), color="Status_Label",
+                pv_df["_x"] = 1
+                fig_val = px.bar(pv_df, y=feat_col, x="_x", color="Status_Label",
                     orientation="h",
                     color_discrete_map={"Works in Both":"#2E7D32","Works in One Only":"#EF6C00","Works in Neither":"#B0BEC5"},
                     title="Which Features Work in Both Datasets?",
