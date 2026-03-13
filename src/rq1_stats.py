@@ -9,6 +9,8 @@ Testing logic:
 - Otherwise, use Kruskal–Wallis + epsilon-squared.
 
 Outputs are designed to be CI-safe and deterministic given the same input parquet.
+Processed input is read from `data/processed/rq1`, while CSV summaries are written to
+`reports/rq1`.
 """
 
 from __future__ import annotations
@@ -35,18 +37,21 @@ EFFECT_THRESHOLD = 0.06  # template success criterion (can be adjusted per rubri
 
 
 def _default_processed_dir() -> Path:
-    """
-    Resolve the default RQ1 processed output directory.
-
-    Uses `src.config.PROCESSED_DATA_DIR` when available; otherwise falls back to
-    `data/processed/rq1` relative to the current working directory.
-    """
     try:
         from src.config import PROCESSED_DATA_DIR  # type: ignore
 
         return Path(PROCESSED_DATA_DIR) / "rq1"
     except Exception:
         return Path("data") / "processed" / "rq1"
+
+
+def _default_reports_dir() -> Path:
+    try:
+        from src.config import REPORTS_DIR  # type: ignore
+
+        return Path(REPORTS_DIR) / "rq1"
+    except Exception:
+        return Path("reports") / "rq1"
 
 
 def _eta_squared(groups: list[np.ndarray], all_values: np.ndarray) -> float:
@@ -383,13 +388,15 @@ def main() -> None:
     - data/processed/rq1/rq1_returned_items.parquet (fallback)
       or src.config.PROCESSED_DATA_DIR/rq1/rq1_returned_items.parquet
 
-    Writes:
+    Writes to reports/rq1:
     - rq1_statistical_tests_summary.csv
     - rq1_posthoc_category.csv (if available)
     - rq1_posthoc_brand.csv (if available)
     """
     out_dir = _default_processed_dir()
     out_dir.mkdir(parents=True, exist_ok=True)
+    reports_dir = _default_reports_dir()
+    reports_dir.mkdir(parents=True, exist_ok=True)
 
     df = pd.read_parquet(out_dir / "rq1_returned_items.parquet")
 
@@ -403,10 +410,10 @@ def main() -> None:
         summary, posthoc = run_factor(df, factor, value_col="profit_erosion", min_group_size=5)
         summaries.append(summary)
         if not posthoc.empty:
-            posthoc.to_csv(out_dir / f"rq1_posthoc_{factor}.csv", index=False)
+            posthoc.to_csv(reports_dir / f"rq1_posthoc_{factor}.csv", index=False)
 
-    pd.DataFrame(summaries).to_csv(out_dir / "rq1_statistical_tests_summary.csv", index=False)
-    print("RQ1 stats complete. Outputs written to:", out_dir)
+    pd.DataFrame(summaries).to_csv(reports_dir / "rq1_statistical_tests_summary.csv", index=False)
+    print("RQ1 stats complete. Outputs written to:", reports_dir)
 
 
 if __name__ == "__main__":

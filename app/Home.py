@@ -86,6 +86,13 @@ PROCESSED = ROOT / "data" / "processed"
 REPORTS_RQ3 = ROOT / "reports" / "rq3"
 REPORTS_RQ4 = ROOT / "reports" / "rq4"
 
+
+def _read_first_available(paths, reader):
+    for path in paths:
+        if path.exists():
+            return reader(path)
+    return None
+
 _rq1_top_cat = None
 _rq2_n_clusters = None
 _rq3_champion_name = None
@@ -95,15 +102,25 @@ _rq4_top_feat = None
 _rq4_top_pct = None
 _ssl_accounts_rq3 = None
 
-_cat_path = PROCESSED / "rq1" / "rq1_product_profit_erosion_by_category.parquet"
-if _cat_path.exists():
-    _cat_df = pd.read_parquet(_cat_path)
+_cat_df = _read_first_available(
+    [
+        PROCESSED / "rq1" / "rq1_product_profit_erosion_by_category.parquet",
+        REPORTS_RQ3.parent / "rq1" / "rq1_erosion_by_category.csv",
+    ],
+    lambda p: pd.read_parquet(p) if p.suffix == ".parquet" else pd.read_csv(p),
+)
+if _cat_df is not None:
     _rq1_top_cat = _cat_df.nlargest(1, "total_profit_erosion").iloc[0]["category"]
 
 _rq1_top_brand = None
-_brand_path = PROCESSED / "rq1" / "rq1_product_profit_erosion_by_brand.parquet"
-if _brand_path.exists():
-    _brand_df = pd.read_parquet(_brand_path)
+_brand_df = _read_first_available(
+    [
+        PROCESSED / "rq1" / "rq1_product_profit_erosion_by_brand.parquet",
+        REPORTS_RQ3.parent / "rq1" / "rq1_erosion_by_brand.csv",
+    ],
+    lambda p: pd.read_parquet(p) if p.suffix == ".parquet" else pd.read_csv(p),
+)
+if _brand_df is not None:
     _rq1_top_brand = _brand_df.nlargest(1, "total_profit_erosion").iloc[0]["brand"]
 
 _cs_path = PROCESSED / "rq2" / "cluster_summary.parquet"

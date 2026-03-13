@@ -5,9 +5,9 @@
 3,Intimates,Accessories,1.0
 4,Jeans,Accessories,0.009977113775997797
 5,Outerwear & Coats,Accessories,2.65416578877993e-07
-6,Pants,Accessories,0.12871580318005935
+6,Pants,Accessories,0.12871580318005937
 7,Shorts,Accessories,1.0
-8,Socks,Accessories,0.041179927747114965
+8,Socks,Accessories,0.04117992774711496
 9,Sweaters,Accessories,0.04289403043015264
 10,Swim,Accessories,1.0
 11,Tops & Tees,Accessories,1.0
@@ -26,7 +26,7 @@
 24,Accessories,Fashion Hoodies & Sweatshirts,0.46873035742595487
 25,Active,Fashion Hoodies & Sweatshirts,1.0
 26,Fashion Hoodies & Sweatshirts,Fashion Hoodies & Sweatshirts,1.0
-27,Intimates,Fashion Hoodies & Sweatshirts,0.00011350762376371833
+27,Intimates,Fashion Hoodies & Sweatshirts,0.00011350762376371835
 28,Jeans,Fashion Hoodies & Sweatshirts,1.0
 29,Outerwear & Coats,Fashion Hoodies & Sweatshirts,0.03272635773926782
 30,Pants,Fashion Hoodies & Sweatshirts,1.0
@@ -37,9 +37,9 @@
 35,Tops & Tees,Fashion Hoodies & Sweatshirts,0.03763789697919331
 36,Accessories,Intimates,1.0
 37,Active,Intimates,0.006807333647266452
-38,Fashion Hoodies & Sweatshirts,Intimates,0.00011350762376371833
+38,Fashion Hoodies & Sweatshirts,Intimates,0.00011350762376371835
 39,Intimates,Intimates,1.0
-40,Jeans,Intimates,4.3803311005230795e-07
+40,Jeans,Intimates,4.380331100523079e-07
 41,Outerwear & Coats,Intimates,5.283064325302926e-13
 42,Pants,Intimates,2.5767220415367e-05
 43,Shorts,Intimates,0.03502024221887096
@@ -50,7 +50,7 @@
 48,Accessories,Jeans,0.009977113775997797
 49,Active,Jeans,1.0
 50,Fashion Hoodies & Sweatshirts,Jeans,1.0
-51,Intimates,Jeans,4.3803311005230795e-07
+51,Intimates,Jeans,4.380331100523079e-07
 52,Jeans,Jeans,1.0
 53,Outerwear & Coats,Jeans,1.0
 54,Pants,Jeans,1.0
@@ -71,7 +71,7 @@
 69,Sweaters,Outerwear & Coats,0.49157012758908997
 70,Swim,Outerwear & Coats,0.009596364929405939
 71,Tops & Tees,Outerwear & Coats,1.9816000666754937e-09
-72,Accessories,Pants,0.12871580318005935
+72,Accessories,Pants,0.12871580318005937
 73,Active,Pants,1.0
 74,Fashion Hoodies & Sweatshirts,Pants,1.0
 75,Intimates,Pants,2.5767220415367e-05
@@ -95,7 +95,7 @@
 93,Sweaters,Shorts,1.0
 94,Swim,Shorts,1.0
 95,Tops & Tees,Shorts,1.0
-96,Accessories,Socks,0.041179927747114965
+96,Accessories,Socks,0.04117992774711496
 97,Active,Socks,2.034068724456134e-05
 98,Fashion Hoodies & Sweatshirts,Socks,1.1095617334775604e-07
 99,Intimates,Socks,1.0

@@ -1,6 +1,6 @@
 {
   "gini_coefficient": 0.4092911746141102,
-  "top_20_pct_share": 0.47631022801664313,
+  "top_20_pct_share": 0.476310228016643,
   "top_50_impact": {
     "count": 50,
     "absolute_loss": 23808.31,
@@ -8,7 +8,7 @@
   },
   "bootstrap_test": {
     "observed_gini": 0.4092911746141102,
-    "null_mean_gini": -2.4357722077488993e-17,
+    "null_mean_gini": -4.8715444154977985e-17,
     "p_value": 0.0,
     "n_bootstrap": 1000
   },

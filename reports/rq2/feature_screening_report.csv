@@ -1,0 +1,9 @@
+feature,variance,variance_pass,correlation_pass,highly_correlated_with,final_status
+avg_order_value,5371.202738980268,True,True,,pass
+avg_basket_size,0.4175252763530471,True,True,,pass
+order_frequency,1.105682759836914,True,True,,pass
+customer_return_rate,0.09934740177591359,True,True,,pass
+customer_tenure_days,579125.6998176229,True,True,,pass
+purchase_recency_days,239910.10046601907,True,True,,pass
+total_sales,24776.40779088886,True,True,,pass
+total_margin,7057.993351187605,True,False,total_sales,fail

@@ -70,6 +70,7 @@ st.markdown("""
 ROOT          = Path(__file__).resolve().parents[2]
 FIGURES_RQ2   = ROOT / "figures" / "rq2"
 PROCESSED_RQ2 = ROOT / "data" / "processed" / "rq2"
+REPORTS_RQ2   = ROOT / "reports" / "rq2"
 
 # ── Tooltips ──────────────────────────────────────────────────────────────────
 _TOOLTIPS = {
@@ -132,7 +133,7 @@ _TOOLTIPS = {
         "Despite smaller headcount, it drives nearly equal total dollars."
     ),
     "fig_diagnostics": (
-        "**Clustering Diagnostics:** Silhouette score peaks at k=2 (score=0.284) — the global "
+        "**Clustering Diagnostics:** Silhouette score peaks at k=2 (score=0.292107) — the global "
         "maximum across k=2 to 8. The elbow curve confirms the same inflection. "
         "k=2 is not a simplification — it is the statistically optimal answer."
     ),
@@ -191,6 +192,13 @@ def _safe_parquet(path: Path):
         return None
 
 
+def _first_existing_parquet(*paths: Path):
+    for path in paths:
+        if path.exists():
+            return _safe_parquet(path)
+    return None
+
+
 # ── Load data ─────────────────────────────────────────────────────────────────
 _conc       = {}
 _valid      = {}
@@ -212,22 +220,37 @@ for path, key in [
             if key == "conc": _conc  = json.load(f)
             else:             _valid = json.load(f)
 
+# Fallback: rq2_metadata.json (produced by rq2_run.py) uses different key names
+if not _conc:
+    _meta_path = PROCESSED_RQ2 / "rq2_metadata.json"
+    if _meta_path.exists():
+        with open(_meta_path) as f:
+            _meta = json.load(f)
+        _conc = {
+            "gini_coefficient":   _meta.get("gini"),
+            "top_20_pct_share":   _meta.get("top_x_share_of_erosion"),
+            "bootstrap_test":     _meta.get("gini_bootstrap_test", {}),
+            "concentration_comparison": _meta.get("concentration_comparison", {}),
+        }
+
 for path, attr in [
     (PROCESSED_RQ2 / "cluster_summary.parquet",               "_cs_df"),
     (PROCESSED_RQ2 / "pareto_table.parquet",                  "_pareto_df"),
     (PROCESSED_RQ2 / "clustered_customers.parquet",           "_cluster_df"),
     (PROCESSED_RQ2 / "feature_concentration_ranking.parquet", "_feat_conc"),
     (PROCESSED_RQ2 / "clustering_feature_importance.parquet", "_feat_imp"),
-    (PROCESSED_RQ2 / "elbow_df.parquet",                      "_elbow_df"),
-    (PROCESSED_RQ2 / "silhouette_df.parquet",                 "_sil_df"),
+    (PROCESSED_RQ2 / "elbow_inertia.parquet",                 "_elbow_df"),
+    (PROCESSED_RQ2 / "silhouette_scores.parquet",             "_sil_df"),
+    (PROCESSED_RQ2 / "lorenz_points.parquet",                 "_lorenz_df"),
 ]:
     if Path(path).exists():
         globals()[attr] = _safe_parquet(path)
 
 for csv_path, attr in [
-    (PROCESSED_RQ2 / "clustering_feature_importance.csv", "_feat_imp"),
-    (PROCESSED_RQ2 / "feature_concentration_ranking.csv", "_feat_conc"),
-    (PROCESSED_RQ2 / "lorenz_curve_points.csv",           "_lorenz_df"),
+    (REPORTS_RQ2 / "clustering_feature_importance.csv", "_feat_imp"),
+    (REPORTS_RQ2 / "feature_concentration_ranking.csv", "_feat_conc"),
+    (REPORTS_RQ2 / "lorenz_points.csv",                  "_lorenz_df"),
+    (REPORTS_RQ2 / "lorenz_curve_points.csv",            "_lorenz_df"),
 ]:
     if globals().get(attr) is None and Path(csv_path).exists():
         globals()[attr] = pd.read_csv(csv_path)
@@ -248,8 +271,8 @@ _kw_h    = None
 _kw_p    = None
 _eta2    = None
 
-_hyp_csv  = PROCESSED_RQ2 / "cluster_hypothesis_tests.csv"
-_hyp_json = PROCESSED_RQ2 / "cluster_hypothesis_tests.json"
+_hyp_csv  = REPORTS_RQ2 / "cluster_hypothesis_tests.csv"
+_hyp_json = REPORTS_RQ2 / "cluster_hypothesis_tests.json"
 
 if _hyp_csv.exists():
     try:
@@ -850,7 +873,7 @@ K-Means clustering on 8 screened behavioral features (highly correlated features
             st.markdown("""
 | Method | Result |
 |--------|--------|
-| **Silhouette** | Peaks at k=2 (score=0.284) — global max across k=2 to 8 |
+| **Silhouette** | Peaks at k=2 (score=0.292107) — global max across k=2 to 8 |
 | **Elbow (inertia)** | Inflection point at k=2 |
 
 **k=2 is not a simplification — it is the statistically optimal answer.**
@@ -1027,7 +1050,7 @@ do the same job on a real-world dataset (SSL — a B2B educational supplier).
                 icon="⚠️",
             )
 
-        pv_csv = PROCESSED_RQ2 / "rq2_pattern_validation.csv"
+        pv_csv = REPORTS_RQ2 / "rq2_pattern_validation.csv"
         if pv_csv.exists():
             pv_df    = pd.read_csv(pv_csv)
             feat_col = next((c for c in ["feature","Feature"] if c in pv_df.columns), None)
@@ -1151,12 +1174,19 @@ Together they provide two complementary targeting dimensions.
         st.divider()
 
         # ── Dollar Impact Callout ─────────────────────────────────────────────
-        _EROSION_PARQUET = (
-            ROOT / "data" / "processed" / "rq2" / "customer_erosion.parquet"
+        _df_erosion = _first_existing_parquet(
+            ROOT / "data" / "processed" / "rq2" / "customer_erosion.parquet",
+            ROOT / "data" / "processed" / "rq2" / "clustered_customers.parquet",
+            ROOT / "data" / "processed" / "rq2" / "customer_segmentation_table.parquet",
         )
         try:
-            _df_erosion = pd.read_parquet(_EROSION_PARQUET)
-            _high_e = _df_erosion[_df_erosion["is_high_erosion_customer"] == 1]
+            if _df_erosion is None or "total_profit_erosion" not in _df_erosion.columns:
+                raise FileNotFoundError("No usable RQ2 erosion table found.")
+            if "is_high_erosion_customer" in _df_erosion.columns:
+                _high_e = _df_erosion[_df_erosion["is_high_erosion_customer"] == 1]
+            else:
+                _threshold = _df_erosion["total_profit_erosion"].quantile(0.75)
+                _high_e = _df_erosion[_df_erosion["total_profit_erosion"] >= _threshold]
             _total_e = _df_erosion["total_profit_erosion"].sum()
             _high_e_total = _high_e["total_profit_erosion"].sum()
             _high_e_count = len(_high_e)
