@@ -133,7 +133,7 @@ _TOOLTIPS = {
         "Despite smaller headcount, it drives nearly equal total dollars."
     ),
     "fig_diagnostics": (
-        "**Clustering Diagnostics:** Silhouette score peaks at k=2 (score=0.284) — the global "
+        "**Clustering Diagnostics:** Silhouette score peaks at k=2 (score=0.292107) — the global "
         "maximum across k=2 to 8. The elbow curve confirms the same inflection. "
         "k=2 is not a simplification — it is the statistically optimal answer."
     ),
@@ -873,7 +873,7 @@ K-Means clustering on 8 screened behavioral features (highly correlated features
             st.markdown("""
 | Method | Result |
 |--------|--------|
-| **Silhouette** | Peaks at k=2 (score=0.284) — global max across k=2 to 8 |
+| **Silhouette** | Peaks at k=2 (score=0.292107) — global max across k=2 to 8 |
 | **Elbow (inertia)** | Inflection point at k=2 |
 
 **k=2 is not a simplification — it is the statistically optimal answer.**
