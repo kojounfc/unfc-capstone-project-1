@@ -523,3 +523,8 @@ with tab_team:
         "External validation: School Specialty LLC (SSL) 2024–2025 | "
         "DAMO-699-4 · University of Niagara Falls Canada · Winter 2026"
     )
+
+st.caption(
+    "DAMO-699-4 · University of Niagara Falls, Canada · Winter 2026 · "
+    "Analyzing Profit Erosion from Product Returns in E-Commerce"
+)

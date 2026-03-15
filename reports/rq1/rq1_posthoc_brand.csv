@@ -2,9 +2,9 @@
 0,Allegra K,Allegra K,1.0
 1,Calvin Klein,Allegra K,0.28786098094384444
 2,Carhartt,Allegra K,0.03234097666252148
-3,Dockers,Allegra K,0.11408970318569572
+3,Dockers,Allegra K,0.11408970318569575
 4,Levi's,Allegra K,0.4279667336027105
-5,Tommy Hilfiger,Allegra K,0.006691764444166968
+5,Tommy Hilfiger,Allegra K,0.00669176444416697
 6,Volcom,Allegra K,0.0005277891933585837
 7,Allegra K,Calvin Klein,0.28786098094384444
 8,Calvin Klein,Calvin Klein,1.0
@@ -20,7 +20,7 @@
 18,Levi's,Carhartt,1.0
 19,Tommy Hilfiger,Carhartt,1.0
 20,Volcom,Carhartt,1.0
-21,Allegra K,Dockers,0.11408970318569572
+21,Allegra K,Dockers,0.11408970318569575
 22,Calvin Klein,Dockers,1.0
 23,Carhartt,Dockers,1.0
 24,Dockers,Dockers,1.0
@@ -34,7 +34,7 @@
 32,Levi's,Levi's,1.0
 33,Tommy Hilfiger,Levi's,1.0
 34,Volcom,Levi's,1.0
-35,Allegra K,Tommy Hilfiger,0.006691764444166968
+35,Allegra K,Tommy Hilfiger,0.00669176444416697
 36,Calvin Klein,Tommy Hilfiger,1.0
 37,Carhartt,Tommy Hilfiger,1.0
 38,Dockers,Tommy Hilfiger,1.0

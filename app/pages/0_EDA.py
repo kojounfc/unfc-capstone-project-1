@@ -640,3 +640,8 @@ try:
 
 except Exception as _e:
     st.info("Return rate trend chart unavailable — processed dataset not loaded.", icon="ℹ️")
+
+st.caption(
+    "DAMO-699-4 · University of Niagara Falls, Canada · Winter 2026 · "
+    "EDA — TheLook E-Commerce Dataset"
+)
