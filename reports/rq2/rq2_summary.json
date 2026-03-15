@@ -1,0 +1,8 @@
+{
+  "customers": 2,
+  "total_profit_erosion": 100.0,
+  "gini": 0.42,
+  "top_x": 0.2,
+  "top_x_share_of_erosion": 0.7,
+  "k_used": 2
+}

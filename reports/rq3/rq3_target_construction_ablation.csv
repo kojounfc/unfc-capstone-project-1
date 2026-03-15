@@ -1,0 +1,4 @@
+variant,erosion_column,positive_rate,n_features,selected_features,cv_auc,test_auc,best_params,auc_drop_vs_full
+Full profit erosion target,total_profit_erosion,0.25,7,"return_frequency, customer_return_rate, avg_basket_size, avg_order_value, total_items, total_margin, avg_item_margin",0.9792,0.9798,"{'max_depth': 10, 'min_samples_leaf': 10, 'n_estimators': 200}",-0.0
+Margin-only target,total_margin_reversal,0.25,7,"return_frequency, customer_return_rate, avg_basket_size, avg_order_value, total_items, total_margin, avg_item_margin",0.9728,0.9733,"{'max_depth': 5, 'min_samples_leaf': 5, 'n_estimators': 100}",0.0065
+Process-cost-only target,total_process_cost,0.1915,9,"order_frequency, return_frequency, customer_return_rate, avg_basket_size, avg_order_value, purchase_recency_days, total_items, total_sales, avg_item_margin",0.9798,0.9758,"{'max_depth': 5, 'min_samples_leaf': 5, 'n_estimators': 200}",0.004

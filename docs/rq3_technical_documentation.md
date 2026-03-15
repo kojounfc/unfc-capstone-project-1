@@ -1,5 +1,5 @@
 ﻿# RQ3 Technical Documentation
-**Capstone Project â€“ Master of Data Analytics**
+**Capstone Project - Master of Data Analytics**
 **Research Question 3 (RQ3)**
 
 ---
@@ -17,10 +17,10 @@ This research question evaluates whether customer-level behavioral features, der
 
 Hypothesis testing was framed around the Area Under the Receiver Operating Characteristic Curve (AUC-ROC), a standard discrimination metric for binary classification.
 
-- **Hâ‚€ (Null Hypothesis):**
-  The best-performing model achieves AUC â‰¤ 0.70. Machine learning models cannot reliably discriminate between high and low profit erosion customers.
+- **H₀ (Null Hypothesis):**
+  The best-performing model achieves AUC ≤ 0.70. Machine learning models cannot reliably discriminate between high and low profit erosion customers.
 
-- **Hâ‚ (Alternative Hypothesis):**
+- **H₁ (Alternative Hypothesis):**
   The best-performing model achieves AUC > 0.70. Machine learning models can reliably predict high profit erosion customers from behavioral features.
 
 **Threshold justification:** An AUC of 0.70 represents the lower bound of acceptable discrimination in applied classification literature (Hosmer & Lemeshow, 2000). Below this threshold, a model's ranking ability is considered insufficient for operational use.
@@ -32,7 +32,7 @@ Hypothesis testing was framed around the Area Under the Receiver Operating Chara
 - **Unit of analysis:** Customer (aggregated from order-item transactions)
 - **Dataset:** TheLook e-commerce dataset (synthetic), consolidated via US06 feature engineering pipeline
 - **Population:** 11,988 customers with at least one returned item
-- **Target variable:** `is_high_erosion_customer` â€” binary indicator (1 = customer's total profit erosion â‰¥ 75th percentile)
+- **Target variable:** `is_high_erosion_customer` — binary indicator (1 = customer's total profit erosion ≥ 75th percentile)
 - **Class distribution:** 2,997 positive (25.0%) / 8,991 negative (75.0%)
 
 The 75th percentile threshold segments the top quartile of profit-eroding customers, creating a class split appropriate for binary classification while reflecting the Pareto principle that a minority of customers drive the majority of return-related losses.
@@ -50,7 +50,7 @@ Profit erosion was operationalized using the standardized **US06 feature enginee
   \]
 
 - **Margin Reversal:** The item-level contribution margin lost due to the return (`item_margin`).
-- **Processing Cost:** A modeled reverse-logistics cost ($12 base Ã— category-tiered multiplier).
+- **Processing Cost:** A modeled reverse-logistics cost ($12 base × category-tiered multiplier).
 
 Twelve candidate predictor features were engineered at the customer level from order-item transaction data, capturing four behavioral dimensions:
 
@@ -86,21 +86,21 @@ This exclusion is enforced programmatically before any train/test split to guara
 
 ### 6.1 Pipeline Architecture
 
-The pipeline follows a strict sequential order designed to prevent information leakage and ensure reproducibility. This architecture implements what Hastie, Tibshirani, and Friedman (2009, Sec 7.10.2) term the "right way" to combine feature selection with cross-validation â€” performing all data-driven selection steps *after* the train/test split, inside the training fold only. The alternative ("wrong way") applies feature selection to the entire dataset before splitting, allowing test-set distributional information to leak into model selection and producing optimistically biased performance estimates.
+The pipeline follows a strict sequential order designed to prevent information leakage and ensure reproducibility. This architecture implements what Hastie, Tibshirani, and Friedman (2009, Sec 7.10.2) term the "right way" to combine feature selection with cross-validation — performing all data-driven selection steps *after* the train/test split, inside the training fold only. The alternative ("wrong way") applies feature selection to the entire dataset before splitting, allowing test-set distributional information to leak into model selection and producing optimistically biased performance estimates.
 
 ```
 1. Load data (12 candidates + target)
 2. Drop leakage columns (6 columns removed)
 3. Impute missing values (median strategy)
 4. Stratified train/test split 80/20 (all 12 candidates in both sets)
-5. Feature screening on TRAINING SET ONLY (3 sequential gates)
+5. Feature screening on TRAINING SET ONLY (2 sequential gates — variance gate removed, see Section 7.8)
 6. Apply surviving feature list to BOTH train and test sets
 7. Train models (GridSearchCV, stratified 5-fold CV)
 8. Evaluate on held-out test set
 9. Extract feature importance (post-hoc, from trained models)
 ```
 
-**Critical design decision:** Feature screening (Step 5) executes on the training set exclusively. The resulting feature list is then applied to the test set. This enforces the "learn-predict separation" principle formalized by Kaufman et al. (2012), which requires that any data-driven decision â€” including feature selection â€” must be learned only from training data and never from the prediction (test) set. Rosenblatt et al. (2024) demonstrated empirically that violating this separation through feature leakage "drastically inflates prediction performance," producing AUC estimates that may be 0.10â€“0.30 higher than the model's true discrimination ability. By restricting screening to the training fold, this pipeline prevents such optimistic bias.
+**Critical design decision:** Feature screening (Step 5) executes on the training set exclusively. The resulting feature list is then applied to the test set. This enforces the "learn-predict separation" principle formalized by Kaufman et al. (2012), which requires that any data-driven decision — including feature selection — must be learned only from training data and never from the prediction (test) set. Rosenblatt et al. (2024) demonstrated empirically that violating this separation through feature leakage "drastically inflates prediction performance," producing AUC estimates that may be 0.10–0.30 higher than the model's true discrimination ability. By restricting screening to the training fold, this pipeline prevents such optimistic bias.
 
 ### 6.2 Data Preparation
 
@@ -109,21 +109,21 @@ The pipeline follows a strict sequential order designed to prevent information l
 - **Imputation:** 294 missing values in `customer_tenure_days` and `purchase_recency_days` imputed with column median
 - **Missing after imputation:** 0 (train and test)
 
-### 6.3 Feature Screening (3 Sequential Gates)
+### 6.3 Feature Screening (2 Sequential Gates)
 
-Feature selection was performed before model training using a three-gate screening protocol applied to the training set only. This hybrid multi-stage filter approach follows the taxonomy of Guyon and Elisseeff (2003) and the recommendations of Saeys, Inza, and LarraÃ±aga (2007): apply cheap unsupervised filters first to remove uninformative features, then progressively apply more rigorous supervised statistical tests. Each gate addresses a distinct source of noise:
+Feature selection was performed before model training using a two-gate screening protocol applied to the training set only. This hybrid multi-stage filter approach follows the taxonomy of Guyon and Elisseeff (2003) and the recommendations of Saeys, Inza, and Larrañaga (2007): apply cheap unsupervised filters first to remove uninformative features, then progressively apply more rigorous supervised statistical tests. Each gate addresses a distinct source of noise:
 
 | Gate | Method | Criterion | Removes |
 |------|--------|-----------|---------|
-| **1. Variance** | `VarianceThreshold` (scikit-learn) | Variance < 0.01 | Constant or quasi-constant features |
-| **2. Correlation** | Pearson correlation matrix | \|r\| > 0.85 between two features â†’ drop the one with lower univariate association to the target | Redundant collinear features |
-| **3. Univariate** | Point-biserial correlation, Bonferroni correction | Adjusted p-value > 0.05 | Statistically irrelevant features |
+| **1. Correlation** | Pearson correlation matrix | \|r\| > 0.85 between two features → drop the one with lower univariate association to the target | Redundant collinear features |
+| **2. Univariate** | Point-biserial correlation, Bonferroni correction | Adjusted p-value > 0.05 | Statistically irrelevant features |
+
+**Why 2 gates rather than 3?** An initial design included a variance gate (`VarianceThreshold` < 0.01) as Gate 1. The preprocessing ablation study (Section 7.8.2) showed that removing this gate produced a delta AUC of exactly 0.0000 — the champion model’s discrimination is completely insensitive to whether near-zero variance features are pre-filtered. All 12 candidate features in this dataset have sufficient variance to pass the 0.01 threshold, making the gate a no-op. Retaining a step that never fires adds complexity without benefit; it was therefore removed from the pipeline in response to reviewer feedback.
 
 **Gate-level justification:**
 
-- **Gate 1 (Variance threshold = 0.01):** Near-zero variance features add dimensionality without discriminative power (Kuhn & Johnson, 2013, Ch. 3). A threshold of 0.01 is consistent with standard usage of scikit-learn's `VarianceThreshold`, removing only features that are effectively constant across the training set.
-- **Gate 2 (Pearson |r| > 0.85):** Severe multicollinearity inflates coefficient variance in linear models and can cause regression coefficients to change sign (Dormann et al., 2013). The commonly cited threshold is |r| > 0.7; the 0.85 threshold used here is a conservative choice that removes only the most severely collinear pairs. When two features exceed the threshold, the one with lower point-biserial target association is dropped to retain the more predictive feature.
-- **Gate 3 (Point-biserial + Bonferroni):** Point-biserial correlation is mathematically equivalent to Pearson's r when one variable is binary â€” the correct measure of association between continuous predictors and a binary target (Kornbrot, 2014). Bonferroni correction (Î±/m = 0.05/9 â‰ˆ 0.0056) controls the family-wise error rate across simultaneous tests and is appropriate for small numbers of comparisons (Dunn, 1961). This gate removes features that show no statistically significant association with the target after multiple-testing correction.
+- **Gate 1 (Pearson |r| > 0.85):** Severe multicollinearity inflates coefficient variance in linear models and can cause regression coefficients to change sign (Dormann et al., 2013). The commonly cited threshold is |r| > 0.7; the 0.85 threshold used here is a conservative choice that removes only the most severely collinear pairs. When two features exceed the threshold, the one with lower point-biserial target association is dropped to retain the more predictive feature.
+- **Gate 2 (Point-biserial + Bonferroni):** Point-biserial correlation is mathematically equivalent to Pearson’s r when one variable is binary — the correct measure of association between continuous predictors and a binary target (Kornbrot, 2014). Bonferroni correction (α/m = 0.05/9 ≈ 0.0056) controls the family-wise error rate across simultaneous tests and is appropriate for small numbers of comparisons (Dunn, 1961). This gate removes features that show no statistically significant association with the target after multiple-testing correction.
 
 ### 6.4 Baseline Reference
 
@@ -157,7 +157,7 @@ Optimization was conducted via `GridSearchCV` with stratified 5-fold cross-valid
 | Random Forest | n_estimators: [100, 200], max_depth: [5, 10, None], min_samples_leaf: [5, 10] | 12 |
 | Gradient Boosting | n_estimators: [100, 200], max_depth: [3, 5], learning_rate: [0.01, 0.1], subsample: [0.8, 1.0] | 16 |
 
-**Why hyperparameter tuning is justified despite AUC > 0.96:** Although initial results exceeded the 0.70 success criterion, systematic hyperparameter optimization serves three purposes beyond raw performance improvement: (1) **Reproducibility** â€” documented search spaces with cross-validated selection are a scientific standard for transparent, reproducible modeling (Bischl et al., 2023); (2) **Fair model comparison** â€” without tuning all candidate models under equivalent conditions, performance comparisons are not valid, as one model may benefit from favorable defaults while another suffers from poor ones (Probst et al., 2019); (3) **Generalization confidence** â€” a high AUC on a single default configuration does not guarantee generalization to new data. CV-based tuning provides distributional evidence that performance is stable across data partitions (Cawley & Talbot, 2010).
+**Why hyperparameter tuning is justified despite AUC > 0.96:** Although initial results exceeded the 0.70 success criterion, systematic hyperparameter optimization serves three purposes beyond raw performance improvement: (1) **Reproducibility** — documented search spaces with cross-validated selection are a scientific standard for transparent, reproducible modeling (Bischl et al., 2023); (2) **Fair model comparison** — without tuning all candidate models under equivalent conditions, performance comparisons are not valid, as one model may benefit from favorable defaults while another suffers from poor ones (Probst et al., 2019); (3) **Generalization confidence** — a high AUC on a single default configuration does not guarantee generalization to new data. CV-based tuning provides distributional evidence that performance is stable across data partitions (Cawley & Talbot, 2010).
 
 ---
 
@@ -165,15 +165,15 @@ Optimization was conducted via `GridSearchCV` with stratified 5-fold cross-valid
 
 ### 7.1 Feature Screening Results
 
-All 12 candidate features passed Gate 1 (variance check). The subsequent gates removed five features:
+All 12 candidate features passed the variance check (all have sufficient variance), confirming that gate was correctly removed. The two active gates removed five features:
 
 | Feature | Gate Failed | Reason |
 |---------|-------------|--------|
-| `order_frequency` | Gate 2 (Correlation) | \|r\| > 0.85 with `return_frequency`; lower target association |
-| `total_sales` | Gate 2 (Correlation) | \|r\| > 0.85 with `total_margin`; lower target association |
-| `avg_item_price` | Gate 2 (Correlation) | \|r\| > 0.85 with `avg_item_margin`; lower target association |
-| `customer_tenure_days` | Gate 3 (Univariate) | p = 0.4053; not significant after Bonferroni correction |
-| `purchase_recency_days` | Gate 3 (Univariate) | p = 0.2730; not significant after Bonferroni correction |
+| `order_frequency` | Gate 1 (Correlation) | \|r\| > 0.85 with `return_frequency`; lower target association |
+| `total_sales` | Gate 1 (Correlation) | \|r\| > 0.85 with `total_margin`; lower target association |
+| `avg_item_price` | Gate 1 (Correlation) | \|r\| > 0.85 with `avg_item_margin`; lower target association |
+| `customer_tenure_days` | Gate 2 (Univariate) | p = 0.4053; not significant after Bonferroni correction |
+| `purchase_recency_days` | Gate 2 (Univariate) | p = 0.2730; not significant after Bonferroni correction |
 
 **Surviving features (7 of 12):**
 
@@ -194,26 +194,26 @@ All 12 candidate features passed Gate 1 (variance check). The subsequent gates r
 | **Random Forest** | 0.9792 | **0.9798** | 0.7822 | 0.9115 | 0.8419 | 0.9145 | n_estimators=200, max_depth=10, min_samples_leaf=10 |
 | **Gradient Boosting** | 0.9797 | 0.9795 | 0.7801 | 0.9299 | 0.8484 | 0.9170 | learning_rate=0.1, max_depth=3, n_estimators=100 |
 | Logistic Regression | 0.9646 | 0.9687 | 0.7591 | 0.9048 | 0.8256 | 0.9045 | C=10, penalty=L1 |
-| *Majority-class baseline* | *0.500* | *0.500* | *â€”* | *0.000* | *0.000* | *0.750* | *â€”* |
+| *Majority-class baseline* | *0.500* | *0.500* | *—* | *0.000* | *0.000* | *0.750* | *—* |
 
-All three models exceed the AUC > 0.70 threshold by a substantial margin (test AUC range: 0.9687â€“0.9798), representing a +0.48 improvement over the random baseline.
+All three models exceed the AUC > 0.70 threshold by a substantial margin (test AUC range: 0.9687–0.9798), representing a +0.48 improvement over the random baseline.
 
 ### 7.3 Champion Model Selection Rationale
 
 #### 7.3.1 Primary Criterion: Test AUC
 
-All three models exceed the AUC > 0.70 hypothesis threshold, making the hypothesis conclusion robust to model choice. Among them, **Random Forest achieves the highest Test AUC (0.9798)** with near-zero overfitting (CVâ€“test gap = 0.0006), and is designated champion for external validation and deployment guidance.
+All three models exceed the AUC > 0.70 hypothesis threshold, making the hypothesis conclusion robust to model choice. Among them, **Random Forest achieves the highest Test AUC (0.9798)** with near-zero overfitting (CV–test gap = 0.0006), and is designated champion for external validation and deployment guidance.
 
-AUC is selected as the primary criterion because it is threshold-independent â€” it measures overall ranking ability across all possible decision thresholds rather than at a single operating point â€” and is the accepted standard in binary classification benchmarking (Hastie, Tibshirani, & Friedman, 2009; Hosmer & Lemeshow, 2000). This is particularly appropriate here, where the optimal intervention threshold depends on cost-per-contact assumptions that are organization-specific and not fixed in advance.
+AUC is selected as the primary criterion because it is threshold-independent — it measures overall ranking ability across all possible decision thresholds rather than at a single operating point — and is the accepted standard in binary classification benchmarking (Hastie, Tibshirani, & Friedman, 2009; Hosmer & Lemeshow, 2000). This is particularly appropriate here, where the optimal intervention threshold depends on cost-per-contact assumptions that are organization-specific and not fixed in advance.
 
 #### 7.3.2 Cost-Asymmetry and the Recall vs. Precision Tradeoff
 
 In cost-sensitive classification, not all prediction errors carry equal cost. For profit erosion intervention in e-commerce, the two error types have asymmetric economic consequences:
 
-- **False Negative cost** (missing a high-erosion customer): unbounded â€” the customer continues eroding margin without any intervention, compounding over future transactions. Petersen & Kumar (2009) demonstrate that habitual returners generate disproportionate lifetime margin erosion, making missed detection the dominant cost driver in return management programs.
-- **False Positive cost** (flagging a low-erosion customer): bounded â€” one wasted intervention contact, email, or loyalty offer. The per-unit cost is small relative to the revenue recovery potential from true positives.
+- **False Negative cost** (missing a high-erosion customer): unbounded — the customer continues eroding margin without any intervention, compounding over future transactions. Petersen & Kumar (2009) demonstrate that habitual returners generate disproportionate lifetime margin erosion, making missed detection the dominant cost driver in return management programs.
+- **False Positive cost** (flagging a low-erosion customer): bounded — one wasted intervention contact, email, or loyalty offer. The per-unit cost is small relative to the revenue recovery potential from true positives.
 
-This economic asymmetry â€” unbounded false negative cost vs. bounded false positive cost â€” provides the principled justification for favoring Recall over Precision in the design of return intervention systems. Elkan (2001) formalizes this as the cost-sensitive learning framework: when misclassification costs are asymmetric, classifier design should minimize expected total cost rather than error rate. Verbeke et al. (2012) apply this directly to customer churn modeling, demonstrating that profit-oriented model selection (which maximizes the expected revenue recovered from true positives minus intervention cost on false positives) outperforms accuracy-optimized selection when false negative costs substantially exceed false positive costs.
+This economic asymmetry — unbounded false negative cost vs. bounded false positive cost — provides the principled justification for favoring Recall over Precision in the design of return intervention systems. Elkan (2001) formalizes this as the cost-sensitive learning framework: when misclassification costs are asymmetric, classifier design should minimize expected total cost rather than error rate. Verbeke et al. (2012) apply this directly to customer churn modeling, demonstrating that profit-oriented model selection (which maximizes the expected revenue recovered from true positives minus intervention cost on false positives) outperforms accuracy-optimized selection when false negative costs substantially exceed false positive costs.
 
 In the Random Forest champion, the resulting error profile is:
 
@@ -226,15 +226,15 @@ With 91.2% of high-erosion customers correctly identified and only 1.5% of the c
 
 #### 7.3.3 Model Selection Under Near-Equivalent Performance
 
-All three models occupy a narrow performance band (AUC range: 0.9687â€“0.9798; Recall range: 0.9048â€“0.9299; Precision range: 0.7591â€“0.7822). When models are this close, champion selection by Test AUC is a methodological convention rather than a decisive empirical distinction. Practitioners deploying these models should select by intervention cost context:
+All three models occupy a narrow performance band (AUC range: 0.9687–0.9798; Recall range: 0.9048–0.9299; Precision range: 0.7591–0.7822). When models are this close, champion selection by Test AUC is a methodological convention rather than a decisive empirical distinction. Practitioners deploying these models should select by intervention cost context:
 
 | Business Context | Recommended Model | Justification |
 |-----------------|------------------|---------------|
-| Automated, low-cost intervention (email, push notification) | **Gradient Boosting** | Recall = 0.9299 â€” maximizes caught cases when false alarm cost â‰ˆ $0 |
-| High-cost per-customer intervention (account manager call, loyalty offer) | **Random Forest** | Precision = 0.7822 â€” minimizes wasted high-cost contacts |
+| Automated, low-cost intervention (email, push notification) | **Gradient Boosting** | Recall = 0.9299 — maximizes caught cases when false alarm cost ≈ $0 |
+| High-cost per-customer intervention (account manager call, loyalty offer) | **Random Forest** | Precision = 0.7822 — minimizes wasted high-cost contacts |
 | Regulatory or interpretability requirement | **Logistic Regression** | Calibrated probabilities; coefficients interpretable as log-odds |
 
-For the purposes of this research (no specific intervention cost defined for the TheLook dataset), Random Forest is the champion by Test AUC, consistent with standard ML benchmarking practice. The hypothesis conclusion â€” **reject Hâ‚€** â€” is robust regardless of which model is designated champion, as all three independently exceed the 0.70 threshold.
+For the purposes of this research (no specific intervention cost defined for the TheLook dataset), Random Forest is the champion by Test AUC, consistent with standard ML benchmarking practice. The hypothesis conclusion — **reject H₀** — is robust regardless of which model is designated champion, as all three independently exceed the 0.70 threshold.
 
 ### 7.4 Hypothesis Test Outcome
 
@@ -243,7 +243,7 @@ For the purposes of this research (no specific intervention cost defined for the
 | Best model | Random Forest |
 | Best test AUC | 0.9798 |
 | Threshold | 0.70 |
-| **Decision** | **Reject Hâ‚€** |
+| **Decision** | **Reject H₀** |
 
 The null hypothesis is rejected. All three model families independently exceed the success criterion, indicating robust and model-agnostic predictive signal.
 
@@ -267,9 +267,9 @@ Feature importance was extracted from each trained model using the method approp
 
 Despite fundamentally different learning mechanisms, the three models converge on the same feature tiers:
 
-- **Top-tier** (ranked 1â€“3 across all models): `return_frequency`, `avg_order_value`, `total_margin`
-- **Mid-tier** (ranked 4â€“5): `avg_item_margin`, `customer_return_rate`
-- **Lower-tier** (ranked 6â€“7): `avg_basket_size`, `total_items`
+- **Top-tier** (ranked 1–3 across all models): `return_frequency`, `avg_order_value`, `total_margin`
+- **Mid-tier** (ranked 4–5): `avg_item_margin`, `customer_return_rate`
+- **Lower-tier** (ranked 6–7): `avg_basket_size`, `total_items`
 
 This cross-model consistency strengthens confidence that the identified features represent genuine predictive signals rather than model-specific artifacts.
 
@@ -287,15 +287,101 @@ With a 25% positive class rate, the confusion matrix breakdown for the best mode
 
 ---
 
+
+### 7.8 Ablation Studies
+
+To address the concern that very high AUC values may be partly attributable to the modeling pipeline rather than the underlying predictors, six complementary ablation studies were run on the champion Random Forest model.
+
+#### 7.8.1 Top-Feature Ablation
+
+Removes the top-N Random Forest predictors and retrains the same RF grid on the retained variables.
+
+**Observed result:** Removing the top-3 predictors (`total_margin`, `avg_order_value`, `return_frequency`) reduced test AUC from **0.9798** to **0.9788** (delta = 0.0010). The classifier does not depend on only three dominant variables.
+
+#### 7.8.2 Preprocessing-Step Ablation
+
+Removes one of the two active screening gates at a time and retrains the same RF grid.
+
+| Variant | Steps Removed | Test AUC | Delta |
+|---------|--------------|----------|-------|
+| Full pipeline | None | 0.9798 | 0.0000 |
+| No correlation gate | Correlation | 0.9793 | 0.0005 |
+| No univariate gate | Univariate | 0.9794 | 0.0004 |
+| No screening | Correlation, Univariate | 0.9795 | 0.0003 |
+
+**Observed result:** All preprocessing variants remain within 0.0005 of the full pipeline. The model is not overly dependent on screening mechanics. (The variance gate was already removed from the main pipeline; see Section 6.3.)
+
+#### 7.8.3 Feature-Family Ablation
+
+Removes one logical family of predictors at a time, reruns the 2-gate screening on the reduced set, and retrains the same RF grid.
+
+| Variant | Removed Family | Test AUC | Delta |
+|---------|----------------|----------|-------|
+| Full model | None | 0.9798 | 0.0000 |
+| No return_behavior | return_frequency, customer_return_rate | 0.9450 | 0.0348 |
+| No margin_structure | total_margin, avg_item_price, avg_item_margin | 0.9737 | 0.0061 |
+| No purchase_behavior | order_frequency, avg_basket_size, avg_order_value, total_items, total_sales | 0.9794 | 0.0004 |
+| No temporal | customer_tenure_days, purchase_recency_days | 0.9798 | 0.0000 |
+
+**Observed result:** The `return_behavior` family produces the largest drop (delta = 0.0348), far exceeding any preprocessing-step effect. This confirms the high AUC is driven by genuine behavioral signal rather than pipeline mechanics.
+
+#### 7.8.4 Target-Construction Ablation
+
+Rebuilds the binary high-erosion label from alternative erosion components using the same percentile threshold and screened RF pipeline.
+
+| Variant | Erosion Column | Test AUC | Delta |
+|---------|----------------|----------|-------|
+| Full profit erosion target | total_profit_erosion | 0.9798 | 0.0000 |
+| Margin-only target | total_margin_reversal | 0.9733 | 0.0065 |
+| Process-cost-only target | total_process_cost | 0.9758 | 0.0040 |
+
+**Observed result:** Process-cost risk remains highly predictable with only a modest drop from the full target (delta = 0.0040), while pure margin-reversal risk is somewhat harder to isolate (delta = 0.0065).
+
+#### 7.8.5 Behavioral vs Economic Feature-Set Ablation
+
+Compares behavioral-only, economic-only, and combined feature sets.
+
+| Variant | Test AUC | Delta |
+|---------|----------|-------|
+| Behavioral + economic (full set) | 0.9798 | 0.0000 |
+| Economic only | 0.9427 | 0.0371 |
+| Behavioral only | 0.8011 | 0.1787 |
+
+**Observed result:** Economic features carry the stronger standalone signal. Behavioral-only drops sharply (delta = 0.1787), confirming that economic exposure features are the primary discriminators, with behavioral features contributing incrementally.
+
+#### 7.8.6 Reduced Operational Model Ablation
+
+Compares the full screened RF against lighter subsets based on the post-hoc RF importance ranking.
+
+| Variant | Features | Test AUC | Delta |
+|---------|----------|----------|-------|
+| Full screened model | 7 | 0.9798 | 0.0000 |
+| Top-5 operational subset | 5 | 0.9794 | 0.0004 |
+| Top-3 operational subset | 3 | 0.9719 | 0.0079 |
+
+**Observed result:** A five-feature operational model (`total_margin`, `avg_order_value`, `return_frequency`, `avg_item_margin`, `customer_return_rate`) retains a test AUC of 0.9794 (delta = 0.0004), effectively matching the full model. Aggressive compression to 3 features begins to discard useful signal (delta = 0.0079).
+
+#### 7.8.7 Ablation Interpretation
+
+Taken together, the five systematic ablation studies (plus the top-feature removal) support the following conclusions:
+
+- **The pipeline is not inflating AUC.** All preprocessing-step removals produce deltas under 0.0005.
+- **Signal is not concentrated in three predictors.** Removing the top-3 RF features changes AUC by only 0.0010.
+- **Return-related and economically exposed features carry the real predictive signal.** The `return_behavior` family removal (delta = 0.0348) and the behavioral-only comparison (delta = 0.1787) both confirm this.
+- **Process-cost risk is almost as predictable as the full target.** The model learns stable erosion-risk structure, not just one formulation of the target.
+- **A 5-feature operational model is viable with almost no loss.** AUC drops only 0.0004 going from 7 to 5 features.
+
+---
+
 ## 8. Interpretation
 
 ### 8.1 Feature-Level Interpretation
 
 The most important predictors consistently across all models are:
 
-1. **Return frequency** â€” the count of return events, not the rate. Each additional return compounds both margin reversal and processing cost.
-2. **Average order value** â€” higher-value orders amplify margin reversal upon return. This captures the economic exposure per transaction.
-3. **Total margin** â€” the cumulative economic stake at risk. Greater cumulative margin provides more margin to reverse.
+1. **Return frequency** — the count of return events, not the rate. Each additional return compounds both margin reversal and processing cost.
+2. **Average order value** — higher-value orders amplify margin reversal upon return. This captures the economic exposure per transaction.
+3. **Total margin** — the cumulative economic stake at risk. Greater cumulative margin provides more margin to reverse.
 
 ### 8.2 Temporal Features Are Not Predictive
 
@@ -303,7 +389,7 @@ The exclusion of `customer_tenure_days` and `purchase_recency_days` indicates th
 
 ### 8.3 Return Rate vs. Return Frequency
 
-`customer_return_rate` survived screening but ranked as the weakest predictor, while `return_frequency` ranked strongest. This reinforces the RQ1 finding that return rate alone is an incomplete proxy for economic risk â€” a customer with 1 return out of 2 items (50% rate) generates far less erosion than a customer with 5 returns out of 10 items (50% rate).
+`customer_return_rate` survived screening but ranked as the weakest predictor, while `return_frequency` ranked strongest. This reinforces the RQ1 finding that return rate alone is an incomplete proxy for economic risk — a customer with 1 return out of 2 items (50% rate) generates far less erosion than a customer with 5 returns out of 10 items (50% rate).
 
 ### 8.4 Why Performance Is High
 
@@ -321,7 +407,7 @@ Two modeling choices documented as limitations were subjected to systematic sens
 
 ### 9.1 Motivation
 
-1. **Processing cost base ($12):** Selected as the conservative mid-range of the $10â€“$25 literature range (see `docs/PROCESSING_COST_METHODOLOGY.md`, Section 7). The cost model directly affects the target variable (`is_high_erosion_customer`) through the `total_profit_erosion` computation.
+1. **Processing cost base ($12):** Selected as the conservative mid-range of the $10–$25 literature range (see `docs/PROCESSING_COST_METHODOLOGY.md`, Section 7). The cost model directly affects the target variable (`is_high_erosion_customer`) through the `total_profit_erosion` computation.
 2. **High-erosion threshold (75th percentile):** Determines the binary classification boundary. Alternative thresholds change the class balance and may affect model discrimination.
 
 **Key insight:** Only the target labels shift across scenarios. The 12 predictor features are computed from transaction-level data and do not depend on either the processing cost or the percentile threshold.
@@ -330,13 +416,13 @@ Two modeling choices documented as limitations were subjected to systematic sens
 
 - **Model:** Random Forest only (the established best model from the primary analysis). The full 3-model comparison was completed in the primary notebook.
 - **Pipeline:** The same leakage-prevention pipeline described in the RQ3 workflow was applied for each scenario: drop leakage, impute, stratified split, 3-gate screening, GridSearchCV, and test-set evaluation.
-- **Label stability** was assessed using two complementary metrics, following the sensitivity analysis methodology of Saltelli et al. (2004) â€” systematically varying model inputs to apportion output uncertainty to specific parameter choices:
-  - **Jaccard similarity:** J = |A âˆ© B| / |A âˆª B|, where A is the set of customers flagged under the baseline scenario and B is the set flagged under an alternative scenario. Jaccard is a standard formal stability measure for feature selection and classification outputs (Nogueira, Sechidis, & Brown, 2018). A value of 1.0 indicates identical flagged sets; lower values indicate divergence.
+- **Label stability** was assessed using two complementary metrics, following the sensitivity analysis methodology of Saltelli et al. (2004) — systematically varying model inputs to apportion output uncertainty to specific parameter choices:
+  - **Jaccard similarity:** J = |A ∩ B| / |A ∪ B|, where A is the set of customers flagged under the baseline scenario and B is the set flagged under an alternative scenario. Jaccard is a standard formal stability measure for feature selection and classification outputs (Nogueira, Sechidis, & Brown, 2018). A value of 1.0 indicates identical flagged sets; lower values indicate divergence.
   - **Flip rate:** The proportion of customers whose binary label changes relative to baseline, measuring prediction instability. Grounded in algorithmic stability theory (Bousquet & Elisseeff, 2002), a stable model should produce small output changes in response to small input perturbations. A flip rate near 0% indicates that the classification is insensitive to the varied parameter.
 
-### 9.3 Analysis A: Processing Cost Sensitivity ($8â€“$18)
+### 9.3 Analysis A: Processing Cost Sensitivity ($8–$18)
 
-Five base cost values were tested while holding the threshold at the 75th percentile and keeping category tier multipliers (1.0Ã—/1.15Ã—/1.3Ã—) constant:
+Five base cost values were tested while holding the threshold at the 75th percentile and keeping category tier multipliers (1.0×/1.15×/1.3×) constant:
 
 | Base Cost | Test AUC | F1 | Precision | Recall | Threshold ($) | Surviving Features |
 |-----------|----------|----|-----------|--------|---------------|--------------------|
@@ -346,7 +432,7 @@ Five base cost values were tested while holding the threshold at the 75th percen
 | $14 | 0.9810 | 0.8508 | 0.7818 | 0.9332 | $90.09 | 7 |
 | $18 | 0.9807 | 0.8549 | 0.7986 | 0.9199 | $98.35 | 7 |
 
-**AUC range: [0.9759, 0.9810].** All five scenarios exceed the 0.70 threshold by a substantial margin. Performance is remarkably stable: the AUC varies by only 0.005 across a 2.25Ã— cost range ($8 to $18).
+**AUC range: [0.9759, 0.9810].** All five scenarios exceed the 0.70 threshold by a substantial margin. Performance is remarkably stable: the AUC varies by only 0.005 across a 2.25× cost range ($8 to $18).
 
 **Label stability (vs $12 baseline):**
 
@@ -358,9 +444,9 @@ Five base cost values were tested while holding the threshold at the 75th percen
 | $14 | 0.9743 | 0.65% | 2,997 |
 | $18 | 0.9323 | 1.75% | 2,997 |
 
-The number of flagged customers remains constant at 2,997 (25th percentile by definition), but the composition shifts slightly. Even at the extreme ($18), only 1.75% of customers change their label â€” Jaccard similarity remains above 0.93, indicating high label stability.
+The number of flagged customers remains constant at 2,997 (25th percentile by definition), but the composition shifts slightly. Even at the extreme ($18), only 1.75% of customers change their label — Jaccard similarity remains above 0.93, indicating high label stability.
 
-### 9.4 Analysis B: Threshold Sensitivity (50thâ€“90th Percentile)
+### 9.4 Analysis B: Threshold Sensitivity (50th–90th Percentile)
 
 Six threshold percentiles were tested while holding the processing cost at $12:
 
@@ -373,19 +459,19 @@ Six threshold percentiles were tested while holding the processing cost at $12:
 | 80th | 20.0% | 0.9848 | 0.8514 | 0.7886 | 0.9250 | 7 |
 | 90th | 10.0% | 0.9879 | 0.7862 | 0.6706 | 0.9500 | 8 |
 
-**AUC range: [0.9664, 0.9879].** All six thresholds exceed 0.70 by a substantial margin. AUC increases monotonically as the threshold becomes more selective (50th â†’ 90th), which is expected: extreme quantiles are easier for the model to discriminate.
+**AUC range: [0.9664, 0.9879].** All six thresholds exceed 0.70 by a substantial margin. AUC increases monotonically as the threshold becomes more selective (50th → 90th), which is expected: extreme quantiles are easier for the model to discriminate.
 
 **Key observations:**
 - **F1 peaks at the 50th percentile (0.89)** where class balance is 50/50, then decreases at extreme thresholds (90th: 0.79) as the positive class shrinks and precision drops.
-- **Recall is consistently high (0.88â€“0.95)** across all thresholds, indicating the model reliably identifies customers above the erosion boundary regardless of where that boundary is set.
-- **Precision decreases from 0.90 (50th) to 0.67 (90th)** as the positive class shrinks â€” the model increasingly over-predicts at extreme thresholds.
+- **Recall is consistently high (0.88–0.95)** across all thresholds, indicating the model reliably identifies customers above the erosion boundary regardless of where that boundary is set.
+- **Precision decreases from 0.90 (50th) to 0.67 (90th)** as the positive class shrinks — the model increasingly over-predicts at extreme thresholds.
 - The 75th percentile baseline represents a practical balance between AUC (0.9798), F1 (0.84), and operational feasibility (~25% positive rate).
 
 ### 9.5 Sensitivity Analysis Conclusion
 
-**The RQ3 findings are robust across all 11 sensitivity scenarios.** AUC exceeds 0.70 in every case, with a combined range of [0.9664, 0.9879]. The hypothesis test conclusion (reject Hâ‚€) holds regardless of whether the processing cost is set at $8 or $18, and regardless of whether the high-erosion threshold is set at the 50th or 90th percentile.
+**The RQ3 findings are robust across all 11 sensitivity scenarios.** AUC exceeds 0.70 in every case, with a combined range of [0.9664, 0.9879]. The hypothesis test conclusion (reject H₀) holds regardless of whether the processing cost is set at $8 or $18, and regardless of whether the high-erosion threshold is set at the 50th or 90th percentile.
 
-The predictive signal arises from behavioral patterns in the 12 candidate features â€” particularly return frequency, average order value, and total margin â€” which are independent of the cost model and threshold choice. This confirms that the finding is a property of the underlying data structure, not an artifact of specific parameter values.
+The predictive signal arises from behavioral patterns in the 12 candidate features — particularly return frequency, average order value, and total margin — which are independent of the cost model and threshold choice. This confirms that the finding is a property of the underlying data structure, not an artifact of specific parameter values.
 
 ---
 
@@ -393,7 +479,7 @@ The predictive signal arises from behavioral patterns in the 12 candidate featur
 
 ### 10.1 Rationale
 
-A holdout from the same TheLook dataset would test within-distribution generalization but cannot assess whether predictive patterns are domain-specific or transferable. External validation tests *transportability* â€” the ability of a model to give valid predictions in populations related to but different from the development population (Steyerberg & Harrell, 2016; Debray et al., 2015). Transportability provides stronger evidence than *reproducibility* (internal validation within the same domain), because it demonstrates that the learned relationships reflect genuine behavioral patterns rather than dataset-specific artifacts (Justice, Covinsky, & Berlin, 1999).
+A holdout from the same TheLook dataset would test within-distribution generalization but cannot assess whether predictive patterns are domain-specific or transferable. External validation tests *transportability* — the ability of a model to give valid predictions in populations related to but different from the development population (Steyerberg & Harrell, 2016; Debray et al., 2015). Transportability provides stronger evidence than *reproducibility* (internal validation within the same domain), because it demonstrates that the learned relationships reflect genuine behavioral patterns rather than dataset-specific artifacts (Justice, Covinsky, & Berlin, 1999).
 
 ### 10.2 Validation Data
 
@@ -401,17 +487,17 @@ A holdout from the same TheLook dataset would test within-distribution generaliz
 |-----------|-------------------|-------------------|
 | Domain | General e-commerce (fashion, B2C) | Educational supplies (B2B) |
 | Customers | 11,988 with returns | 13,616 accounts |
-| Return order lines | â€” | 133,800 (37,978 actual returns + 95,822 no-charge replacements) |
-| Date range | Synthetic | Jan 2024 â€“ Nov 2025 |
+| Return order lines | — | 133,800 (37,978 actual returns + 95,822 no-charge replacements) |
+| Date range | Synthetic | Jan 2024 – Nov 2025 |
 | Data scope | Full transaction history | Return-related transactions only |
 | Financial fields | `sale_price`, `cost`, `item_margin` | `CreditReturn Sales`, `Product Cost`, `gross_financial_loss` |
-| Return cost | Estimated ($12 Ã— category tier) | Observed (`estimated_labor_cost`, `total_return_cogs`) |
+| Return cost | Estimated ($12 × category tier) | Observed (`estimated_labor_cost`, `total_return_cogs`) |
 | Target | `is_high_erosion_customer` (75th pct) | `is_high_loss_account` (75th pct of `total_loss` = $570.50) |
 | Class distribution | 25.0% positive | 25.0% positive (3,404 / 13,616) |
 
 **SSL data structure:** The `Sales_Type` column distinguishes two line types within return-related orders:
-- **RETURN** (37,978 lines, 28.4%): Actual return of goods â€” credit/refund issued, negative ordered quantity, negative product cost reversal.
-- **ORDER** (95,822 lines, 71.6%): No-charge replacement shipments â€” CreditReturn Sales â‰ˆ $0, positive ordered quantity, company bears replacement cost.
+- **RETURN** (37,978 lines, 28.4%): Actual return of goods — credit/refund issued, negative ordered quantity, negative product cost reversal.
+- **ORDER** (95,822 lines, 71.6%): No-charge replacement shipments — CreditReturn Sales ≈ $0, positive ordered quantity, company bears replacement cost.
 
 Both line types represent economic costs of the return event, but only RETURN lines correspond to the physical act of returning goods. Feature engineering distinguishes these to produce accurate mappings (see the SSL feature-mapping discussion in the validation workflow).
 
@@ -439,10 +525,10 @@ Analogous features were constructed at the SSL account level. The `Sales_Type` c
 Key mapping decisions:
 - **`return_frequency`** counts only `Sales_Type == 'RETURN'` lines. ORDER lines (no-charge replacements) are replacement shipments, not actual returns of goods.
 - **`customer_return_rate`** = RETURN lines / total lines per account. This produces meaningful variance (mean = 0.22, std = 0.35) rather than a constant 1.0, reflecting that 62.3% of accounts have only replacement activity (rate = 0), 12.2% have only actual returns (rate = 1), and 25.5% have mixed behavior.
-- **`avg_item_price`** uses `Reference Sale Amount / |Ordered Qty|` from ALL line types as the primary source â€” semantically closest to TheLook's `avg_item_price` (original sale price per unit). ORDER lines carry `Reference Sale Amount` (the price of the item being replaced) but have `CreditReturn Sales â‰ˆ $0`, so `|CreditReturn Sales / Ordered Qty|` is used as fallback on RETURN lines where Reference Sale Amount is unavailable. This produces non-null values for approximately 90% of accounts (up from 37.7% under the previous RETURN-only approach).
+- **`avg_item_price`** uses `Reference Sale Amount / |Ordered Qty|` from ALL line types as the primary source — semantically closest to TheLook's `avg_item_price` (original sale price per unit). ORDER lines carry `Reference Sale Amount` (the price of the item being replaced) but have `CreditReturn Sales ≈ $0`, so `|CreditReturn Sales / Ordered Qty|` is used as fallback on RETURN lines where Reference Sale Amount is unavailable. This produces non-null values for approximately 90% of accounts (up from 37.7% under the previous RETURN-only approach).
 - **`total_margin`** maps to `gross_financial_loss` (not `Gross Profit`), consistent with the profit erosion framing.
 
-### 10.4 Level 1 Results â€” Pattern Validation
+### 10.4 Level 1 Results — Pattern Validation
 
 The same three-gate feature screening was run independently on SSL account-level features. Of the 12 candidate features compared:
 
@@ -467,16 +553,16 @@ The five disagreements are interpretable:
 - `return_frequency` and `total_items` pass in TheLook but fail in SSL. In TheLook, return and non-return transactions coexist, giving these features independent predictive variance. In SSL, the returns-only scope causes high correlation between return frequency and total line count, triggering the correlation gate.
 - `customer_tenure_days`, `purchase_recency_days`, and `avg_item_price` pass in SSL but fail in TheLook. The SSL dataset spans a defined 2-year window where temporal features carry more discriminative power. `avg_item_price` is computed from RETURN lines only in SSL, giving it a cleaner signal than in TheLook where it was dropped due to high correlation with `avg_item_margin`.
 
-The **core behavioral features** â€” those capturing margin structure, return behavior, and order value (`customer_return_rate`, `avg_order_value`, `total_margin`, `avg_item_margin`, `avg_basket_size`) â€” are consistent across both domains.
+The **core behavioral features** — those capturing margin structure, return behavior, and order value (`customer_return_rate`, `avg_order_value`, `total_margin`, `avg_item_margin`, `avg_basket_size`) — are consistent across both domains.
 
-### 10.5 Level 2 Results â€” Directional Prediction
+### 10.5 Level 2 Results — Directional Prediction
 
 The TheLook-trained Random Forest model (AUC = 0.9798) was applied directly to 13,616 SSL accounts using all 7 surviving features: 
 
 | Metric | Value |
 |--------|-------|
 | Directional accuracy | **0.7640 (76.4%)** |
-| Spearman rank correlation | **0.7526** (p â‰ˆ 0.00) |
+| Spearman rank correlation | **0.7526** (p ≈ 0.00) |
 | Predicted high-risk | 30.7% of accounts |
 | Actual high-loss | 25.0% of accounts |
 | Features available | 7 / 7 |
@@ -490,15 +576,15 @@ The TheLook-trained Random Forest model (AUC = 0.9798) was applied directly to 1
 
 **Methodological definitions:**
 
-- **Directional accuracy** evaluates whether a model correctly predicts the *direction* (high vs. low risk) rather than the exact magnitude of loss (Pesaran & Timmermann, 1992). It is calculated as the proportion of accounts where the predicted binary label matches the actual binary label â€” equivalent to classification accuracy. A value of 76.4% means the model correctly classifies over three-quarters of SSL accounts into their actual risk category.
+- **Directional accuracy** evaluates whether a model correctly predicts the *direction* (high vs. low risk) rather than the exact magnitude of loss (Pesaran & Timmermann, 1992). It is calculated as the proportion of accounts where the predicted binary label matches the actual binary label — equivalent to classification accuracy. A value of 76.4% means the model correctly classifies over three-quarters of SSL accounts into their actual risk category.
 - **Spearman rank correlation** measures monotonic association between predicted probability and actual loss, appropriate for non-normally distributed financial data (Schober, Boer, & Schwarte, 2018). A value of 0.75 exceeds Cohen's (1988) "large" effect size threshold of 0.50, indicating a strong monotonic relationship.
 - **Confusion matrix metrics** (Fawcett, 2006) provide the operational breakdown of classification performance into true/false positives and negatives.
 
 **Key observations:**
 - **Recall = 64.1%** (2,183 / 3,404): The model captures nearly two-thirds of high-loss SSL accounts despite being trained on a different domain.
-- **Precision = 52.3%** (2,183 / 4,175): Over half of flagged accounts are truly high-loss. The model predicts 30.7% of accounts as high-risk versus 25.0% actual â€” a modest over-prediction that is operationally reasonable.
+- **Precision = 52.3%** (2,183 / 4,175): Over half of flagged accounts are truly high-loss. The model predicts 30.7% of accounts as high-risk versus 25.0% actual — a modest over-prediction that is operationally reasonable.
 - **Specificity = 80.5%** (8,220 / 10,212): The model correctly clears the majority of low-loss accounts, minimizing false alarms.
-- **Spearman rank correlation = 0.75**: The model's predicted probability strongly ranks accounts in the correct order relative to their actual total loss. This is the strongest evidence of generalizability â€” the model correctly identifies which accounts are *more* at risk, even across domains.
+- **Spearman rank correlation = 0.75**: The model's predicted probability strongly ranks accounts in the correct order relative to their actual total loss. This is the strongest evidence of generalizability — the model correctly identifies which accounts are *more* at risk, even across domains.
 
 ### 10.6 Interpretation
 
@@ -506,18 +592,18 @@ The external validation provides two complementary lines of evidence, following 
 
 1. **Feature-level transferability:** Five of twelve candidate features pass independent screening in both datasets: `customer_return_rate`, `avg_basket_size`, `avg_order_value`, `total_margin`, and `avg_item_margin`. These represent the core behavioral dimensions (return propensity, order value, margin structure) and are predictive in both B2C fashion (TheLook) and B2B educational supplies (SSL). The five disagreements are attributable to structural differences in the returns-only SSL dataset, not to substantive divergence in predictive patterns.
 
-2. **Directional generalizability (strong):** A Spearman rank correlation of 0.75 (p â‰ˆ 0.00) demonstrates that the TheLook model's risk ranking transfers meaningfully to an independent domain. Cross-domain transfer theory predicts some performance degradation when the source and target distributions differ (Ben-David et al., 2010); the retained ordinal discrimination (rho = 0.75, exceeding Cohen's (1988) "large" effect threshold of 0.50) indicates genuine predictive signal rather than domain-specific overfitting (Steyerberg, 2019). Unlike the prior iteration where all SSL lines were treated as returns (producing `customer_return_rate = 1.0` for all accounts and inflated over-prediction), the corrected feature engineering â€” distinguishing actual returns from no-charge replacements via `Sales_Type` â€” produces a well-calibrated model that flags 30.7% of accounts as high-risk versus 25.0% actual. The 76.4% directional accuracy with 80.5% specificity indicates the model generalizes both in ranking (Spearman) and in absolute classification with a reasonable false-alarm rate.
+2. **Directional generalizability (strong):** A Spearman rank correlation of 0.75 (p ≈ 0.00) demonstrates that the TheLook model's risk ranking transfers meaningfully to an independent domain. Cross-domain transfer theory predicts some performance degradation when the source and target distributions differ (Ben-David et al., 2010); the retained ordinal discrimination (rho = 0.75, exceeding Cohen's (1988) "large" effect threshold of 0.50) indicates genuine predictive signal rather than domain-specific overfitting (Steyerberg, 2019). Unlike the prior iteration where all SSL lines were treated as returns (producing `customer_return_rate = 1.0` for all accounts and inflated over-prediction), the corrected feature engineering — distinguishing actual returns from no-charge replacements via `Sales_Type` — produces a well-calibrated model that flags 30.7% of accounts as high-risk versus 25.0% actual. The 76.4% directional accuracy with 80.5% specificity indicates the model generalizes both in ranking (Spearman) and in absolute classification with a reasonable false-alarm rate.
 
 ---
 
 ## 11. Limitations
 
 - The TheLook dataset is synthetic and may not fully capture the complexity and noise of real-world e-commerce data. The high AUC values (> 0.96) should be interpreted with this caveat.
-- Return processing costs are modeled using literature-based estimates ($12 base Ã— category tier) rather than directly observed operational costs.
+- Return processing costs are modeled using literature-based estimates ($12 base × category tier) rather than directly observed operational costs.
 - Recovery or resale value of returned items is not incorporated, which may overstate net profit erosion.
 - Feature screening uses univariate methods (point-biserial correlation), which do not capture multivariate interactions. A feature with low univariate association may still contribute in combination with others.
-- The 75th percentile threshold for high-erosion classification and the $12 processing cost base are modeling choices. Sensitivity analysis (the Section 8 sensitivity workflow) confirmed robustness across alternative values: AUC exceeds 0.70 for all tested cost values ($8â€“$18) and threshold percentiles (50thâ€“90th).
-- SSL validation uses a returns-only dataset. Although the `Sales_Type` distinction (RETURN vs ORDER) was used to compute a meaningful `customer_return_rate`, the dataset still lacks non-return purchase history, meaning the denominator reflects return-related activity only â€” not total purchasing behavior as in TheLook.
+- The 75th percentile threshold for high-erosion classification and the $12 processing cost base are modeling choices. Sensitivity analysis (the Section 9 sensitivity workflow) confirmed robustness across alternative values: AUC exceeds 0.70 for all tested cost values ($8—$18) and threshold percentiles (50th—90th).
+- SSL validation uses a returns-only dataset. Although the `Sales_Type` distinction (RETURN vs ORDER) was used to compute a meaningful `customer_return_rate`, the dataset still lacks non-return purchase history, meaning the denominator reflects return-related activity only — not total purchasing behavior as in TheLook.
 - `avg_item_price` uses `Reference Sale Amount / |Ordered Qty|` from all line types with `|CreditReturn Sales / Ordered Qty|` fallback on RETURN lines, providing approximately 90% account-level coverage. The remaining ~10% of accounts (those with no `Reference Sale Amount` on any line and no RETURN lines) are imputed with the median during screening and modeling.
 
 These limitations are consistent with the scope and objectives of an academic capstone project.
@@ -528,13 +614,13 @@ These limitations are consistent with the scope and objectives of an academic ca
 
 RQ3 provides strong empirical evidence that **machine learning models can accurately predict high profit erosion customers** using behavioral and transactional features. The null hypothesis was rejected, with all three model families exceeding the AUC > 0.70 success criterion by a substantial margin (best: Random Forest, AUC = 0.9798).
 
-The multi-method feature screening reduced the predictor set from 12 candidates to 7 statistically justified features. The most important predictors â€” return frequency, average order value, and total margin â€” are consistent across all three model families, confirming that the signal is robust and model-agnostic.
+The multi-method feature screening reduced the predictor set from 12 candidates to 7 statistically justified features. The most important predictors — return frequency, average order value, and total margin — are consistent across all three model families, confirming that the signal is robust and model-agnostic.
 
-External validation against School Specialty LLC (13,616 accounts, B2B educational supplies) strengthens these findings on two levels. At the feature level, 7 of 12 candidate features (58.3%) showed agreement between independent screening on TheLook and SSL data, with 5 features â€” `customer_return_rate`, `avg_basket_size`, `avg_order_value`, `total_margin`, and `avg_item_margin` â€” passing in both datasets. At the directional level, the TheLook-trained Random Forest produced a Spearman rank correlation of 0.75 (p â‰ˆ 0.00) against actual SSL losses, with 76.4% directional accuracy and 80.5% specificity. The model flagged 30.7% of SSL accounts as high-risk versus 25.0% actual, demonstrating well-calibrated cross-domain generalization.
+External validation against School Specialty LLC (13,616 accounts, B2B educational supplies) strengthens these findings on two levels. At the feature level, 7 of 12 candidate features (58.3%) showed agreement between independent screening on TheLook and SSL data, with 5 features — `customer_return_rate`, `avg_basket_size`, `avg_order_value`, `total_margin`, and `avg_item_margin` — passing in both datasets. At the directional level, the TheLook-trained Random Forest produced a Spearman rank correlation of 0.75 (p ≈ 0.00) against actual SSL losses, with 76.4% directional accuracy and 80.5% specificity. The model flagged 30.7% of SSL accounts as high-risk versus 25.0% actual, demonstrating well-calibrated cross-domain generalization.
 
 These results were enabled by careful feature mapping that distinguished actual returns (`Sales_Type = RETURN`) from no-charge replacement shipments (`Sales_Type = ORDER`) in the SSL dataset, producing meaningful variance in features like `customer_return_rate` (mean = 0.22, std = 0.35) rather than the constant 1.0 that would result from treating all lines as returns.
 
-Sensitivity analysis (the Section 8 sensitivity workflow) confirmed that these findings are robust to alternative parameter values. Across 11 scenarios varying the processing cost base ($8â€“$18) and the high-erosion threshold percentile (50thâ€“90th), AUC ranged from 0.9664 to 0.9879 â€” all well above the 0.70 threshold. Label stability analysis showed Jaccard similarity above 0.93 across cost scenarios, with a maximum flip rate of only 1.75%. The predictive signal arises from behavioral patterns in the candidate features, not from specific choices about cost modeling or threshold placement.
+Sensitivity analysis (the Section 9 sensitivity workflow) confirmed that these findings are robust to alternative parameter values. Across 11 scenarios varying the processing cost base ($8–$18) and the high-erosion threshold percentile (50th–90th), AUC ranged from 0.9664 to 0.9879 — all well above the 0.70 threshold. Label stability analysis showed Jaccard similarity above 0.93 across cost scenarios, with a maximum flip rate of only 1.75%. The predictive signal arises from behavioral patterns in the candidate features, not from specific choices about cost modeling or threshold placement.
 
 These findings extend the descriptive results of **RQ1** into a predictive framework and provide a foundation for **RQ4**, where econometric regression will quantify the marginal associations between specific behaviors and profit erosion while controlling for confounders.
 
@@ -551,33 +637,33 @@ These findings extend the descriptive results of **RQ1** into a predictive frame
 
 ## 14. References
 
-Ben-David, S., Blitzer, J., Crammer, K., Kuber, A., Pereira, F., & Vaughan, J. W. (2010). A theory of learning from different domains. *Machine Learning*, 79(1â€“2), 151â€“175. https://doi.org/10.1007/s10994-009-5152-4
+Ben-David, S., Blitzer, J., Crammer, K., Kuber, A., Pereira, F., & Vaughan, J. W. (2010). A theory of learning from different domains. *Machine Learning*, 79(1–2), 151–175. https://doi.org/10.1007/s10994-009-5152-4
 
-Bischl, B., Binder, M., Lang, M., Pielok, T., Richter, J., Coors, S., Thomas, J., Ullmann, T., Becker, M., Boulesteix, A.-L., Deng, D., & Lindauer, M. (2023). Hyperparameter optimization: Foundations, algorithms, best practices, and open challenges. *WIREs Data Mining and Knowledge Discovery*, 13(2), e1484. https://doi.org/10.1002/widm.1484 â€” [Free preprint: arXiv:2107.05173](https://arxiv.org/abs/2107.05173)
+Bischl, B., Binder, M., Lang, M., Pielok, T., Richter, J., Coors, S., Thomas, J., Ullmann, T., Becker, M., Boulesteix, A.-L., Deng, D., & Lindauer, M. (2023). Hyperparameter optimization: Foundations, algorithms, best practices, and open challenges. *WIREs Data Mining and Knowledge Discovery*, 13(2), e1484. https://doi.org/10.1002/widm.1484 — [Free preprint: arXiv:2107.05173](https://arxiv.org/abs/2107.05173)
 
-Bousquet, O., & Elisseeff, A. (2002). Stability and generalization. *Journal of Machine Learning Research*, 2, 499â€“526. https://www.jmlr.org/papers/v2/bousquet02a.html *(open access)*
+Bousquet, O., & Elisseeff, A. (2002). Stability and generalization. *Journal of Machine Learning Research*, 2, 499–526. https://www.jmlr.org/papers/v2/bousquet02a.html *(open access)*
 
-Cawley, G. C., & Talbot, N. L. C. (2010). On over-fitting in model selection and subsequent selection bias in performance evaluation. *Journal of Machine Learning Research*, 11, 2079â€“2107. https://www.jmlr.org/papers/v11/cawley10a.html *(open access)*
+Cawley, G. C., & Talbot, N. L. C. (2010). On over-fitting in model selection and subsequent selection bias in performance evaluation. *Journal of Machine Learning Research*, 11, 2079–2107. https://www.jmlr.org/papers/v11/cawley10a.html *(open access)*
 
 Cohen, J. (1988). *Statistical Power Analysis for the Behavioral Sciences* (2nd ed.). Lawrence Erlbaum Associates. https://www.routledge.com/Statistical-Power-Analysis-for-the-Behavioral-Sciences/Cohen/p/book/9780805802832
 
-Debray, T. P. A., Vergouwe, Y., Koffijberg, H., Nieboer, D., Steyerberg, E. W., & Moons, K. G. M. (2015). A new framework to enhance the interpretation of external validation studies of clinical prediction models. *Journal of Clinical Epidemiology*, 68(3), 279â€“289. https://doi.org/10.1016/j.jclinepi.2014.06.018 â€” [Free full text: PMC4384703](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4384703/) *(open access)*
+Debray, T. P. A., Vergouwe, Y., Koffijberg, H., Nieboer, D., Steyerberg, E. W., & Moons, K. G. M. (2015). A new framework to enhance the interpretation of external validation studies of clinical prediction models. *Journal of Clinical Epidemiology*, 68(3), 279–289. https://doi.org/10.1016/j.jclinepi.2014.06.018 — [Free full text: PMC4384703](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4384703/) *(open access)*
 
-Dormann, C. F., Elith, J., Bacher, S., Buchmann, C., Carl, G., CarrÃ©, G., GarcÃ­a MarquÃ©z, J. R., Gruber, B., Lafourcade, B., LeitÃ£o, P. J., MÃ¼nkemÃ¼ller, T., McClean, C., Osborne, P. E., Reineking, B., SchrÃ¶der, B., Skidmore, A. K., Zurell, D., & Lautenbach, S. (2013). Collinearity: A review of methods to deal with it and a simulation study evaluating their performance. *Ecography*, 36(1), 27â€“46. https://doi.org/10.1111/j.1600-0587.2012.07348.x
+Dormann, C. F., Elith, J., Bacher, S., Buchmann, C., Carl, G., Carré, G., García Marquéz, J. R., Gruber, B., Lafourcade, B., Leitão, P. J., Münkemüller, T., McClean, C., Osborne, P. E., Reineking, B., Schröder, B., Skidmore, A. K., Zurell, D., & Lautenbach, S. (2013). Collinearity: A review of methods to deal with it and a simulation study evaluating their performance. *Ecography*, 36(1), 27–46. https://doi.org/10.1111/j.1600-0587.2012.07348.x
 
-Dunn, O. J. (1961). Multiple comparisons among means. *Journal of the American Statistical Association*, 56(293), 52â€“64. https://doi.org/10.1080/01621459.1961.10482090 â€” [JSTOR](https://www.jstor.org/stable/2282330)
+Dunn, O. J. (1961). Multiple comparisons among means. *Journal of the American Statistical Association*, 56(293), 52–64. https://doi.org/10.1080/01621459.1961.10482090 — [JSTOR](https://www.jstor.org/stable/2282330)
 
-Elkan, C. (2001). The foundations of cost-sensitive learning. In *Proceedings of the 17th International Joint Conference on Artificial Intelligence* (IJCAI-01), 973â€“978. https://cseweb.ucsd.edu/~elkan/rescale.pdf *(free PDF â€” author's UCSD page)*
+Elkan, C. (2001). The foundations of cost-sensitive learning. In *Proceedings of the 17th International Joint Conference on Artificial Intelligence* (IJCAI-01), 973–978. https://cseweb.ucsd.edu/~elkan/rescale.pdf *(free PDF — author's UCSD page)*
 
-Fawcett, T. (2006). An introduction to ROC analysis. *Pattern Recognition Letters*, 27(8), 861â€“874. https://doi.org/10.1016/j.patrec.2005.10.010
+Fawcett, T. (2006). An introduction to ROC analysis. *Pattern Recognition Letters*, 27(8), 861–874. https://doi.org/10.1016/j.patrec.2005.10.010
 
-Guyon, I., & Elisseeff, A. (2003). An introduction to variable and feature selection. *Journal of Machine Learning Research*, 3, 1157â€“1182. https://www.jmlr.org/papers/v3/guyon03a.html *(open access)*
+Guyon, I., & Elisseeff, A. (2003). An introduction to variable and feature selection. *Journal of Machine Learning Research*, 3, 1157–1182. https://www.jmlr.org/papers/v3/guyon03a.html *(open access)*
 
-Hastie, T., Tibshirani, R., & Friedman, J. (2009). *The Elements of Statistical Learning: Data Mining, Inference, and Prediction* (2nd ed.). Springer. Section 7.10.2. https://doi.org/10.1007/978-0-387-84858-7 â€” [Free official PDF](https://hastie.su.domains/ElemStatLearn/printings/ESLII_print12_toc.pdf) *(open access â€” authors' Stanford page)*
+Hastie, T., Tibshirani, R., & Friedman, J. (2009). *The Elements of Statistical Learning: Data Mining, Inference, and Prediction* (2nd ed.). Springer. Section 7.10.2. https://doi.org/10.1007/978-0-387-84858-7 — [Free official PDF](https://hastie.su.domains/ElemStatLearn/printings/ESLII_print12_toc.pdf) *(open access — authors' Stanford page)*
 
 Hosmer, D. W., & Lemeshow, S. (2000). *Applied Logistic Regression* (2nd ed.). Wiley. https://doi.org/10.1002/0471722146
 
-Justice, A. C., Covinsky, K. E., & Berlin, J. A. (1999). Assessing the generalizability of prognostic information. *Annals of Internal Medicine*, 130(6), 515â€“524. https://doi.org/10.7326/0003-4819-130-6-199903160-00016
+Justice, A. C., Covinsky, K. E., & Berlin, J. A. (1999). Assessing the generalizability of prognostic information. *Annals of Internal Medicine*, 130(6), 515–524. https://doi.org/10.7326/0003-4819-130-6-199903160-00016
 
 Kaufman, S., Rosset, S., Perlich, C., & Stitelman, O. (2012). Leakage in data mining: Formulation, detection, and avoidance. *ACM Transactions on Knowledge Discovery from Data*, 6(4), Article 15. https://doi.org/10.1145/2382577.2382579
 
@@ -585,27 +671,27 @@ Kornbrot, D. (2014). Point biserial correlation. In *Wiley StatsRef: Statistics 
 
 Kuhn, M., & Johnson, K. (2013). *Applied Predictive Modeling*. Springer. Chapter 3. https://doi.org/10.1007/978-1-4614-6849-3
 
-Nogueira, S., Sechidis, K., & Brown, G. (2018). On the stability of feature selection algorithms. *Journal of Machine Learning Research*, 18(174), 1â€“54. https://www.jmlr.org/papers/v18/17-514.html *(open access)*
+Nogueira, S., Sechidis, K., & Brown, G. (2018). On the stability of feature selection algorithms. *Journal of Machine Learning Research*, 18(174), 1–54. https://www.jmlr.org/papers/v18/17-514.html *(open access)*
 
-Pesaran, M. H., & Timmermann, A. (1992). A simple nonparametric test of predictive performance. *Journal of Business & Economic Statistics*, 10(4), 461â€“465. https://doi.org/10.1080/07350015.1992.10509922 â€” [JSTOR](https://www.jstor.org/stable/1391822)
+Pesaran, M. H., & Timmermann, A. (1992). A simple nonparametric test of predictive performance. *Journal of Business & Economic Statistics*, 10(4), 461–465. https://doi.org/10.1080/07350015.1992.10509922 — [JSTOR](https://www.jstor.org/stable/1391822)
 
-Petersen, J. A., & Kumar, V. (2009). Are product returns a necessary evil? Antecedents and consequences. *Journal of Marketing*, 73(3), 35â€“51. https://doi.org/10.1509/jmkg.73.3.035 â€” [ResearchGate](https://www.researchgate.net/publication/247837106_Are_Product_Returns_a_Necessary_Evil_Antecedents_and_Consequences)
+Petersen, J. A., & Kumar, V. (2009). Are product returns a necessary evil? Antecedents and consequences. *Journal of Marketing*, 73(3), 35–51. https://doi.org/10.1509/jmkg.73.3.035 — [ResearchGate](https://www.researchgate.net/publication/247837106_Are_Product_Returns_a_Necessary_Evil_Antecedents_and_Consequences)
 
-Probst, P., Boulesteix, A.-L., & Bischl, B. (2019). Tunability: Importance of hyperparameters of machine learning algorithms. *Journal of Machine Learning Research*, 20(53), 1â€“32. https://www.jmlr.org/papers/v20/18-444.html *(open access)* â€” [arXiv preprint](https://arxiv.org/abs/1802.09596)
+Probst, P., Boulesteix, A.-L., & Bischl, B. (2019). Tunability: Importance of hyperparameters of machine learning algorithms. *Journal of Machine Learning Research*, 20(53), 1–32. https://www.jmlr.org/papers/v20/18-444.html *(open access)* — [arXiv preprint](https://arxiv.org/abs/1802.09596)
 
-Rosenblatt, M., Tejavibulya, L., Jiang, R., Noble, S., & Scheinost, D. (2024). Data leakage inflates prediction performance in connectome-based machine learning models. *Nature Communications*, 15, 1829. https://doi.org/10.1038/s41467-024-46150-w â€” [Free full text: PMC10912291](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10912291/) *(open access)*
+Rosenblatt, M., Tejavibulya, L., Jiang, R., Noble, S., & Scheinost, D. (2024). Data leakage inflates prediction performance in connectome-based machine learning models. *Nature Communications*, 15, 1829. https://doi.org/10.1038/s41467-024-46150-w — [Free full text: PMC10912291](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10912291/) *(open access)*
 
-Saeys, Y., Inza, I., & LarraÃ±aga, P. (2007). A review of feature selection techniques in bioinformatics. *Bioinformatics*, 23(19), 2507â€“2517. https://doi.org/10.1093/bioinformatics/btm344 â€” [Free full text at Oxford Academic](https://academic.oup.com/bioinformatics/article/23/19/2507/185254) *(open access)*
+Saeys, Y., Inza, I., & Larrañaga, P. (2007). A review of feature selection techniques in bioinformatics. *Bioinformatics*, 23(19), 2507–2517. https://doi.org/10.1093/bioinformatics/btm344 — [Free full text at Oxford Academic](https://academic.oup.com/bioinformatics/article/23/19/2507/185254) *(open access)*
 
 Saltelli, A., Tarantola, S., Campolongo, F., & Ratto, M. (2004). *Sensitivity Analysis in Practice: A Guide to Assessing Scientific Models*. Wiley. https://doi.org/10.1002/0470870958
 
-Schober, P., Boer, C., & Schwarte, L. A. (2018). Correlation coefficients: Appropriate use and interpretation. *Anesthesia & Analgesia*, 126(5), 1763â€“1768. https://doi.org/10.1213/ANE.0000000000002864 *(open access)*
+Schober, P., Boer, C., & Schwarte, L. A. (2018). Correlation coefficients: Appropriate use and interpretation. *Anesthesia & Analgesia*, 126(5), 1763–1768. https://doi.org/10.1213/ANE.0000000000002864 *(open access)*
 
-Steyerberg, E. W. (2019). *Clinical Prediction Models: A Practical Approach to Development, Validation, and Updating* (2nd ed.). Springer. https://doi.org/10.1007/978-3-030-16399-0 *(open access â€” Springer Open)*
+Steyerberg, E. W. (2019). *Clinical Prediction Models: A Practical Approach to Development, Validation, and Updating* (2nd ed.). Springer. https://doi.org/10.1007/978-3-030-16399-0 *(open access — Springer Open)*
 
-Steyerberg, E. W., & Harrell, F. E. (2016). Prediction models need appropriate internal, internal-external, and external validation. *Journal of Clinical Epidemiology*, 69, 245â€“247. https://doi.org/10.1016/j.jclinepi.2015.04.005 â€” [Free full text: PMC4688400](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4688400/) *(open access)*
+Steyerberg, E. W., & Harrell, F. E. (2016). Prediction models need appropriate internal, internal-external, and external validation. *Journal of Clinical Epidemiology*, 69, 245–247. https://doi.org/10.1016/j.jclinepi.2015.04.005 — [Free full text: PMC4688400](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4688400/) *(open access)*
 
-Verbeke, W., Dejaeger, K., Martens, D., Hur, J., & Baesens, B. (2012). New insights into churn prediction in the telecommunication sector: A profit driven data mining approach. *European Journal of Operational Research*, 218(1), 211â€“229. https://doi.org/10.1016/j.ejor.2011.09.031 â€” [ResearchGate](https://www.researchgate.net/publication/220288606_New_insights_into_churn_prediction_in_the_telecommunication_sector_A_profit_driven_data_mining_approach)
+Verbeke, W., Dejaeger, K., Martens, D., Hur, J., & Baesens, B. (2012). New insights into churn prediction in the telecommunication sector: A profit driven data mining approach. *European Journal of Operational Research*, 218(1), 211–229. https://doi.org/10.1016/j.ejor.2011.09.031 — [ResearchGate](https://www.researchgate.net/publication/220288606_New_insights_into_churn_prediction_in_the_telecommunication_sector_A_profit_driven_data_mining_approach)
 
 ---
 
