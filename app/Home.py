@@ -293,9 +293,9 @@ col3.metric(
     help=_plain_tip("kpi_cost"),
 )
 col4.metric(
-    "High-Erosion Threshold",
-    f"{_high_erosion_pct}th Percentile",
-    f"Top {100 - _high_erosion_pct}% customers",
+    "High-Risk Customers",
+    f"Top {100 - _high_erosion_pct}%",
+    f"Above {_high_erosion_pct}th percentile of erosion",
     help=_plain_tip("kpi_threshold"),
 )
 

@@ -464,6 +464,18 @@ class TestRunDiagnostics:
         dw = diagnostics["durbin_watson"]
         assert 0 <= dw <= 4
 
+    def test_bp_not_placeholder(self, fitted_regression_model):
+        """Test that Breusch-Pagan p-value is real (not the old hardcoded 0.001)."""
+        diagnostics = run_diagnostics(fitted_regression_model)
+        bp_pval = diagnostics["breusch_pagan"]["pvalue"]
+        assert 0 <= bp_pval <= 1
+        assert bp_pval != 0.001, "BP p-value must be computed, not the old placeholder"
+
+    def test_bp_statistic_positive(self, fitted_regression_model):
+        """Test that Breusch-Pagan LM statistic is non-negative."""
+        diagnostics = run_diagnostics(fitted_regression_model)
+        assert diagnostics["breusch_pagan"]["statistic"] >= 0
+
 
 # ============================================================================
 # TEST CLASS: TestExtractCoefficientTable
