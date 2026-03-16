@@ -284,9 +284,9 @@ kpi1.metric(
     help=_plain_tip("kpi_auc"),
 )
 kpi2.metric(
-    "Features Used",
+    "Features Selected",
     f"{_n_pass} / {_n_total}" if _n_pass is not None else "N/A",
-    "after 3-gate screening",
+    f"{_n_pass} candidates passed all screening gates" if _n_pass is not None else "after screening",
     help=_plain_tip("kpi_features"),
 )
 kpi3.metric(
@@ -297,10 +297,10 @@ kpi3.metric(
     help=_plain_tip("kpi_h0"),
 )
 kpi4.metric(
-    "SSL Directional Accuracy",
+    "SSL Label Agreement",
     f"{float(_val_dict.get('directional_accuracy', float('nan'))):.1%}"
     if _val_dict.get("directional_accuracy") else "N/A",
-    "Spearman ρ = 0.7526 | n = 13,616",
+    "of 13,616 accounts correctly classified | ρ = 0.7526",
     help=_plain_tip("kpi_ssl"),
 )
 
@@ -920,11 +920,13 @@ a real-world returns dataset from a different industry and customer type (B2B vs
         c1.metric(
             "Directional Accuracy",
             f"{dir_acc:.1%}",
-            "Predicted high-risk matches actual high-loss",
+            "of SSL accounts correctly classified high/low",
             help=(
-                "Of the SSL accounts the model predicted as high-risk, "
-                f"{dir_acc:.1%} were confirmed as actually high financial loss accounts. "
-                "This is measured on external data the model was never trained on."
+                "Of all SSL accounts, the model's predicted high/low-risk label matched the "
+                f"actual high/low-loss label for {dir_acc:.1%} — a label agreement rate, "
+                "not a precision measure. Spearman ρ (rank correlation) is the stronger test; "
+                "this metric confirms the binary direction is correct for most accounts. "
+                "Measured on external data the model was never trained on."
             ),
         )
         c2.metric(
@@ -1303,8 +1305,7 @@ what matters is whether the same dimensions discriminate high-loss customers in 
         st.subheader("Interpretation")
         st.markdown(
             f"""
-- **Directional accuracy = {dir_acc:.1%}** — the model correctly identifies high-risk SSL accounts
-  as high-actual-loss accounts
+- **Directional accuracy = {dir_acc:.1%}** — label agreement rate: predicted high/low-risk matched actual high/low-loss for {dir_acc:.1%} of all {ssl_accounts:,} SSL accounts
 - **Spearman ρ = {spearman:.4f}** (p ≈ 0.00) — strong positive rank correlation between predicted
   risk score and actual financial loss rank
 - **Pattern agreement = {pattern_count} / {features_compared} ({pattern_pct:.1f}%)** — behavioral

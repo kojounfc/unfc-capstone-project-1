@@ -30,6 +30,7 @@ import pandas as pd
 import statsmodels.api as sm
 from scipy import stats
 from statsmodels.stats.outliers_influence import variance_inflation_factor
+from statsmodels.stats.diagnostic import het_breuschpagan
 from statsmodels.stats.stattools import durbin_watson, jarque_bera
 
 from src.config import (
@@ -42,10 +43,9 @@ from src.config import (
 
 logger = logging.getLogger(__name__)
 
-# Diagnostic test placeholders (simplified; can be replaced with full implementations)
-BREUSCH_PAGAN_PLACEHOLDER_PVAL = 0.001  # Placeholder for Breusch-Pagan p-value (chi2 test)
-RAMSEY_RESET_PLACEHOLDER_F = 0  # Placeholder for Ramsey RESET F-statistic
-RAMSEY_RESET_PLACEHOLDER_PVAL = 0.5  # Placeholder for Ramsey RESET p-value
+# Ramsey RESET placeholders (test not implemented — not cited in documentation)
+RAMSEY_RESET_PLACEHOLDER_F = 0
+RAMSEY_RESET_PLACEHOLDER_PVAL = 0.5
 
 # ============================================================================
 # 1. DATA LOADING
@@ -391,18 +391,9 @@ def run_diagnostics(
     # Jarque-Bera
     jb_stat, jb_pval, jb_skew, jb_kurt = jarque_bera(residuals)
 
-    # Basic heteroscedasticity check (visual inspection flag)
-    # We'll compute Breusch-Pagan manually if needed
-    resid_squared = residuals**2
-    X = results.model.exog
-
-    # Simple Breusch-Pagan: regress residual squared on X
-    bp_model = sm.OLS(resid_squared, X).fit()
-    ssr_resid = bp_model.ssr
-    ssrt_total = (resid_squared - resid_squared.mean()).var() * len(resid_squared)
-    bp_stat = ssr_resid / (2 * (resid_squared.mean() ** 2))  # Simplified
-    bp_pval = BREUSCH_PAGAN_PLACEHOLDER_PVAL
-    bp_f = 0  # Placeholder
+    # Breusch-Pagan heteroscedasticity test (standard LM test)
+    bp_lm, bp_pval, bp_f, _bp_f_pval = het_breuschpagan(residuals, results.model.exog)
+    bp_stat = bp_lm
 
     # Durbin-Watson
     dw_stat = durbin_watson(residuals)

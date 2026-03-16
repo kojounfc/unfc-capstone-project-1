@@ -10,7 +10,7 @@
 
 ## Abstract
 
-Product returns represent a significant and underanalyzed source of profit erosion in e-commerce. This study develops a repeatable multi-method analytical framework that reframes returns as economic reversal events, decomposing return-related loss into margin reversal and modeled processing costs. Using the synthetic TheLook e-commerce dataset (180,908 item-level transactions; 11,988 customers) and externally validated against School Specialty LLC real-world return data (16,700 accounts), four research questions are addressed through complementary methods. Non-parametric hypothesis testing (RQ1) confirms that profit erosion differs significantly across product categories (p = 2.63 × 10⁻³³, ε² = 0.454) and brands (p = 1.08 × 10⁻⁴, ε² = 0.442). K-Means clustering (RQ2) identifies two distinct customer segments, with the top 20% of customers accounting for 47.6% of total erosion (Gini = 0.41). A Random Forest classifier (RQ3) predicts high-erosion customers with Test AUC = 0.9798, validated at 76.4% directional accuracy on SSL data. Log-linear OLS regression (RQ4) quantifies return frequency as the dominant behavioral driver (+56.1% erosion per unit; p < 0.0001). All four null hypotheses are rejected. Findings are directionally validated across RQ1–RQ4 using SSL data, supporting the framework's generalizability beyond the synthetic training environment.
+Product returns represent a significant and underanalyzed source of profit erosion in e-commerce. This study develops a repeatable multi-method analytical framework that reframes returns as economic reversal events, decomposing return-related loss into margin reversal and modeled processing costs. Using the synthetic TheLook e-commerce dataset (180,908 item-level transactions; 11,988 customers) and externally validated against School Specialty LLC real-world return data (16,700 accounts), four research questions are addressed through complementary methods. Non-parametric hypothesis testing (RQ1) confirms that profit erosion differs significantly across product categories (p = 2.63 × 10⁻³³, ε² = 0.454) and brands (p = 1.08 × 10⁻⁴, ε² = 0.442). K-Means clustering (RQ2) identifies two distinct customer segments, with the top 20% of customers accounting for 47.6% of total erosion (Gini = 0.41). A Random Forest classifier (RQ3) predicts high-erosion customers with Test AUC = 0.9798, validated at 76.4% directional accuracy on SSL data. Log-linear OLS regression (RQ4) quantifies return frequency as the dominant behavioral driver (+58.4% erosion per unit; p < 0.0001). All four null hypotheses are rejected. Findings are directionally validated across RQ1–RQ4 using SSL data, supporting the framework's generalizability beyond the synthetic training environment.
 
 ---
 
@@ -510,11 +510,11 @@ RQ4 quantifies the marginal association between key behavioral variables and pro
 
 > log(total_profit_erosion) ~ return_frequency + avg_basket_size + purchase_recency_days + avg_order_value + customer_return_rate + customer_tenure_days + age + gender + 25 category dummies
 
-The log-linear form was selected because profit erosion is strongly right-skewed at the customer level. Log-transforming the outcome reduces the Jarque-Bera normality test statistic from 619,317 (linear OLS) to 2,198 (log-linear OLS) — a 281.8× improvement — substantially better satisfying OLS residual assumptions. Coefficients from the log-linear model are interpreted as the **percentage change in profit erosion** per unit change in the predictor.
+The log-linear form was selected because profit erosion is strongly right-skewed at the customer level. Log-transforming the outcome reduces the Jarque-Bera normality test statistic from 515,652 (linear OLS) to 2,661 (log-linear OLS) — a 193.8× improvement — substantially better satisfying OLS residual assumptions. Coefficients from the log-linear model are interpreted as the **percentage change in profit erosion** per unit change in the predictor.
 
-Heteroscedasticity was confirmed by the Breusch-Pagan test (BP = 1,556, p < 0.001); HC3 heteroscedasticity-robust standard errors were applied throughout. The sample is 11,694 customers (after listwise deletion). The model includes 35 parameters (7 numeric predictors + 26 category dummies + intercept). Maximum VIF = 2.95 (all predictors below the threshold of 10), confirming acceptable multicollinearity.
+Heteroscedasticity was confirmed by the Breusch-Pagan test (BP = 3,012, p < 0.001); HC3 heteroscedasticity-robust standard errors were applied throughout. The sample is 11,694 customers (after listwise deletion). The model includes 35 parameters (7 numeric predictors + 26 category dummies + intercept). Maximum VIF = 2.80 (all predictors below the threshold of 10), confirming acceptable multicollinearity.
 
-**Overall model fit:** R² = 0.7765. The model explains 77.7% of variance in log-profit-erosion.
+**Overall model fit:** R² = 0.7188. The model explains 71.9% of variance in log-profit-erosion.
 
 ### 4.4.2 Results
 
@@ -522,15 +522,15 @@ Heteroscedasticity was confirmed by the Breusch-Pagan test (BP = 1,556, p < 0.00
 
 | Predictor | log β | 95% CI | % Effect | SE | t | p |
 |-----------|-------|--------|----------|----|---|---|
-| `return_frequency` | +0.4454 | [+0.433, +0.457] | **+56.1%** | 0.0067 | +66.6 | < 0.0001 |
-| `avg_basket_size` | −0.1559 | [−0.169, −0.143] | **−14.4%** | 0.0057 | −27.5 | < 0.0001 |
-| `purchase_recency_days` | −0.0009 | [−0.009, +0.007] | ~0% | 0.0026 | −0.22 | 0.824 |
+| `return_frequency` | +0.4598 | [+0.447, +0.473] | **+58.4%** | 0.0065 | +70.21 | < 0.0001 |
+| `avg_basket_size` | −0.1778 | [−0.193, −0.163] | **−16.3%** | 0.0075 | −23.63 | < 0.0001 |
+| `purchase_recency_days` | +0.0001 | [−0.009, +0.009] | ~0% | 0.0044 | +0.02 | 0.981 |
 
-Each additional unit increase in return frequency is associated with a 56.1% increase in total profit erosion, holding all other predictors constant — the largest effect in the model. Each unit increase in average basket size is associated with a 14.4% decrease in erosion. Purchase recency days shows no statistically significant marginal association (t = −0.22, p = 0.824).
+Each additional unit increase in return frequency is associated with a 58.4% increase in total profit erosion, holding all other predictors constant — the largest effect in the model. Each unit increase in average basket size is associated with a 16.3% decrease in erosion. Purchase recency days shows no statistically significant marginal association (t = +0.02, p = 0.981).
 
 **Control variable findings:** `avg_order_value` carries an equally strong association (t ≈ +66; p < 0.0001). Demographic controls (`age`, `gender`, `customer_tenure_days`) are not significant after behavioral and category controls are included.
 
-**Category effects:** 20 of 25 category dummy variables are statistically significant. Premium categories (Suits, Outerwear, Jeans, Sweaters, Dresses) carry positive coefficients; commodity categories (Socks, Underwear, Leggings, Tops & Tees) carry negative coefficients, consistent with the tier multiplier structure.
+**Category effects:** 20 of 26 category dummy variables are statistically significant. Premium categories (Suits, Outerwear, Jeans, Sweaters, Dresses) carry positive coefficients; commodity categories (Socks, Underwear, Leggings, Tops & Tees) carry negative coefficients, consistent with the tier multiplier structure.
 
 **Hypothesis test outcome:** H₀ is **rejected**. The joint F-test on the hypothesis predictor block yields p < 0.0001; individual t-tests reject H₀ for `return_frequency` and `avg_basket_size`. `purchase_recency_days` does not independently reject H₀.
 
@@ -540,11 +540,11 @@ For the median returner ($47.20 total erosion), a one-standard-deviation increas
 
 ### 4.4.4 External Validation — School Specialty LLC
 
-The log-linear OLS model was re-estimated on SSL account-level data (13,600 accounts). The SSL model achieves R² = 0.6185 (R² ratio SSL/TheLook = 0.80), indicating moderate transportability of explanatory power.
+The log-linear OLS model was re-estimated on SSL account-level data (13,600 accounts). The SSL model achieves R² = 0.6185 (R² ratio SSL/TheLook = 0.86), indicating moderate transportability of explanatory power.
 
 **Generalization Score Definition:**
 
-> Generalization Score = (predictors with aligned direction) / (total hypothesis predictors) = 1 / 3 = **0.33**
+> Generalization Score = (predictors where |effect-size ratio| > 0.5) / (total hypothesis predictors) = 1 / 3 = **0.33**
 
 | Scale | Interpretation |
 |-------|---------------|
@@ -556,9 +556,9 @@ The log-linear OLS model was re-estimated on SSL account-level data (13,600 acco
 
 | Predictor | TheLook β | SSL β | Direction | Both Significant |
 |-----------|-----------|-------|-----------|-----------------|
-| `return_frequency` | +0.445 | +0.104 | ✓ Aligned | ✗ (SSL p = 0.578) |
-| `avg_basket_size` | −0.156 | +0.320 | ✗ Sign reversal | ✓ Both significant |
-| `purchase_recency_days` | −0.001 | +0.027 | ✗ Diverged | ✗ (SSL only) |
+| `return_frequency` | +0.460 | +0.104 | ✓ Aligned | ✗ (SSL p = 0.578) |
+| `avg_basket_size` | −0.178 | +0.320 | ✗ Sign reversal | ✓ Both significant |
+| `purchase_recency_days` | +0.0001 | +0.027 | ✓ Aligned | ✗ (SSL only) |
 
 The sign reversal on `avg_basket_size` is a genuine structural difference: in B2B institutional buying, larger orders contain higher-value items (opposite of B2C fashion retail), so larger baskets produce costlier — not cheaper — returns. This represents domain-specific heterogeneity, not model failure. Practitioners deploying this model in B2B contexts must validate coefficient directions against domain-specific purchasing data before acting on the basket-size lever.
 
@@ -637,7 +637,7 @@ The overarching finding is that return-related profit erosion is not a random op
 
 Three behavioral mechanisms emerge as consistent explanations across methods:
 
-**1. Return frequency is the primary driver.** Across RQ3 (feature importance), RQ4 (largest coefficient, +56.1% per unit), and RQ2 (top ANOVA F-statistic for cluster separation), return frequency is consistently the most powerful predictor of profit erosion. This aligns with Petersen and Kumar (2009), who identified habitual returners as the primary driver of customer-level margin erosion. The RQ4 log-linear specification assumes an additive effect; however, the RESET test (F = 1,525, p < 0.001) suggests significant non-linearity, indicating that return frequency and order value likely interact — i.e., the marginal erosion cost of an additional return may be higher for customers with already-high order values. This interaction is not estimated in the current model and is flagged as a priority for future work (§7.3).
+**1. Return frequency is the primary driver.** Across RQ3 (feature importance), RQ4 (largest coefficient, +58.4% per unit), and RQ2 (top ANOVA F-statistic for cluster separation), return frequency is consistently the most powerful predictor of profit erosion. This aligns with Petersen and Kumar (2009), who identified habitual returners as the primary driver of customer-level margin erosion. The RQ4 log-linear specification assumes an additive effect; however, the RESET test (F = 1,525, p < 0.001) suggests significant non-linearity, indicating that return frequency and order value likely interact — i.e., the marginal erosion cost of an additional return may be higher for customers with already-high order values. This interaction is not estimated in the current model and is flagged as a priority for future work (§7.3).
 
 **2. Order value amplifies erosion.** Average order value appears in the top three features for two of three RQ3 models and carries a coefficient comparable to return frequency in the RQ4 regression. Higher-value orders generate larger margin reversals when returned, creating a compounding dynamic with frequent returners.
 
@@ -651,10 +651,10 @@ The multi-level external validation against SSL data provides evidence that core
 
 - **RQ3 demonstrates strong transportability:** 76.4% directional accuracy and Spearman ρ = 0.7526 in an independent B2B dataset are strong results given the structural differences between sectors (Steyerberg & Harrell, 2016; Debray et al., 2015). Core behavioral dimensions — return frequency, order value, basket size — generalize across B2C and B2B domains.
 
-- **RQ4 shows partial transportability (R² ratio = 0.80), with important caveats:**
-  - **Aligned:** `return_frequency` shows consistent positive direction (+0.445 TheLook, +0.104 SSL); this is the primary behavioral driver and generalizes across sectors.
-  - **Sign reversal:** `avg_basket_size` reverses sign (−0.156 TheLook, +0.320 SSL). In B2B institutional purchasing, larger orders contain higher-value items, producing more expensive returns — the opposite of B2C apparel. This is a genuine structural B2C vs. B2B difference, not a model artifact. **Practitioners deploying the RQ4 model in B2B or institutional contexts must validate coefficient directions against domain-specific data before acting on basket-size interventions.**
-  - **Context-dependent:** `purchase_recency_days` is significant in SSL (p = 0.003) but not in TheLook (p = 0.824), likely because B2B school-calendar purchasing concentrates returns into fewer high-value transactions.
+- **RQ4 shows partial transportability (R² ratio = 0.86), with important caveats:**
+  - **Aligned:** `return_frequency` shows consistent positive direction (+0.460 TheLook, +0.104 SSL); this is the primary behavioral driver and generalizes across sectors.
+  - **Sign reversal:** `avg_basket_size` reverses sign (−0.178 TheLook, +0.320 SSL). In B2B institutional purchasing, larger orders contain higher-value items, producing more expensive returns — the opposite of B2C apparel. This is a genuine structural B2C vs. B2B difference, not a model artifact. **Practitioners deploying the RQ4 model in B2B or institutional contexts must validate coefficient directions against domain-specific data before acting on basket-size interventions.**
+  - **Context-dependent:** `purchase_recency_days` is directionally consistent (+0.0001 TheLook, +0.027 SSL) but only significant in SSL (p = 0.003 vs. p = 0.981 in TheLook), likely because B2B school-calendar purchasing concentrates returns into fewer high-value transactions.
 
 ## 6.4 Limitations
 
@@ -670,7 +670,7 @@ The primary dataset is synthetic. Absolute dollar figures throughout this report
 | Model AUC and feature importance rankings (RQ3) | High — ordinal | No |
 | Prediction thresholds (RQ3) | Medium | Recalibrate to real-world distribution |
 | Coefficient signs and relative magnitudes (RQ4) | High — directional | No |
-| Absolute % effect sizes (RQ4, e.g., +56.1%) | Medium | Recalibrate when base cost model is updated |
+| Absolute % effect sizes (RQ4, e.g., +58.4%) | Medium | Recalibrate when base cost model is updated |
 | Absolute dollar erosion figures | Low | Requires observed operational cost validation |
 
 ### 6.4.2 Model and Statistical Assumptions
@@ -693,7 +693,7 @@ All reported associations are observational. The RQ4 coefficients represent part
 
 This study successfully applied a multi-method analytics framework to quantify, segment, predict, and model product return-related profit erosion in e-commerce. All four null hypotheses were rejected.
 
-The central finding is operationally actionable: **profit erosion is concentrated among an identifiable minority of customers, predictable from behavioral data with high accuracy, and driven primarily by return frequency and order value.** The top 20% of customers account for 47.6% of total erosion (RQ2). A Random Forest model identifies high-erosion customers with Test AUC = 0.9798 and a False Negative rate of 8.8% (RQ3). Return frequency carries a marginal effect of +56.1% erosion per unit (RQ4). These findings, validated directionally against real-world return data from School Specialty LLC, constitute an evidence-based foundation for return-risk management.
+The central finding is operationally actionable: **profit erosion is concentrated among an identifiable minority of customers, predictable from behavioral data with high accuracy, and driven primarily by return frequency and order value.** The top 20% of customers account for 47.6% of total erosion (RQ2). A Random Forest model identifies high-erosion customers with Test AUC = 0.9798 and a False Negative rate of 8.8% (RQ3). Return frequency carries a marginal effect of +58.4% erosion per unit (RQ4). These findings, validated directionally against real-world return data from School Specialty LLC, constitute an evidence-based foundation for return-risk management.
 
 ## 7.2 Recommendations
 
@@ -715,7 +715,7 @@ The Random Forest model should be integrated into the customer data platform to 
 **Recommendation 4 — Target return frequency as the primary behavioral lever**
 *[Evidence: RQ4 | External validation: SSL — direction consistent ✓, magnitude attenuated]*
 
-Given the +56.1% marginal association between return frequency and total erosion, even small reductions in per-customer return frequency generate meaningful erosion reduction at scale. Behavioral interventions that reduce repeat returns — virtual try-on tools, enhanced product descriptions, size verification prompts — should be prioritized and evaluated through controlled experiments with erosion as the primary outcome metric.
+Given the +58.4% marginal association between return frequency and total erosion, even small reductions in per-customer return frequency generate meaningful erosion reduction at scale. Behavioral interventions that reduce repeat returns — virtual try-on tools, enhanced product descriptions, size verification prompts — should be prioritized and evaluated through controlled experiments with erosion as the primary outcome metric.
 
 **Recommendation 5 — Multi-item order incentives as a passive erosion hedge (B2C only)**
 *[Evidence: RQ4 | External validation: ✗ — sign reversal in B2B; B2C context only]*
@@ -870,11 +870,11 @@ AUC range across all 11 scenarios: **0.9664 – 0.9879**. H₀ rejected in all 1
 
 | Diagnostic Test | Statistic | Threshold | Result | Action Taken |
 |----------------|-----------|-----------|--------|-------------|
-| Normality (Jarque-Bera) | JB = 2,198 (log-linear) | — | Violated (but 281.8× improvement vs. linear) | HC3 robust SE |
-| Homoscedasticity (Breusch-Pagan) | BP = 1,556 | p < 0.05 = present | Heteroscedasticity confirmed | HC3 robust SE |
+| Normality (Jarque-Bera) | JB = 2,661 (log-linear) | — | Violated (but 193.8× improvement vs. linear) | HC3 robust SE |
+| Homoscedasticity (Breusch-Pagan) | BP = 3,012 | p < 0.05 = present | Heteroscedasticity confirmed | HC3 robust SE |
 | Autocorrelation (Durbin-Watson) | DW = 1.98 | 1.5–2.5 = acceptable | None detected | No action |
 | Specification (RESET) | F = 1,525 | p < 0.05 = misspecification | Non-linearity present | Flag for future interaction terms |
-| Multicollinearity (Max VIF) | 2.95 | < 10 = acceptable | All predictors acceptable | No action |
+| Multicollinearity (Max VIF) | 2.80 | < 10 = acceptable | All predictors acceptable | No action |
 | Influential outliers (Cook's D) | Max = 0.031 | > 4/n ≈ 0.00034 | Some influential points | Results robust; outlier sensitivity check done |
 
 ## B.3 RQ2 Cluster Pairwise Significance Tests

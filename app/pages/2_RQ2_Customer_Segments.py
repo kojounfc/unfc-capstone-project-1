@@ -444,9 +444,9 @@ st.markdown(
 
 # ── KPI Cards ─────────────────────────────────────────────────────────────────
 k1, k2, k3, k4 = st.columns(4)
-k1.metric("Top 20% Share",
-          f"{_top20:.1f}%" if isinstance(_top20, float) else "N/A",
-          "of total profit erosion", help=_plain_tip("kpi_top20"))
+k1.metric("Top 20% of Customers",
+          f"{_top20:.1f}% of erosion" if isinstance(_top20, float) else "N/A",
+          "Pareto concentration — share of total loss", help=_plain_tip("kpi_top20"))
 k2.metric("H₀₂ Result", "✅ Rejected", "p < 0.0001", help=_plain_tip("kpi_h02"))
 k3.metric("Customer Segments", "2", "K-Means clusters",
           help="K-Means with k=2 — statistically optimal (silhouette peak at k=2).")
@@ -1009,10 +1009,10 @@ do the same job on a real-world dataset (SSL — a B2B educational supplier).
         cv1, cv2, cv3 = st.columns(3)
         cv1.metric("Features Tested", str(n_feat),
             help="Number of behavioral features checked against the SSL dataset.")
-        cv2.metric("Works in Both Datasets", str(n_bp),
-            help="These features reliably identify high-loss customers on both TheLook and SSL.")
-        cv3.metric("Works in One Only", str(n_disagree),
-            help="These features work in one dataset but not the other — likely context-specific.")
+        cv2.metric("Consistent Across Datasets", str(n_bp),
+            help="Features showing high Gini concentration in both TheLook and SSL — behavioral pattern is consistent across B2C and B2B contexts.")
+        cv3.metric("Context-Specific", str(n_disagree),
+            help="Features concentrated in one dataset but not the other — likely reflects differences between B2C (TheLook) and B2B (SSL) purchasing behaviour.")
 
         if passed is True:
             st.success(
@@ -1059,9 +1059,9 @@ do the same job on a real-world dataset (SSL — a B2B educational supplier).
 Each bar is one behavioral feature. The colour shows whether it identifies high-loss customers
 on TheLook, SSL, or both.
 
-- **Works in Both ({n_bp})** — reliable signal across datasets. Use these for targeting.
-- **Works in One Only ({n_disagree})** — context-specific. May reflect differences between B2C and B2B.
-- **Works in Neither ({n_bf})** — not useful in either dataset.
+- **Consistent ({n_bp})** — feature shows high Gini concentration in both TheLook and SSL. Reliable signal for targeting across contexts.
+- **Context-Specific ({n_disagree})** — concentrated in one dataset only. Reflects B2C vs B2B behavioural differences, not a model failure.
+- **Neither ({n_bf})** — low concentration in both datasets; not useful for targeting.
 """)
 
         if gen_f or dom_f:

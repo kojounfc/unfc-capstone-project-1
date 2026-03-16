@@ -31,8 +31,8 @@ This project follows a code of conduct that emphasizes:
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/your-org/unfc-capstone-project.git
-   cd unfc-capstone-project
+   git clone https://github.com/kojounfc/unfc-capstone-project-1.git
+   cd unfc-capstone-project-1
    ```
 
 2. **Create a virtual environment**:
@@ -365,33 +365,51 @@ When you create a pull request, **GitHub Actions** automatically:
 
 ```
 unfc-capstone-project/
+├── app/                        # Streamlit dashboard
+│   ├── Home.py
+│   └── pages/
+│       ├── 0_EDA.py
+│       ├── 1_RQ1_Category_Analysis.py
+│       ├── 2_RQ2_Customer_Segments.py
+│       ├── 3_RQ3_Predictive_Model.py
+│       └── 4_RQ4_Behavioral_Associations.py
 ├── data/
-│   ├── raw/              # Source CSV files (not tracked)
-│   └── processed/        # Processed parquet files (tracked)
-├── figures/              # Generated visualizations
-├── notebooks/            # Jupyter notebooks
-├── reports/              # Project reports
-├── src/
-│   ├── __init__.py            # Package initialization
-│   ├── config.py              # Configuration constants
-│   ├── data_processing.py     # Data loading, cleaning, merging
-│   ├── feature_engineering.py # Feature creation functions
-│   ├── visualization.py       # Plotting functions
-│   └── modeling.py            # Analysis functions
-├── tests/
-│   ├── conftest.py              # Shared pytest fixtures
-│   ├── test_data_processing.py
-│   ├── test_feature_engineering.py
-│   ├── test_visualization.py
-│   └── test_modeling.py
-├── docs/                     # Technical documentation
+│   ├── raw/                    # Source CSV files (not tracked)
+│   └── processed/              # Processed parquet/CSV files (tracked)
+│       ├── rq1/
+│       ├── rq1_ssl/
+│       ├── rq2/
+│       ├── rq3/
+│       └── rq4/
+├── figures/                    # Generated visualizations
+│   ├── eda/
+│   ├── rq1/  rq1_ssl/  rq2/  rq2_ssl/  rq3/  rq4/
+├── reports/                    # CSV and JSON report artifacts
+│   ├── rq1/  rq1_ssl/  rq2/  rq3/  rq4/
+├── notebooks/
+│   └── profit_erosion_analysis.ipynb   # Master notebook (sections 1–10)
+├── src/                        # Python modules (flat — no sub-packages)
+│   ├── config.py               # Path constants and thresholds
+│   ├── data_processing.py      # ETL pipeline
+│   ├── data_cleaning.py        # Data quality validation
+│   ├── feature_engineering.py  # Profit erosion metrics
+│   ├── model_ready_views.py    # Feature matrix construction
+│   ├── analytics.py            # Segmentation and validation helpers
+│   ├── visualization.py        # General plotting functions
+│   ├── descriptive_transformations.py
+│   ├── rq1_run.py  rq1_stats.py  rq1_ssl_preprocessing.py  rq1_ssl_validation.py
+│   ├── rq2_run.py  rq2_segmentation.py  rq2_concentration.py
+│   ├── rq3_modeling.py  rq3_sensitivity.py  rq3_visuals.py  rq3_validation.py
+│   └── rq4_econometrics.py  rq4_validation.py  rq4_ssl_validation.py  rq4_visuals.py
+├── tests/                      # pytest unit tests (512 tests)
+├── docs/                       # Technical documentation per RQ
 ├── .github/
 │   └── workflows/
-│       └── ci.yml            # GitHub Actions CI workflow
+│       └── ci.yml              # GitHub Actions CI workflow
 ├── .gitignore
 ├── CONTRIBUTING.md
 ├── README.md
-├── pytest.ini                # Pytest configuration
+├── pytest.ini
 └── requirements.txt
 ```
 

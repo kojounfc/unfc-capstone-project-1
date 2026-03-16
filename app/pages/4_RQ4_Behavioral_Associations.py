@@ -299,15 +299,16 @@ kpi2.metric(
     "customers with ≥1 return",
     help=_plain_tip("kpi_n"),
 )
+_coef_no_const = _coef_df[_coef_df.get("feature", _coef_df.iloc[:, 0]) != "const"] if _coef_df is not None else None
 _n_sig = (
-    len(_coef_df[pd.to_numeric(_coef_df.get("p_value", pd.Series(dtype=float)), errors="coerce") < 0.05])
-    if _coef_df is not None else None
+    len(_coef_no_const[pd.to_numeric(_coef_no_const.get("p_value", pd.Series(dtype=float)), errors="coerce") < 0.05])
+    if _coef_no_const is not None else None
 )
-_n_total = len(_coef_df) if _coef_df is not None else None
+_n_total = len(_coef_no_const) if _coef_no_const is not None else None
 kpi3.metric(
-    "Significant Features",
+    "Significant Predictors",
     f"{_n_sig}" if _n_sig is not None else "N/A",
-    f"out of {_n_total} total" if _n_total is not None else "",
+    f"of {_n_total} coefficients (p < 0.05, excl. intercept)" if _n_total is not None else "",
     help=_plain_tip("kpi_sig_feats"),
 )
 kpi4.metric(
@@ -608,7 +609,9 @@ with tab2:
             st.plotly_chart(fig_forest, use_container_width=True)
             st.caption(
                 "Red = positive association (more erosion); blue = negative (less erosion). "
-                "Error bars show 95% CIs. Points right of zero → higher profit erosion."
+                "Error bars show 95% CIs. Points right of zero → higher profit erosion. "
+                "Coefficients are on log scale — e.g., +0.46 means each additional return "
+                "is associated with +58% more profit erosion, not +$0.46."
             )
         else:
             coef_path = FIGURES_RQ4 / "rq4_coefficient_plot.png"
@@ -796,7 +799,7 @@ with tab3:
         st.plotly_chart(fig_importance, use_container_width=True)
         
         # Extract return_frequency coefficient for dynamic example
-        rf_coef = float(_coef_df[_coef_df['feature'] == 'return_frequency']['coefficient'].values[0]) if (_coef_df is not None and 'return_frequency' in _coef_df['feature'].values) else 0.445
+        rf_coef = float(_coef_df[_coef_df['feature'] == 'return_frequency']['coefficient'].values[0]) if (_coef_df is not None and 'return_frequency' in _coef_df['feature'].values) else 0.460
         rf_pct = rf_coef * 100
         
         st.markdown(
@@ -991,8 +994,8 @@ with tab3:
             pr_row = _align_df[_align_df["feature"] == "purchase_recency_days"].iloc[0] if (_align_df is not None and "purchase_recency_days" in _align_df["feature"].values) else None
             
             # Return Frequency values
-            rf_tl_coef = float(rf_row["thelook_coefficient"]) if rf_row is not None else 0.445
-            rf_tl_pct = float(rf_row["thelook_pct_effect"]) if rf_row is not None else 56.0
+            rf_tl_coef = float(rf_row["thelook_coefficient"]) if rf_row is not None else 0.460
+            rf_tl_pct = float(rf_row["thelook_pct_effect"]) if rf_row is not None else 58.4
             rf_ssl_coef = float(rf_row["ssl_coefficient"]) if rf_row is not None else 0.104
             rf_ssl_pct = float(rf_row["ssl_pct_effect"]) if rf_row is not None else 11.0
             
@@ -1705,8 +1708,8 @@ with tab6:
 
     # ── Dark-gradient callout ─────────────────────────────────────────────────
     # Extract return_frequency coefficient dynamically; fall back to known value
-    _rf_coef = 0.445
-    _rf_pct = 56.1
+    _rf_coef = 0.460
+    _rf_pct = 58.4
     if _coef_df is not None and "feature" in _coef_df.columns:
         _rf_rows = _coef_df[_coef_df["feature"] == "return_frequency"]
         if not _rf_rows.empty and "coefficient" in _rf_rows.columns:
@@ -1714,7 +1717,7 @@ with tab6:
             _rf_pct = _rf_coef * 100  # approximate % effect (log-linear)
 
     _n_str = f"{_thelook_n:,}" if _thelook_n else "11,694"
-    _r2_str = f"{_thelook_r2:.4f}" if not pd.isna(_thelook_r2) else "0.7765"
+    _r2_str = f"{_thelook_r2:.4f}" if not pd.isna(_thelook_r2) else "0.7188"
     _ssl_r2_str = f"{_ssl_r2:.4f}" if not pd.isna(_ssl_r2) else "0.6185"
     _ratio_str = f"{_r2_ratio:.2f}" if not pd.isna(_r2_ratio) else "0.80"
     _gen_str = f"{_gen_score:.2f}" if not pd.isna(_gen_score) else "0.33"
