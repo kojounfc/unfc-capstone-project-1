@@ -1,0 +1,78 @@
+{
+  "analysis_date": "2026-03-15T18:07:29.258853",
+  "research_question": "To what extent is profit erosion concentrated among a small subset of customers, and can customers be meaningfully segmented?",
+  "population": {
+    "total_customers": 79944,
+    "customers_with_returns": 11988,
+    "return_rate_pct": 14.995496847793454,
+    "total_profit_erosion": 816500.9422838693
+  },
+  "finding_1_feature_concentration": {
+    "features_analyzed": 18,
+    "significant_features": 18,
+    "top_feature": "purchase_recency_days",
+    "top_feature_gini": 0.5304,
+    "top_feature_top20_share": 54.17
+  },
+  "finding_2_erosion_concentration": {
+    "gini_coefficient": 0.4092911746141102,
+    "concentration_level": "Moderate",
+    "top_20_pct_share": 0.47631022801664313,
+    "top_50_absolute": 23808.31,
+    "top_50_percentage": 2.92,
+    "bootstrap_p_value": 0.0
+  },
+  "finding_3_segmentation": {
+    "optimal_k": 2,
+    "method": "K-means clustering",
+    "features_used": [
+      "avg_order_value",
+      "avg_basket_size",
+      "order_frequency",
+      "customer_return_rate",
+      "customer_tenure_days",
+      "purchase_recency_days",
+      "total_sales",
+      "total_margin"
+    ],
+    "n_features": 8,
+    "highest_risk_cluster": 0,
+    "highest_risk_mean_erosion": 96.68,
+    "highest_risk_size": 4375
+  },
+  "feature_selection": {
+    "initial_candidates": 8,
+    "after_screening": 7,
+    "dropped_correlation": 1,
+    "top_discriminative_feature": "total_sales",
+    "top_feature_f_statistic": 13988.065358750488,
+    "top_feature_p_value": 0.0
+  },
+  "hypothesis_test": {
+    "null_hypothesis": "Customer segments do not differ significantly in mean profit erosion",
+    "alternative_hypothesis": "Customer segments exhibit statistically significant differences in mean profit erosion",
+    "decision": "REJECT NULL HYPOTHESIS (H0)",
+    "conclusion": "Segments differ significantly in profit erosion",
+    "accepted_hypothesis": "H1 (Alternative)",
+    "evidence_strength": "Very Strong",
+    "anova_p_value": 0.0,
+    "kruskal_wallis_p_value": 1.5178496786739485e-212,
+    "effect_size_eta_squared": 0.1302032563861132,
+    "variance_explained_pct": 13.020325638611318,
+    "alpha": 0.05,
+    "segmentation_valid": true
+  },
+  "integrated_interpretation": {
+    "concentration_level": "Moderate",
+    "segmentation_significant": true,
+    "strategy": "Target Cluster 0 customers in top 20%",
+    "who_to_target": "Top 20% of customers (47.6% of erosion)",
+    "how_to_intervene": "Cluster 0 requires aggressive retention"
+  },
+  "recommendations": {
+    "segmentation_strategy": "Targeted by cluster",
+    "concentration_strategy": "Broad Policy",
+    "priority_feature": "purchase_recency_days",
+    "priority_cluster": 0
+  }
+}

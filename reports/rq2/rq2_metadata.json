@@ -1,0 +1,29 @@
+{
+  "k_used": 2,
+  "k_selection_method": "silhouette_argmax_tiebreak_lowest_k",
+  "feature_columns_used": [
+    "order_frequency",
+    "total_sales"
+  ],
+  "feature_policy": "behavioral_non_leakage_only",
+  "top_x": 0.2,
+  "gini": 0.42,
+  "top_x_share_of_erosion": 0.7,
+  "performance_optimizations": {
+    "k_max_reduced": true,
+    "k_max_value": 2,
+    "sampling_used": false,
+    "sample_size": 2,
+    "total_customers": 2
+  },
+  "gini_bootstrap_test": {
+    "observed_gini": 0.42,
+    "null_mean_gini": 0.0,
+    "p_value": 0.0,
+    "n_bootstrap": 1000
+  },
+  "concentration_comparison": {
+    "gini_erosion": 0.42,
+    "gini_baseline": 0.2
+  }
+}

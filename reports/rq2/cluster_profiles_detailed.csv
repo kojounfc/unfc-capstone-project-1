@@ -1,0 +1,5 @@
+,avg_order_value,avg_order_value,avg_order_value,avg_basket_size,avg_basket_size,avg_basket_size,order_frequency,order_frequency,order_frequency,customer_return_rate,customer_return_rate,customer_return_rate,customer_tenure_days,customer_tenure_days,customer_tenure_days,purchase_recency_days,purchase_recency_days,purchase_recency_days,total_sales,total_sales,total_sales,total_margin,total_margin,total_margin,total_profit_erosion,total_profit_erosion,total_profit_erosion
+,mean,median,std,mean,median,std,mean,median,std,mean,median,std,mean,median,std,mean,median,std,mean,median,std,mean,median,std,mean,median,std
+cluster_id,,,,,,,,,,,,,,,,,,,,,,,,,,,
+0,127.56,104.58,91.86,1.72,1.5,0.7,2.96,3.0,0.99,0.41,0.33,0.25,1234.13,1224.0,760.89,323.02,191.0,367.4,323.08,284.92,161.95,168.52,147.62,88.64,96.68,68.48,82.53
+1,61.97,49.95,45.17,1.28,1.0,0.55,1.43,1.0,0.57,0.82,1.0,0.25,1263.16,1264.0,760.97,548.98,381.0,530.69,83.14,72.49,54.17,42.56,36.71,28.47,51.69,40.89,31.94

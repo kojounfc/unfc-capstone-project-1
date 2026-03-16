@@ -1,0 +1,14 @@
+metric,value
+pattern_features_compared,12.0
+pattern_agreement_count,7.0
+pattern_agreement_pct,58.3
+pattern_both_pass,5.0
+pattern_both_fail,2.0
+directional_accuracy,0.764
+directional_rank_correlation,0.7526
+directional_rank_pvalue,0.0
+ssl_accounts_evaluated,13616.0
+features_available,7.0
+features_missing,0.0
+predicted_high_risk_pct,30.7
+actual_high_loss_pct,25.0
