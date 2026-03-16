@@ -338,13 +338,19 @@ def validate_directional_effect_sizes(
 def build_validation_summary(
     coefficient_comparison: pd.DataFrame,
     effect_size_result: Dict[str, Any],
+    diagnostics_log: Optional[Dict] = None,
+    jb_linear_stat: Optional[float] = None,
+    vif_df: Optional[pd.DataFrame] = None,
 ) -> pd.DataFrame:
     """
-    Summarize coefficient alignment and effect size validation metrics.
+    Summarize coefficient alignment, effect size validation, and model diagnostics.
 
     Args:
         coefficient_comparison: Output from validate_coefficient_alignment().
         effect_size_result: Output from validate_directional_effect_sizes().
+        diagnostics_log: Optional output from run_diagnostics() on the log-linear model.
+        jb_linear_stat: Optional Jarque-Bera statistic from the linear model (for ratio).
+        vif_df: Optional VIF DataFrame from calculate_vif() — max VIF is extracted.
 
     Returns:
         Summary DataFrame with key validation metrics and interpretations.
@@ -412,6 +418,23 @@ def build_validation_summary(
             "value": model_fit["thelook_n_obs"],
         },
     ]
+
+    if diagnostics_log is not None and jb_linear_stat is not None:
+        jb_log_stat = diagnostics_log["jarque_bera"]["statistic"]
+        rows += [
+            {"metric": "jb_linear_model", "value": jb_linear_stat},
+            {"metric": "jb_log_linear_model", "value": jb_log_stat},
+            {
+                "metric": "jb_improvement_ratio",
+                "value": round(jb_linear_stat / jb_log_stat, 1) if jb_log_stat else None,
+            },
+            {"metric": "bp_statistic", "value": diagnostics_log["breusch_pagan"]["statistic"]},
+            {"metric": "bp_pvalue", "value": diagnostics_log["breusch_pagan"]["pvalue"]},
+            {"metric": "durbin_watson_statistic", "value": diagnostics_log["durbin_watson"]},
+        ]
+
+    if vif_df is not None:
+        rows += [{"metric": "max_vif", "value": float(vif_df["VIF"].max())}]
 
     summary_df = pd.DataFrame(rows)
 
