@@ -528,7 +528,7 @@ Heteroscedasticity was confirmed by the Breusch-Pagan test (BP = 3,012, p < 0.00
 
 Each additional unit increase in return frequency is associated with a 58.4% increase in total profit erosion, holding all other predictors constant — the largest effect in the model. Each unit increase in average basket size is associated with a 16.3% decrease in erosion. Purchase recency days shows no statistically significant marginal association (t = +0.02, p = 0.981).
 
-**Control variable findings:** `avg_order_value` carries an equally strong association (t ≈ +66; p < 0.0001). Demographic controls (`age`, `gender`, `customer_tenure_days`) are not significant after behavioral and category controls are included.
+**Control variable findings:** `avg_order_value` carries a strong positive association (β = +0.380, t = 33.79, p < 0.0001), confirming that higher-value orders generate larger margin reversals when returned. Demographic controls (`age`, `gender`, `customer_tenure_days`) are not significant after behavioral and category controls are included.
 
 **Category effects:** 20 of 26 category dummy variables are statistically significant. Premium categories (Suits, Outerwear, Jeans, Sweaters, Dresses) carry positive coefficients; commodity categories (Socks, Underwear, Leggings, Tops & Tees) carry negative coefficients, consistent with the tier multiplier structure.
 
@@ -637,11 +637,11 @@ The overarching finding is that return-related profit erosion is not a random op
 
 Three behavioral mechanisms emerge as consistent explanations across methods:
 
-**1. Return frequency is the primary driver.** Across RQ3 (feature importance), RQ4 (largest coefficient, +58.4% per unit), and RQ2 (top ANOVA F-statistic for cluster separation), return frequency is consistently the most powerful predictor of profit erosion. This aligns with Petersen and Kumar (2009), who identified habitual returners as the primary driver of customer-level margin erosion. The RQ4 log-linear specification assumes an additive effect; however, the RESET test (F = 1,525, p < 0.001) suggests significant non-linearity, indicating that return frequency and order value likely interact — i.e., the marginal erosion cost of an additional return may be higher for customers with already-high order values. This interaction is not estimated in the current model and is flagged as a priority for future work (§7.3).
+**1. Return frequency is the strongest behavioral associate of profit erosion.** Across RQ3 (feature importance), RQ4 (largest coefficient, +58.4% per unit), and RQ2 (top ANOVA F-statistic for cluster separation), return frequency is consistently the most powerful predictor. This aligns with Petersen and Kumar (2009), who identified habitual returners as the primary source of customer-level margin erosion. The RQ4 log-linear specification assumes an additive effect; however, the RESET test (F = 1,525, p < 0.001) suggests significant non-linearity, indicating that return frequency and order value likely interact — i.e., the marginal erosion cost of an additional return may be higher for customers with already-high order values. This interaction is not estimated in the current model and is flagged as a priority for future work (§7.3).
 
 **2. Order value amplifies erosion.** Average order value appears in the top three features for two of three RQ3 models and carries a coefficient comparable to return frequency in the RQ4 regression. Higher-value orders generate larger margin reversals when returned, creating a compounding dynamic with frequent returners.
 
-**3. Basket size is a protective factor.** The negative RQ4 coefficient on `avg_basket_size` (−14.4% per unit) suggests that customers who purchase more items per order tend to select lower-margin items on average. This is a non-obvious finding with practical implications — though the B2C/B2B sign reversal (§4.4.4) means this lever must be validated against domain-specific data before operational deployment.
+**3. Basket size is a protective factor.** The negative RQ4 coefficient on `avg_basket_size` (−16.3% per unit) suggests that customers who purchase more items per order tend to select lower-margin items on average. This is a non-obvious finding with practical implications — though the B2C/B2B sign reversal (§4.4.4) means this lever must be validated against domain-specific data before operational deployment.
 
 ## 6.3 External Validity
 
@@ -720,7 +720,7 @@ Given the +58.4% marginal association between return frequency and total erosion
 **Recommendation 5 — Multi-item order incentives as a passive erosion hedge (B2C only)**
 *[Evidence: RQ4 | External validation: ✗ — sign reversal in B2B; B2C context only]*
 
-The negative coefficient on basket size (−14.4%) in the TheLook B2C model suggests that multi-item order incentives may incidentally reduce per-return erosion risk. This recommendation applies to B2C retail contexts only; the SSL B2B sign reversal means this lever should not be generalized without domain-specific validation.
+The negative coefficient on basket size (−16.3%) in the TheLook B2C model suggests that multi-item order incentives may incidentally reduce per-return erosion risk. This recommendation applies to B2C retail contexts only; the SSL B2B sign reversal means this lever should not be generalized without domain-specific validation.
 
 ## 7.3 Future Work
 

@@ -84,6 +84,7 @@ st.markdown(
 ROOT = Path(__file__).resolve().parents[2]  # app/pages/ → app/ → project root
 FIGURES_RQ1 = ROOT / "figures" / "rq1"
 PROCESSED_RQ1 = ROOT / "data" / "processed" / "rq1"
+REPORTS_RQ1 = ROOT / "reports" / "rq1"
 PROCESSED = ROOT / "data" / "processed"
 
 
@@ -208,9 +209,9 @@ _dept_df = None
 _ci_df = None
 _stats_df = None
 
-cat_path = PROCESSED_RQ1 / "rq1_erosion_by_category.csv"
-brand_path = PROCESSED_RQ1 / "rq1_erosion_by_brand.csv"
-dept_path = PROCESSED_RQ1 / "rq1_erosion_by_department.csv"
+cat_path = REPORTS_RQ1 / "rq1_erosion_by_category.csv"
+brand_path = REPORTS_RQ1 / "rq1_erosion_by_brand.csv"
+dept_path = REPORTS_RQ1 / "rq1_erosion_by_department.csv"
 ci_path = PROCESSED_RQ1 / "rq1_bootstrap_ci_category_mean.parquet"
 stats_path = PROCESSED_RQ1 / "rq1_statistical_tests_summary.parquet"
 
@@ -236,8 +237,8 @@ st.markdown(
     """
 <p><strong>Research Question (RQ1):</strong> Do returned items exhibit statistically significant differences in profit erosion across product categories and brands?</p>
 <div style="margin-left: 1.5rem;">
-<p><strong>Null Hypothesis (H₀):</strong> Mean profit erosion associated with returned items is equal across product categories and brands.</p>
-<p><strong>Alternative Hypothesis (H₁):</strong> Mean profit erosion associated with returned items differs significantly across product categories and/or brands.</p>
+<p><strong>Null Hypothesis (H₀₁):</strong> Mean profit erosion associated with returned items is equal across product categories and brands.</p>
+<p><strong>Alternative Hypothesis (H₁₁):</strong> Mean profit erosion associated with returned items differs significantly across product categories and/or brands.</p>
 </div>
 
 **Method**: Kruskal–Wallis test with post-hoc Dunn comparisons and bootstrap confidence intervals.
@@ -272,7 +273,7 @@ st.markdown(
             Total financial loss is driven by two independent forces:
             <em>return frequency</em> (volume) and <em>cost per return</em> (severity) —
             illustrating the pipeline's ability to decompose erosion by product grouping.
-            <strong style="color: #f0c040;">Decision: Reject H₀.</strong>
+            <strong style="color: #f0c040;">Decision: Reject H₀₁.</strong>
             Figures reflect the synthetic TheLook dataset; SSL directional validation confirms that
             category-level differences in profit erosion generalise in direction to real-world operational data.
         </p>
@@ -403,7 +404,7 @@ with tab_ov:
                       help=f"Exact: {_p_cat:.2e}")
             c2.metric("Effect Size (ε²)", f"{cat_row['effect_size']:.3f}")
             c3.metric("Groups Tested", str(int(cat_row["n_groups"])))
-            c4.metric("H₀ Decision", "✅ Rejected" if bool(cat_row["reject_h0"]) else "❌ Not Rejected")
+            c4.metric("H₀₁ Decision", "✅ Rejected" if bool(cat_row["reject_h0"]) else "❌ Not Rejected")
 
         st.divider()
 
@@ -415,12 +416,12 @@ with tab_ov:
                       help=f"Exact: {_p_brand:.2e}")
             b2.metric("Effect Size (ε²)", f"{brand_row['effect_size']:.3f}")
             b3.metric("Groups Tested", str(int(brand_row["n_groups"])))
-            b4.metric("H₀ Decision", "✅ Rejected" if bool(brand_row["reject_h0"]) else "❌ Not Rejected")
+            b4.metric("H₀₁ Decision", "✅ Rejected" if bool(brand_row["reject_h0"]) else "❌ Not Rejected")
 
         st.markdown(
             "<p style='color:#999; font-size:0.75rem; margin-top:4px;'>"
             "Effect size: ε² ≥ 0.06 = medium; ≥ 0.14 = large (Tomczak &amp; Tomczak, 2014). "
-            "Both tests reject H₀."
+            "Both tests reject H₀₁."
             "</p>",
             unsafe_allow_html=True,
         )
@@ -471,7 +472,7 @@ with tab_ov:
 
         with ph_col_cat:
             _tip_header("Category Post-Hoc (Top pairs)", "posthoc_cat")
-            ph_cat_path = PROCESSED_RQ1 / "rq1_posthoc_category.csv"
+            ph_cat_path = REPORTS_RQ1 / "rq1_posthoc_category.csv"
             if ph_cat_path.exists():
                 ph_cat = pd.read_csv(ph_cat_path)
                 ph_cat = ph_cat.loc[:, ~ph_cat.columns.str.startswith("Unnamed")]
@@ -491,7 +492,7 @@ with tab_ov:
 
         with ph_col_brand:
             _tip_header("Brand Post-Hoc (Top pairs)", "posthoc_brand")
-            ph_brand_path = PROCESSED_RQ1 / "rq1_posthoc_brand.csv"
+            ph_brand_path = REPORTS_RQ1 / "rq1_posthoc_brand.csv"
             if ph_brand_path.exists():
                 ph_brand = pd.read_csv(ph_brand_path)
                 ph_brand = ph_brand.loc[:, ~ph_brand.columns.str.startswith("Unnamed")]
@@ -681,7 +682,7 @@ The same non-parametric workflow and erosion definition were applied. Brand and 
 
 | Test | Dataset | Groups | p-value | Decision |
 |---|---|---|---|---|
-| Kruskal–Wallis (Category) | SSL | Pillar-MajorMarketCat-Dept | < 0.001 | ✅ Reject H₀ |
+| Kruskal–Wallis (Category) | SSL | Pillar-MajorMarketCat-Dept | < 0.001 | ✅ Reject H₀₁ |
 
 **Conclusion:** The replication on SSL data supports the RQ1 category-level finding — profit erosion
 differs significantly across product categories under operational conditions. This strengthens
@@ -766,8 +767,8 @@ with tab_conc:
         f"""
 | Hypothesis | Dataset | Test | Decision |
 |---|---|---|---|
-| **H₀₁**: Profit erosion equal across categories | TheLook | Kruskal–Wallis, ε² = {_cat_es}, p < 0.001 | ✅ **REJECT H₀** |
-| **H₀₁**: Profit erosion equal across brands | TheLook | Kruskal–Wallis, ε² = {_brand_es_val}, p < 0.001 | ✅ **REJECT H₀** |
+| **H₀₁**: Profit erosion equal across categories | TheLook | Kruskal–Wallis, ε² = {_cat_es}, p < 0.001 | ✅ **REJECT H₀₁** |
+| **H₀₁**: Profit erosion equal across brands | TheLook | Kruskal–Wallis, ε² = {_brand_es_val}, p < 0.001 | ✅ **REJECT H₀₁** |
 | Directional validation (categories only) | SSL | Kruskal–Wallis, p < 0.001 | ✅ Pattern confirmed — category level |
 """
     )

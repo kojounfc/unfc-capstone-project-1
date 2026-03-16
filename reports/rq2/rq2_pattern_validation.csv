@@ -1,0 +1,11 @@
+feature,thelook_status,ssl_status,both_pass,both_fail,agreement
+return_frequency,pass,fail,False,False,False
+avg_order_value,pass,pass,True,False,True
+customer_return_rate,pass,pass,True,False,True
+order_frequency,fail,fail,False,True,True
+avg_basket_size,pass,pass,True,False,True
+customer_tenure_days,fail,pass,False,False,False
+purchase_recency_days,fail,pass,False,False,False
+total_items,pass,fail,False,False,False
+total_sales,fail,fail,False,True,True
+total_margin,pass,pass,True,False,True

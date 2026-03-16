@@ -1,5 +1,5 @@
 {
-  "analysis_date": "2026-03-11T16:51:51.108923",
+  "analysis_date": "2026-03-15T18:07:29.258853",
   "research_question": "To what extent is profit erosion concentrated among a small subset of customers, and can customers be meaningfully segmented?",
   "population": {
     "total_customers": 79944,
@@ -51,9 +51,9 @@
   "hypothesis_test": {
     "null_hypothesis": "Customer segments do not differ significantly in mean profit erosion",
     "alternative_hypothesis": "Customer segments exhibit statistically significant differences in mean profit erosion",
-    "decision": "REJECT NULL HYPOTHESIS (H0\u2082)",
+    "decision": "REJECT NULL HYPOTHESIS (H0)",
     "conclusion": "Segments differ significantly in profit erosion",
-    "accepted_hypothesis": "H1\u2082 (Alternative)",
+    "accepted_hypothesis": "H1 (Alternative)",
     "evidence_strength": "Very Strong",
     "anova_p_value": 0.0,
     "kruskal_wallis_p_value": 1.5178496786739485e-212,

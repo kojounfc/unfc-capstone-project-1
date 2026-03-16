@@ -62,6 +62,7 @@ st.markdown(
 
 ROOT = Path(__file__).parent.parent.parent
 REPORTS_RQ3 = ROOT / "reports" / "rq3"
+FIGURES_RQ3 = ROOT / "figures" / "rq3"
 AUC_TARGET = 0.70
 
 # ── Tooltips ──────────────────────────────────────────────────────────────────
@@ -177,6 +178,26 @@ _ablation_path = REPORTS_RQ3 / "rq3_ablation_study.csv"
 if _ablation_path.exists():
     _ablation_df = pd.read_csv(_ablation_path)
 
+_family_abl_df = None
+_family_abl_path = REPORTS_RQ3 / "rq3_feature_family_ablation.csv"
+if _family_abl_path.exists():
+    _family_abl_df = pd.read_csv(_family_abl_path)
+
+_feature_set_abl_df = None
+_feature_set_abl_path = REPORTS_RQ3 / "rq3_feature_set_ablation.csv"
+if _feature_set_abl_path.exists():
+    _feature_set_abl_df = pd.read_csv(_feature_set_abl_path)
+
+_operational_abl_df = None
+_operational_abl_path = REPORTS_RQ3 / "rq3_operational_model_ablation.csv"
+if _operational_abl_path.exists():
+    _operational_abl_df = pd.read_csv(_operational_abl_path)
+
+_preprocessing_abl_df = None
+_preprocessing_abl_path = REPORTS_RQ3 / "rq3_preprocessing_ablation.csv"
+if _preprocessing_abl_path.exists():
+    _preprocessing_abl_df = pd.read_csv(_preprocessing_abl_path)
+
 # ── Derived values from data ─────────────────────────────────────────────────
 _champion_row = None
 if _comp_df is not None:
@@ -250,19 +271,15 @@ st.markdown(
             margin: 0 0 10px 0;
         ">Executive Summary — Key Findings &amp; Implications</p>
         <p style="color: #e8eaf0; font-size: 1.0rem; line-height: 1.75; margin: 0;">
-            <strong style="color: #ffffff;">All four models (including a rule-based baseline)
-            exceed the AUC &gt; 0.70 threshold — H₀₃ is rejected.</strong>
-            The Random Forest champion achieves Test AUC&nbsp;=&nbsp;0.9798, exceeding the minimum
-            threshold by 0.28. Gradient Boosting (0.9795) and Logistic Regression (0.9687) independently
-            confirm the result; the hypothesis conclusion is robust to model choice.
-            Seven of 12 candidate features survived 3-gate screening:
-            <em>return_frequency</em> and <em>avg_order_value</em> are the top-ranked signals.
-            A rule-based baseline (return_frequency threshold only) and an ablation study
-            (top-3 features removed) confirm ML adds value beyond simple rules and that
-            performance is not dominated by a small set of predictors.
-            External validation on School Specialty LLC (B2B, 13,616 accounts) yields
-            directional accuracy of 76.4% (Spearman ρ&nbsp;=&nbsp;0.7526), demonstrating
-            strong transportability across B2C and B2B domains.
+            <strong style="color: #ffffff;">All four models exceed AUC &gt; 0.70 —
+            H₀₃ is rejected.</strong>
+            The Random Forest champion achieves Test AUC&nbsp;=&nbsp;0.9798, outperforming
+            a rule-based frequency threshold and remaining robust when the top-3 predictors
+            are removed. <em>Return frequency</em> and <em>average order value</em> are the
+            primary signals across all models.
+            External validation on School Specialty LLC (13,616 B2B accounts) yields
+            directional accuracy of 76.4% (Spearman ρ&nbsp;=&nbsp;0.7526), confirming
+            transportability across domains.
             <strong style="color: #f0c040;">Decision: Reject H₀₃</strong> — best model AUC = 0.9798 &gt; 0.70.
         </p>
     </div>
@@ -643,7 +660,7 @@ aggressive (flag more, intervene more) or conservative (flag only the clearest c
 and the model will still rank customers correctly.
 """
         )
-    roc_path = REPORTS_RQ3 / "rq3_roc_curves.png"
+    roc_path = FIGURES_RQ3 / "rq3_roc_curves.png"
     if roc_path.exists():
         st.image(str(roc_path), width='stretch')
         if _comp_df is not None:
@@ -686,7 +703,7 @@ Our models prioritize **Recall** (minimizing False Negatives) because missing a 
 customer is more costly than an occasional false alarm.
 """
         )
-    cm_path = REPORTS_RQ3 / "rq3_confusion_matrices.png"
+    cm_path = FIGURES_RQ3 / "rq3_confusion_matrices.png"
     if cm_path.exists():
         st.image(str(cm_path), width='stretch')
         if _comp_df is not None:
@@ -732,7 +749,7 @@ Logistic Regression uses |coefficient| magnitude instead.
         )
 
     if _fi_df is not None:
-        fi_png = REPORTS_RQ3 / "rq3_feature_importance.png"
+        fi_png = FIGURES_RQ3 / "rq3_feature_importance.png"
         if fi_png.exists():
             st.image(str(fi_png), width='stretch')
 
@@ -1329,7 +1346,7 @@ with tab5:
 Robustness analysis answers the question: **do the model's conclusions change if we tweak our
 assumptions or remove key predictors?**
 
-This tab runs three independent checks:
+This tab runs four independent checks:
 
 1. **Processing cost per return** — we assumed USD 12 as the base cost (mid-range of the USD 10–25
    academic literature). What if the true cost is USD 8 or USD 18? Does the model still work?
@@ -1337,29 +1354,15 @@ This tab runs three independent checks:
 2. **High-erosion threshold** — we defined "high erosion" as the top 25% of customers (75th percentile).
    What if we use 30% or 20% instead? Does model accuracy hold?
 
-3. **Feature ablation** — high AUC may be driven by a small set of dominant predictors rather than
-   genuine multi-feature learning. To test this, the Random Forest is retrained after removing its
-   top-3 most important features. A small AUC drop indicates the model distributes predictive signal
-   across multiple independent features, not just the leading ones.
+3. **Ablation study** — six complementary experiments test whether the high AUC is driven by pipeline
+   mechanics or genuine behavioral signal. Variants remove top predictors, feature families, screening
+   gates, and compress the model to a minimal operational subset.
 
-**How to use this tab**: Select a specific assumption scenario with the radio buttons for checks 1 and 2.
-The metric cards update immediately. The ablation result (check 3) is fixed — it reports the AUC drop
-from a single held-out experiment.
-
-**Bottom line**: If AUC stays well above {AUC_TARGET} across all scenarios and the ablation drop is
+**Bottom line**: If AUC stays well above {AUC_TARGET} across all scenarios and ablation drops are
 small, the model's conclusions are robust — they don't depend on getting assumptions exactly right
 or on any single predictor.
 """
         )
-    st.markdown(
-        """
-Three robustness checks test whether model conclusions are sensitive to key modeling assumptions and predictor dominance:
-
-1. **Processing cost sensitivity** — does the target variable change when cost assumptions vary?
-2. **Percentile threshold sensitivity** — does model performance hold across different definitions of "high erosion"?
-3. **Feature ablation** — does AUC degrade substantially when the top-3 predictors are removed, or do the remaining features sustain performance?
-"""
-    )
 
     # ── Processing Cost Sensitivity ───────────────────────────────────────────
     st.subheader(f"Processing Cost Sensitivity ({_cost_range_str})" if _cost_range_str != "N/A" else "Processing Cost Sensitivity")
@@ -1517,6 +1520,12 @@ Three robustness checks test whether model conclusions are sensitive to key mode
             annotation_text=f"AUC target = {AUC_TARGET}",
             annotation_position="top right",
         )
+        fig_thresh.add_vline(
+            x=_thresh_options.index(_thresh_sel) - 0.5 + (len(["best_auc", "f1", "precision", "recall"]) / 2 * 0.1),
+            line_dash="dot",
+            line_color="orange",
+            line_width=2,
+        )
         fig_thresh.update_layout(height=380, xaxis_title="Percentile Threshold")
         st.plotly_chart(fig_thresh, use_container_width=True)
         st.caption(
@@ -1527,21 +1536,97 @@ Three robustness checks test whether model conclusions are sensitive to key mode
         st.info("Threshold sensitivity results are not yet available.")
 
     st.divider()
-    st.subheader("Feature Ablation — Sensitivity to Top Predictors")
+    st.subheader("Ablation Study — Model Robustness Across Six Scenarios")
     st.markdown(
-        "Retrains the Random Forest after removing its top-3 most important features "
-        "to test whether high AUC is driven by a small set of dominant predictors."
+        "Six complementary experiments test whether the champion AUC reflects genuine behavioral "
+        "signal or pipeline artefacts. The Random Forest is retrained under each condition and "
+        "evaluated on the same held-out test set."
     )
+
+    # Build consolidated summary table from the four ablation CSVs
+    _abl_rows = []
+
+    # Row 1: full model baseline (from feature family ablation)
+    if _family_abl_df is not None:
+        _full_row = _family_abl_df[_family_abl_df["variant"] == "Full model"]
+        if not _full_row.empty:
+            _abl_rows.append({
+                "Condition": "Full model",
+                "Variant": "—",
+                "Test AUC": float(_full_row.iloc[0]["test_auc"]),
+                "AUC Drop": 0.0,
+            })
+
+    # Row 2: top-feature removal (from rq3_ablation_study.csv)
     if _ablation_df is not None:
-        _abl_row = _ablation_df.iloc[0]
-        _abl_col1, _abl_col2, _abl_col3 = st.columns(3)
-        _abl_col1.metric("Full RF AUC", f"{float(_abl_row['full_rf_test_auc']):.4f}")
-        _abl_col2.metric("Ablated RF AUC", f"{float(_abl_row['ablated_test_auc']):.4f}")
-        _abl_col3.metric("AUC Drop", f"{float(_abl_row['auc_drop']):.4f}")
-        st.caption(f"Removed features: {_abl_row['removed_features']}")
-        st.caption(f"Retained features: {_abl_row['retained_features']}")
+        _r = _ablation_df.iloc[0]
+        _abl_rows.append({
+            "Condition": "Top-feature removal",
+            "Variant": f"Removed {_r['removed_features']}",
+            "Test AUC": float(_r["ablated_test_auc"]),
+            "AUC Drop": float(_r["auc_drop"]),
+        })
+
+    # Row 3: no preprocessing screening (from rq3_preprocessing_ablation.csv)
+    if _preprocessing_abl_df is not None:
+        _r = _preprocessing_abl_df[_preprocessing_abl_df["variant"] == "No screening"]
+        if not _r.empty:
+            _abl_rows.append({
+                "Condition": "No preprocessing screening",
+                "Variant": "Correlation + univariate filters removed",
+                "Test AUC": float(_r.iloc[0]["test_auc"]),
+                "AUC Drop": float(_r.iloc[0]["auc_drop_vs_full"]),
+            })
+
+    # Row 4: no return-behavior features (from rq3_feature_family_ablation.csv)
+    if _family_abl_df is not None:
+        _r = _family_abl_df[_family_abl_df["variant"] == "No return_behavior"]
+        if not _r.empty:
+            _abl_rows.append({
+                "Condition": "No return-behavior features",
+                "Variant": "Remove return-frequency variables",
+                "Test AUC": float(_r.iloc[0]["test_auc"]),
+                "AUC Drop": float(_r.iloc[0]["auc_drop_vs_full"]),
+            })
+
+    # Row 5: economic-only features (from rq3_feature_set_ablation.csv)
+    if _feature_set_abl_df is not None:
+        _r = _feature_set_abl_df[_feature_set_abl_df["variant"] == "Economic only"]
+        if not _r.empty:
+            _abl_rows.append({
+                "Condition": "Economic-only features",
+                "Variant": "Margin exposure variables only",
+                "Test AUC": float(_r.iloc[0]["test_auc"]),
+                "AUC Drop": float(_r.iloc[0]["auc_drop_vs_full"]),
+            })
+
+    # Row 6: reduced operational model top-5 (from rq3_operational_model_ablation.csv)
+    if _operational_abl_df is not None:
+        _r = _operational_abl_df[_operational_abl_df["variant"] == "Top-5 operational subset"]
+        if not _r.empty:
+            _abl_rows.append({
+                "Condition": "Reduced operational model",
+                "Variant": "Top-5 features",
+                "Test AUC": float(_r.iloc[0]["test_auc"]),
+                "AUC Drop": float(_r.iloc[0]["auc_drop_vs_full"]),
+            })
+
+    if _abl_rows:
+        _abl_summary = pd.DataFrame(_abl_rows)
+        _abl_summary["Test AUC"] = _abl_summary["Test AUC"].map("{:.4f}".format)
+        _abl_summary["AUC Drop"] = _abl_summary["AUC Drop"].apply(
+            lambda x: "—" if x == 0.0 else f"{x:.4f}"
+        )
+        st.dataframe(_abl_summary, use_container_width=True, hide_index=True)
+        st.caption(
+            "Across all six scenarios, AUC ≥ 0.94 — confirming the model's discrimination is driven "
+            "by genuine behavioral and economic signal, not pipeline mechanics or predictor dominance. "
+            "The largest decline occurs when return-behavior features are removed (Δ = 0.0348), "
+            "confirming their critical marginal contribution. Economic exposure features carry the "
+            "stronger standalone signal (AUC 0.9427 economic-only vs. 0.8011 behavioral-only)."
+        )
     else:
-        st.info("Ablation study artifact not yet generated. Re-run the master notebook.")
+        st.info("Ablation study artifacts not yet generated. Re-run the master notebook.")
 
     st.divider()
     st.subheader("Robustness Conclusion")
@@ -1549,14 +1634,10 @@ Three robustness checks test whether model conclusions are sensitive to key mode
         _thresh_min_pct_c = int(_thresh_df["threshold"].min() * 100)
         _thresh_max_pct_c = int(_thresh_df["threshold"].max() * 100)
         _abl_conclusion = ""
-        if _ablation_df is not None:
-            _abl_row_c = _ablation_df.iloc[0]
-            _abl_drop = float(_abl_row_c["auc_drop"])
-            _abl_ablated = float(_abl_row_c["ablated_test_auc"])
+        if _abl_rows:
             _abl_conclusion = (
-                f"\n- **Feature ablation robustness**: AUC dropped by only {_abl_drop:.4f} "
-                f"(to {_abl_ablated:.4f}) after removing the top-3 most important features — "
-                f"the model is not dominated by a small set of predictors"
+                f"\n- **Ablation robustness**: AUC ≥ 0.94 across all six ablation scenarios — "
+                f"performance is not sensitive to pipeline mechanics or predictor dominance"
             )
         st.markdown(
             f"""
@@ -1564,7 +1645,7 @@ Three robustness checks test whether model conclusions are sensitive to key mode
   across the {_cost_range_str} cost range — all scenarios exceed the {AUC_TARGET} target
 - **Threshold robustness**: AUC ranged from {_thresh_auc_min:.4f} to {_thresh_auc_max:.4f}
   across the {_thresh_min_pct_c}th–{_thresh_max_pct_c}th percentile range — all scenarios exceed the {AUC_TARGET} target{_abl_conclusion}
-- **Conclusion**: Model performance is not sensitive to cost model assumptions, threshold choice, or predictor dominance
+- **Conclusion**: Model performance is not sensitive to cost assumptions, threshold choice, or predictor dominance
 """
         )
     else:

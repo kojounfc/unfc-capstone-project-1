@@ -157,9 +157,13 @@ def save_rq1_ssl_artifacts(
     artifacts: Dict[str, pd.DataFrame],
     out_dir: Path,
     *,
+    csv_dir: Optional[Path] = None,
     prefix: str = "rq1_ssl"
 ) -> Dict[str, Path]:
     out_dir.mkdir(parents=True, exist_ok=True)
+    if csv_dir is None:
+        csv_dir = out_dir
+    csv_dir.mkdir(parents=True, exist_ok=True)
 
     paths: Dict[str, Path] = {}
 
@@ -174,7 +178,7 @@ def save_rq1_ssl_artifacts(
 
     for k, df in artifacts.items():
         pq = out_dir / f"{prefix}_{k}.parquet"
-        csv = out_dir / f"{prefix}_{k}.csv"
+        csv = csv_dir / f"{prefix}_{k}.csv"
         df.to_parquet(pq, index=False)
         df.to_csv(csv, index=False)
         paths[f"{k}_parquet"] = pq
@@ -188,9 +192,10 @@ def build_and_save_rq1_ssl_dataset(
     out_dir: Path,
     mapping: Optional[RQ1SSLMapping] = None,
     *,
+    csv_dir: Optional[Path] = None,
     prefix: str = "rq1_ssl"
 ) -> Tuple[pd.DataFrame, Dict[str, pd.DataFrame], Dict[str, Path]]:
     base = build_rq1_ssl_canonical_base(ssl_engineered_df, mapping=mapping)
     artifacts = build_rq1_ssl_group_artifacts(base)
-    paths = save_rq1_ssl_artifacts(base, artifacts, out_dir=out_dir, prefix=prefix)
+    paths = save_rq1_ssl_artifacts(base, artifacts, out_dir=out_dir, csv_dir=csv_dir, prefix=prefix)
     return base, artifacts, paths
