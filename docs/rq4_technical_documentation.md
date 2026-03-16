@@ -162,7 +162,7 @@ $$\text{Var}(\hat{\beta}) = (X'X)^{-1} X' \Omega X (X'X)^{-1}$$
 
 Where $\Omega = \text{diag}(u_i^2 / (1-h_i)^2)$ and $h_i$ = leverage of observation i.
 
-- **Rationale**: Breusch-Pagan test indicates heteroscedasticity (BP = 1,556, p < 0.0001)
+- **Rationale**: Breusch-Pagan test indicates heteroscedasticity (BP = 3,012, p < 0.0001)
 - **Advantage**: Provides valid inference without homoscedasticity assumption
 - **Alternative Tested**: Standard errors (homoscedastic); results qualitatively unchanged
 
@@ -239,9 +239,9 @@ $$JB = n \left[ \frac{S^2}{6} + \frac{(K-3)^2}{24} \right] \quad \sim \chi^2_2$$
 
 | Metric | Linear | Log | Status |
 |--------|--------|-----|--------|
-| Jarque-Bera | 619,317 | 2,198 | VIOLATED (both models) |
+| Jarque-Bera | 515,652 | 2,661 | VIOLATED (both models) |
 | p-value | <0.0001 | <0.0001 | Reject normality |
-| Skewness | 7.84 | 0.38 | Improved 282-fold |
+| Skewness | 7.84 | 0.38 | Improved 194-fold |
 | Kurtosis | 92.31 | 5.12 | Improved 18-fold |
 
 **Decision**: Normality assumption violated in linear model; log transformation dramatically improves but violation persists. Under CLT with n=11,694, inference remains valid.
@@ -253,7 +253,7 @@ $$BP = \frac{\text{ESS}}{2 \sigma^4} \quad \sim \chi^2_p$$
 
 | Metric | Value | Status |
 |--------|-------|--------|
-| BP Statistic | 1,556 | VIOLATED |
+| BP Statistic | 3,012 | VIOLATED |
 | p-value | <0.0001 | Reject homoscedasticity |
 | Visual / Residuals vs Fitted | Funnel pattern | Heteroscedasticity present |
 
@@ -389,10 +389,10 @@ $$\ln(e_i) = \beta_0 + \beta_1 \text{return\_frequency}_i + \beta_2 \text{avg\_b
 
 | Metric | Linear | Log | Direction |
 |--------|--------|-----|-----------|
-| R² | 0.8082 | 0.7765 | ↓ (-3.1pp) |
-| Jarque-Bera | 619,317 | 2,198 | ↓ (282x better) |
+| R² | 0.8082 | 0.7188 | ↓ (-8.9pp) |
+| Jarque-Bera | 515,652 | 2,661 | ↓ (194x better) |
 | JB p-value | <0.0001 | <0.0001 | — |
-| Breusch-Pagan | 1,556 | 2,756 | ↑ (worse) |
+| Breusch-Pagan | — | 3,012 | VIOLATED (log model) |
 | RESET F-stat | 262 | 1,525 | ↑ (worse) |
 
 ### Hypothesis Predictor Coefficients (Log Model)

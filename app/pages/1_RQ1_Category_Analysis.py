@@ -723,9 +723,10 @@ with tab_conc:
             Pipeline Demonstration — Category-Level Output (Synthetic Dataset)
         </p>
         <p style="color:#ffffff;font-size:1.05rem;font-weight:700;margin:0 0 6px 0;">
-            On TheLook, the pipeline surfaces {_conc_total_returns:,} returned items across
-            {_conc_n_cats} categories, with total modelled profit erosion of
-            USD&nbsp;{_conc_total_erosion:,.2f} (mean USD&nbsp;{_conc_mean_erosion:,.2f} per return).
+            On TheLook, {_conc_total_returns:,} returned items are analysed across
+            {_conc_n_cats} categories. Estimated total profit erosion is
+            USD&nbsp;{_conc_total_erosion:,.2f} (mean USD&nbsp;{_conc_mean_erosion:,.2f} per returned item),
+            combining margin reversal and category-tier processing costs.
         </p>
         <p style="color:#fce4ec;font-size:0.9rem;line-height:1.65;margin:0;">
             Highest-risk category by total erosion: <strong>{_conc_top_cat}</strong>.

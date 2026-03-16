@@ -518,6 +518,95 @@ class TestBuildValidationSummary:
 
         assert len(summary) > 0
 
+    def test_diagnostics_rows_added_when_provided(self):
+        """Diagnostic rows are appended when diagnostics_log and jb_linear_stat provided."""
+        coef_comparison = pd.DataFrame(
+            {
+                "feature": ["return_frequency"],
+                "thelook_coefficient": [0.46],
+                "ssl_coefficient": [0.10],
+                "thelook_p_value": [0.0],
+                "ssl_p_value": [0.578],
+                "thelook_significant": [True],
+                "ssl_significant": [False],
+                "direction_aligned": [True],
+                "significance_agreement": [False],
+            }
+        )
+        effect_size_result = {
+            "generalization_score": 0.33,
+            "n_accounts_ssl": 500,
+            "effect_size_comparison": pd.DataFrame(),
+            "model_fit_comparison": {
+                "thelook_r_squared": 0.72,
+                "ssl_r_squared": 0.62,
+                "r_squared_ratio": 0.86,
+                "thelook_n_obs": 11694,
+                "ssl_n_obs": 500,
+                "thelook_aic": 5000.0,
+                "ssl_aic": 4800.0,
+            },
+        }
+        diagnostics_log = {
+            "jarque_bera": {"statistic": 2198.0, "pvalue": 0.0, "skewness": 0.5, "kurtosis": 4.0},
+            "breusch_pagan": {"statistic": 1200.0, "pvalue": 0.0, "f_statistic": 0.0},
+            "ramsey_reset": {"f_statistic": 0, "pvalue": 0.5},
+            "durbin_watson": 1.98,
+        }
+        vif_df = pd.DataFrame({"feature": ["return_frequency", "avg_basket_size"], "VIF": [2.5, 2.95]})
+
+        summary = build_validation_summary(
+            coef_comparison,
+            effect_size_result,
+            diagnostics_log=diagnostics_log,
+            jb_linear_stat=619317.0,
+            vif_df=vif_df,
+        )
+
+        metrics = summary["metric"].tolist()
+        assert "jb_log_linear_model" in metrics
+        assert "jb_linear_model" in metrics
+        assert "jb_improvement_ratio" in metrics
+        assert "bp_statistic" in metrics
+        assert "durbin_watson_statistic" in metrics
+        assert "max_vif" in metrics
+
+    def test_diagnostics_not_added_when_omitted(self):
+        """No diagnostic rows added when optional params are absent (backwards-compatible)."""
+        coef_comparison = pd.DataFrame(
+            {
+                "feature": ["return_frequency"],
+                "thelook_coefficient": [0.46],
+                "ssl_coefficient": [0.10],
+                "thelook_p_value": [0.0],
+                "ssl_p_value": [0.578],
+                "thelook_significant": [True],
+                "ssl_significant": [False],
+                "direction_aligned": [True],
+                "significance_agreement": [False],
+            }
+        )
+        effect_size_result = {
+            "generalization_score": 0.33,
+            "n_accounts_ssl": 500,
+            "effect_size_comparison": pd.DataFrame(),
+            "model_fit_comparison": {
+                "thelook_r_squared": 0.72,
+                "ssl_r_squared": 0.62,
+                "r_squared_ratio": 0.86,
+                "thelook_n_obs": 11694,
+                "ssl_n_obs": 500,
+                "thelook_aic": 5000.0,
+                "ssl_aic": 4800.0,
+            },
+        }
+
+        summary = build_validation_summary(coef_comparison, effect_size_result)
+
+        metrics = summary["metric"].tolist()
+        assert "jb_log_linear_model" not in metrics
+        assert "max_vif" not in metrics
+
 
 # ============================================================================
 # Integration Tests (requires real data)
