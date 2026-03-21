@@ -199,6 +199,8 @@ def validate_coefficient_alignment(
                 "feature": feat,
                 "thelook_coefficient": round(tl_coef, 4),
                 "ssl_coefficient": round(ssl_coef, 4),
+                "thelook_pct_effect": round((np.exp(tl_coef) - 1) * 100, 2),
+                "ssl_pct_effect": round((np.exp(ssl_coef) - 1) * 100, 2),
                 "thelook_p_value": round(tl_pval, 4),
                 "ssl_p_value": round(ssl_pval, 4),
                 "thelook_significant": tl_sig,
