@@ -1,0 +1,35 @@
+{
+  "k_used": 2,
+  "k_selection_method": "silhouette_argmax_tiebreak_lowest_k",
+  "feature_columns_used": [
+    "avg_order_value",
+    "avg_basket_size",
+    "order_frequency",
+    "customer_return_rate",
+    "customer_tenure_days",
+    "purchase_recency_days",
+    "total_sales",
+    "total_margin"
+  ],
+  "feature_policy": "behavioral_non_leakage_only",
+  "top_x": 0.2,
+  "gini": 0.4092911746141102,
+  "top_x_share_of_erosion": 0.476310228016643,
+  "performance_optimizations": {
+    "k_max_reduced": true,
+    "k_max_value": 8,
+    "sampling_used": true,
+    "sample_size": 5000,
+    "total_customers": 79944
+  },
+  "gini_bootstrap_test": {
+    "observed_gini": 0.4092911746141102,
+    "null_mean_gini": -4.8715444154977985e-17,
+    "p_value": 0.0,
+    "n_bootstrap": 1000
+  },
+  "concentration_comparison": {
+    "gini_erosion": 0.9114202767096212,
+    "gini_baseline": 0.4894789840496935
+  }
+}

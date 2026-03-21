@@ -289,7 +289,7 @@ def build_model_configs(
             ),
             "param_grid": {
                 "C": [0.01, 0.1, 1, 10],
-                "penalty": ["l1", "l2"],
+                "l1_ratio": [0.0, 1.0],  # 0.0 = L2, 1.0 = L1 (replaces deprecated penalty=)
             },
         },
         "Random Forest": {
