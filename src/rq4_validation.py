@@ -182,10 +182,11 @@ def validate_coefficient_alignment(
         ssl_pval = ssl_row["p_value"].values[0]
         ssl_sig = ssl_pval < 0.05
 
-        # Directional alignment
-        direction_aligned = (tl_coef > 0 and ssl_coef > 0) or (
-            tl_coef < 0 and ssl_coef < 0
-        )
+        # Directional alignment — only meaningful when TheLook coefficient is
+        # statistically significant; if TheLook's p ~ 1.0, the direction is
+        # unreliable and should not count as aligned regardless of SSL.
+        same_sign = (tl_coef > 0 and ssl_coef > 0) or (tl_coef < 0 and ssl_coef < 0)
+        direction_aligned = same_sign and tl_sig
 
         # Significance agreement
         sig_agreement = tl_sig == ssl_sig
