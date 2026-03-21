@@ -1,4 +1,4 @@
-feature,thelook_coefficient,ssl_coefficient,thelook_p_value,ssl_p_value,thelook_significant,ssl_significant,direction_aligned,significance_agreement,coefficient_ratio
-return_frequency,0.4598,6912.7015,0.0,0.0347,True,True,True,True,15034.77
-avg_basket_size,-0.1778,-574.035,0.0,0.2758,True,False,True,False,3227.96
-purchase_recency_days,0.0001,40.5515,0.9811,0.003,False,True,False,False,389916.61
+feature,thelook_coefficient,ssl_coefficient,thelook_pct_effect,ssl_pct_effect,thelook_p_value,ssl_p_value,thelook_significant,ssl_significant,direction_aligned,significance_agreement,coefficient_ratio
+return_frequency,0.4598,6912.7015,58.37,inf,0.0,0.0347,True,True,True,True,15034.77
+avg_basket_size,-0.1778,-574.035,-16.29,-100.0,0.0,0.2758,True,False,True,False,3227.96
+purchase_recency_days,0.0001,40.5515,0.01,4.0860787330785034e+19,0.9811,0.003,False,True,False,False,389916.61
