@@ -206,7 +206,7 @@ def _build_tooltips():
         "fig_forest": (
             f"**Coefficient Forest Plot:** Each point is an OLS coefficient. Points right of zero "
             f"increase erosion; left decrease it. Error bars are 95% CIs. "
-            f"{strongest_behav_name} ({strongest_behav_coef}) is the strongest behavioral driver."
+            f"{strongest_behav_name} ({strongest_behav_coef}) is the strongest behavioral associate of profit erosion."
         ),
         "fig_residuals": (
             f"**Residual Diagnostics:** Four-panel OLS assumption check. "
@@ -265,7 +265,7 @@ st.markdown(
         <p style="color: #e8eaf0; font-size: 1.0rem; line-height: 1.75; margin: 0;">
             <strong style="color: #ffffff;">Customer behavior explains {_thelook_r2 * 100:.1f}% of profit erosion variance.</strong>
             The log-linear OLS model (R²&nbsp;=&nbsp;{_thelook_r2:.4f}, n&nbsp;=&nbsp;{f'{_thelook_n:,}' if _thelook_n else 'N/A'} TheLook customers) confirms
-            that <em>return frequency</em> is the dominant driver (+56% erosion per additional return),
+            that <em>return frequency</em> is the strongest behavioral associate (+58.4% erosion per additional return),
             followed by high-cost return categories (Suits, Outerwear, Sweaters).
             Demographics show no significant marginal effect after controlling for behavior.
             External validation on School Specialty LLC (B2B, {f'{_ssl_n:,}' if _ssl_n else 'N/A'} accounts) yields R²&nbsp;=&nbsp;{_ssl_r2:.4f}
@@ -354,7 +354,7 @@ with tab1:
         )
         _tip_header("Coefficient Forest Plot", "fig_forest")
         st.caption(
-            "return_frequency is the dominant driver (+56% per return). "
+            "return_frequency is the strongest behavioral associate (+58.4% per additional return). "
             "High-cost categories (Suits, Outerwear) amplify erosion; Socks, Intimates reduce it."
         )
         if _coef_df is not None and "coefficient" in _coef_df.columns:
@@ -536,7 +536,7 @@ with tab2:
 
                 #### Key Drivers of Erosion (Red)
 
-                **Return Frequency** — Strongest driver (~100% impact per return)
+                **Return Frequency** — Strongest behavioral associate (~58.4% per additional return)
                 **High-Cost Categories** — Outerwear, Suits, Sweaters (shipping + restocking)
                 **Customer Return Rate** — Repeat returners = repeat erosion
 
@@ -1361,7 +1361,7 @@ across a structurally different dataset (B2B vs B2C, real vs synthetic).
                 #### TheLook (Synthetic Fashion)
                 
                 **Signature Patterns:**
-                - Return Frequency & AOV are dominant behavioral drivers
+                - Return Frequency & AOV are the strongest behavioral associates of profit erosion
                 - Suits, Outerwear erode most; Socks, Hosiery protect
                 - **Tight error bars** → predictable, "clean" retail patterns
                 
@@ -1493,7 +1493,7 @@ with tab5:
     st.header("Sensitivity & Robustness Analysis")
     st.markdown(
         """
-        This interactive tool shows sensitivity analysis results for a "Sensitivity Analysis". We can demonstrate that even when focusing only on the top 10 most impactful features, the core story of Category Volatility vs. Return Frequency remains consistent. This shows that our findings are not just driven by a long tail of less important features, but are robust to different levels of feature inclusion. It also allows you to highlight specific product categories (e.g., Outerwear, Suits) and their strong association with profit erosion, which is a key actionable insight for the business.
+        This section examines how stable the RQ4 OLS findings are when varying the number of features under consideration. Even when focusing on only the top 10 most impactful predictors, the core story — category tier effects and return frequency as the strongest behavioral associate — remains consistent. This demonstrates that the findings are not an artifact of a long tail of minor predictors, but hold robustly across different levels of feature inclusion. Specific product categories (e.g., Outerwear, Suits) consistently show strong positive associations with profit erosion regardless of how many features are included.
     """
     )
 
@@ -1604,7 +1604,7 @@ with tab5:
                 """
                 #### Why This Slider?
 
-                Your model has dozens of statistically significant predictors. Displaying all at once creates visual clutter.
+                The model has dozens of statistically significant predictors. Displaying all at once creates visual clutter.
                 This slider lets you **zoom in on importance** — focusing analysis on what matters most.
 
                 ---
@@ -1714,7 +1714,7 @@ with tab6:
         _rf_rows = _coef_df[_coef_df["feature"] == "return_frequency"]
         if not _rf_rows.empty and "coefficient" in _rf_rows.columns:
             _rf_coef = float(_rf_rows["coefficient"].iloc[0])
-            _rf_pct = _rf_coef * 100  # approximate % effect (log-linear)
+            _rf_pct = (np.exp(_rf_coef) - 1) * 100  # correct % effect for log-linear: (e^β - 1) × 100
 
     _n_str = f"{_thelook_n:,}" if _thelook_n else "11,694"
     _r2_str = f"{_thelook_r2:.4f}" if not pd.isna(_thelook_r2) else "0.7188"
@@ -1740,7 +1740,7 @@ with tab6:
         On TheLook, the log-linear OLS pipeline fits {_n_str} customers
         with R²&nbsp;=&nbsp;{_r2_str} — identifying
         <code>return_frequency</code> ({_rf_coef:+.3f},&nbsp;+{_rf_pct:.0f}%)
-        as the dominant erosion driver.
+        as the strongest behavioral associate of profit erosion.
     </p>
     <p style="color:#e8eaf6;font-size:0.9rem;line-height:1.65;margin:0;">
         SSL external validation: R²&nbsp;=&nbsp;{_ssl_r2_str}
@@ -1833,7 +1833,7 @@ SSL directional validation provides confirmation of direction only.
 |---|---|
 | **H₀₄: Reject?** | ✅ Yes — OLS F-test p < 0.001; R² = {_r2_str} |
 | **Model fit (TheLook)** | R² = {_r2_str} — {float(_r2_str) * 100:.1f}% of log-erosion variance explained |
-| **Dominant predictor** | `return_frequency` (coef = {_rf_coef:+.4f}, +{_rf_pct:.0f}% per additional return) |
+| **Strongest associate** | `return_frequency` (coef = {_rf_coef:+.4f}, +{_rf_pct:.0f}% per additional return) |
 | **Category effects** | Significant — Suits, Outerwear positive; Socks, Underwear negative |
 | **Demographics** | Not significant after controlling for behaviours and categories |
 | **SSL external validation** | R² = {_ssl_r2_str} (ratio = {_ratio_str}); {_dir_str} hypothesis predictors direction-aligned |

@@ -1,3 +1,7 @@
+# IDE and tooling — keep local only
+.claude/
+.devcontainer/
+
 # Data files - ignore raw data, track processed parquet
 data/raw/*.csv
 data/raw/*.xlsx
