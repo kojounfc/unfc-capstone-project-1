@@ -1,11 +1,11 @@
 feature,model,importance
-return_frequency,Logistic Regression,3.082948388497325
-customer_return_rate,Logistic Regression,0.9422096302968856
-avg_basket_size,Logistic Regression,0.4992743323089757
-avg_order_value,Logistic Regression,1.758827052095925
-total_items,Logistic Regression,0.2724644102389712
-total_margin,Logistic Regression,1.0801828995173566
-avg_item_margin,Logistic Regression,2.2378554547553486
+return_frequency,Logistic Regression,3.080454565001306
+customer_return_rate,Logistic Regression,0.9401512949583491
+avg_basket_size,Logistic Regression,0.49968686496092424
+avg_order_value,Logistic Regression,1.7591011936604544
+total_items,Logistic Regression,0.27349040986777934
+total_margin,Logistic Regression,1.0791793879779967
+avg_item_margin,Logistic Regression,2.235451087940861
 return_frequency,Random Forest,0.21049201865731385
 customer_return_rate,Random Forest,0.07654823275308494
 avg_basket_size,Random Forest,0.05712033955860924
@@ -19,4 +19,4 @@ avg_basket_size,Gradient Boosting,0.017153672209276865
 avg_order_value,Gradient Boosting,0.4694126474902398
 total_items,Gradient Boosting,0.000995786535797033
 total_margin,Gradient Boosting,0.1756569560463916
-avg_item_margin,Gradient Boosting,0.08275983467449093
+avg_item_margin,Gradient Boosting,0.08275983467449091
