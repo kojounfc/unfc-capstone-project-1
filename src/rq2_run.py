@@ -350,10 +350,17 @@ def run_rq2(
     print("Building segmentation table...", file=sys.stderr)
     seg_table = build_customer_segmentation_table(customer_behavior, customer_erosion)
 
-    # 6) Select + standardize features, cluster, diagnostics
+    # 6) Filter to returners only — matches notebook analysis_population scope
+    analysis_population = seg_table[seg_table["total_profit_erosion"] > 0].copy()
+    print(
+        f"Analysis population (returners only): {len(analysis_population):,} customers",
+        file=sys.stderr,
+    )
+
+    # Select + standardize features, cluster, diagnostics
     print("Selecting features (excluding leakage)...", file=sys.stderr)
     X_df, used_cols = select_numeric_features(
-        seg_table,
+        analysis_population,
         id_col="user_id",
         feature_cols=None,
         exclude_leakage_features=True,

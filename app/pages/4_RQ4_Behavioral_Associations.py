@@ -1718,13 +1718,13 @@ with tab6:
 
     _n_str = f"{_thelook_n:,}" if _thelook_n else "11,694"
     _r2_str = f"{_thelook_r2:.4f}" if not pd.isna(_thelook_r2) else "0.7188"
-    _ssl_r2_str = f"{_ssl_r2:.4f}" if not pd.isna(_ssl_r2) else "0.6185"
-    _ratio_str = f"{_r2_ratio:.2f}" if not pd.isna(_r2_ratio) else "0.80"
+    _ssl_r2_str = f"{_ssl_r2:.4f}" if not pd.isna(_ssl_r2) else "0.8141"
+    _ratio_str = f"{_r2_ratio:.2f}" if not pd.isna(_r2_ratio) else "1.13"
     _gen_str = f"{_gen_score:.2f}" if not pd.isna(_gen_score) else "0.33"
     _dir_str = (
         f"{_dir_aligned}/{_n_hyp}"
         if _dir_aligned is not None and _n_hyp
-        else "1/3"
+        else "2/3"
     )
 
     st.markdown(

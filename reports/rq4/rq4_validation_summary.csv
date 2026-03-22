@@ -11,10 +11,10 @@ r_squared_ratio_ssl_to_thelook,0.86
 generalization_score,0.33
 ssl_accounts_validated,13600.0
 thelook_nobs,11694.0
-jb_linear_model,515651.7801320038
-jb_log_linear_model,2660.705672515262
+jb_linear_model,515651.78013200604
+jb_log_linear_model,2660.7056725150674
 jb_improvement_ratio,193.8
-bp_statistic,3011.5370937803
+bp_statistic,3011.5370937802686
 bp_pvalue,0.0
-durbin_watson_statistic,2.002084361449472
+durbin_watson_statistic,2.002084361449471
 max_vif,2.804179292572859
