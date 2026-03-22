@@ -237,8 +237,8 @@ st.markdown(
     """
 <p><strong>Research Question (RQ1):</strong> Do returned items exhibit statistically significant differences in profit erosion across product categories and brands?</p>
 <div style="margin-left: 1.5rem;">
-<p><strong>Null Hypothesis (H₀₁):</strong> Mean profit erosion associated with returned items is equal across product categories and brands.</p>
-<p><strong>Alternative Hypothesis (H₁₁):</strong> Mean profit erosion associated with returned items differs significantly across product categories and/or brands.</p>
+<p><strong>Null Hypothesis (H₀₁):</strong> The distribution of profit erosion associated with returned items is the same across product categories and brands.</p>
+<p><strong>Alternative Hypothesis (H₁₁):</strong> The distribution of profit erosion associated with returned items differs across product categories and/or brands.</p>
 </div>
 
 **Method**: Kruskal–Wallis test with post-hoc Dunn comparisons and bootstrap confidence intervals.
