@@ -229,21 +229,32 @@ def run_full_rq4_ssl_validation(
     # Step 2: Create regression target
     ssl_account_df = create_ssl_regression_target(ssl_account_df, loss_column="total_loss")
 
+    # Filter to positive erosion only — matches TheLook scope and enables log transform
+    n_before = len(ssl_account_df)
+    ssl_account_df = ssl_account_df[ssl_account_df["total_profit_erosion_ssl"] > 0].copy()
+    logger.info(
+        "SSL accounts after filtering to positive erosion: %d (dropped %d)",
+        len(ssl_account_df), n_before - len(ssl_account_df),
+    )
+
     # Step 3: Validate numeric features and confirm category column present
     ssl_account_df = engineer_ssl_regression_features_v2(ssl_account_df)
 
-    # Step 4: Prepare regression data — numeric + SSL category control, no gender
+    # Step 4: Prepare regression data — log-linear to match TheLook model spec
     ssl_regression_data = prepare_regression_data(
         ssl_account_df,
         target_col="total_profit_erosion_ssl",
         numeric_features=numeric_features,
         categorical_features=["dominant_return_category"],
         exclude_features=[],
+        log_transform=True,
     )
-    logger.info("SSL regression data prepared: %d rows", len(ssl_regression_data))
+    log_ssl_target = "log_total_profit_erosion_ssl"
+    ssl_regression_data = ssl_regression_data.drop(columns=["total_profit_erosion_ssl"])
+    logger.info("SSL regression data prepared: %d rows (log-linear)", len(ssl_regression_data))
 
-    # Step 5: Fit OLS on SSL data
-    ssl_results = fit_ols_robust(ssl_regression_data, "total_profit_erosion_ssl")
+    # Step 5: Fit OLS on SSL data (log-linear, matching TheLook model)
+    ssl_results = fit_ols_robust(ssl_regression_data, log_ssl_target)
     logger.info(
         "SSL OLS fitted: R²=%.4f, F=%.2f (p<%.2e)",
         ssl_results.rsquared,
